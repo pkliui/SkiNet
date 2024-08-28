@@ -1,0 +1,9 @@
+# this is a file to make an environment for the documentation of the SkiNet project
+name: skinet-docs
+channels:
+  - conda-forge
+dependencies:
+  - sphinx
+  - furo
+  - myst-parser
+  - sphinx-togglebutton
