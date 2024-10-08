@@ -17,3 +17,4 @@ Contents
 .. toctree::
 
    documentation
+   plotting
