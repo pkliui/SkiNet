@@ -1,20 +1,17 @@
 # Plotting
 
-Quick guide how to dod various plotting tasks
+Quick guide how to do various plotting tasks
 
 
 ## Plot random images and masks for overview
 
-- Edit plot_random_samples.py with
-
-num_images = 4
-ph2_dataset = PH2Dataset(
-    root_dir=Path("/Users/Pavel/Documents/repos_data/UNet/PH2_Dataset_images/PH22")
-)
-
-- For quick overview of images and masks, run the following from terminal
+- To quickly view  images and masks sitting in a certain folder, use ```SkiNet.Plotting.plot_random_samples```,
+- where you have to specify the dataset's name e.g. PH2Dataset
+- path to a folder where the data are located e.g. /local_folder/data/
+- number of images to plot
 
 
 ```python
-python SkiNet/Plotting/plot_random_samples.py
+
+python plot_random_samples.py --dataset-name DATASET_NAME --path-to-data PATH_TO_DATA --num-images-to-plot NUM_IMAGES_TO_PLOT
 ```
