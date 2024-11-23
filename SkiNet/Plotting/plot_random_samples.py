@@ -1,7 +1,5 @@
-import numpy as np
-import torch
+import argparse
 from pathlib import Path
-
 import dash
 from dash import html, dcc
 import plotly.graph_objects as go
@@ -10,13 +8,8 @@ from plotly.subplots import make_subplots
 from SkiNet.Plotting.get_data.get_images_and_masks import get_random_sample
 from SkiNet.Plotting.adjust_data.adjust_masks import adjust_mask_for_goimage
 
-from SkiNet.ML.datasets.ph2_dataset import PH2Dataset
+from SkiNet.ML.utils.configs.dynamic_class_loader import DynamicClassLoader
 
-
-num_images = 4
-ph2_dataset = PH2Dataset(
-    root_dir=Path("/Users/Pavel/Documents/repos_data/UNet/PH2_Dataset_images/PH22")
-)
 
 def create_figure_with_subplots(data_set):
     """
@@ -36,21 +29,51 @@ def create_figure_with_subplots(data_set):
     )
     return fig
 
-app = dash.Dash(__name__)
-app.layout = html.Div([
-    html.Div([
-        html.Div([
-            dcc.Graph(
-                id=f'image-mask-{i}',
-                figure=create_figure_with_subplots(ph2_dataset),
-                style={'display': 'inline-block', 'width': '90%', 'padding': '10px'}
-            ),
-        ], style={'text-align': 'center', 'margin': '20px 0'})
-        for i in range(num_images)
-    ])
-])
-
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description="Visualize randomly picked images and masks for a given dataset and number of images")
+    parser.add_argument(
+        '--dataset-name', 
+        type=str, 
+        required=True, 
+        help="Dataset class name specific to a given data. \
+        Available datasets: PH2Dataset"
+    )
+    parser.add_argument(
+        '--path-to-data', 
+        type=str, 
+        required=True, 
+        help="Path to a directory with images and masks."
+    )
+    parser.add_argument(
+        '--num-images-to-plot', 
+        type=int, 
+        required=False, 
+        default=5, 
+        help="Number of image-mask pairs to display (default: 5)."
+    )    
+    args = parser.parse_args()
+
+    # create a new dataset
+    dataset = DynamicClassLoader(args.dataset_name).load()
+    dataset = dataset(root_dir=Path(args.path_to_data))
+
+    # initialize a new dash app and specify its layout
+    app = dash.Dash(__name__)
+    app.layout = html.Div([
+        html.Div([
+            html.Div([
+                dcc.Graph(
+                    # include mask-image ID
+                    id=f'image-mask-{i}',
+                    figure=create_figure_with_subplots(dataset),
+                    style={'display': 'inline-block', 'width': '90%', 'padding': '10px'}
+                ),
+            ], style={'text-align': 'center', 'margin': '20px 0'})
+            for i in range(args.num_images_to_plot)
+        ])
+    ])
+
     try:
         app.run_server(debug=True)
     except KeyboardInterrupt:
