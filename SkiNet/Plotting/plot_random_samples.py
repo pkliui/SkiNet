@@ -55,8 +55,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # create a new dataset
-    dataset = DynamicClassLoader(args.dataset_name).load()
-    dataset = dataset(root_dir=Path(args.path_to_data))
+    loader = DynamicClassLoader(args.dataset_name)
+    dataset_class = loader.load_the_class()
+    dataset = dataset_class(root_dir=Path(args.path_to_data))
 
     # initialize a new dash app and specify its layout
     app = dash.Dash(__name__)
@@ -64,13 +65,12 @@ if __name__ == '__main__':
         html.Div([
             html.Div([
                 dcc.Graph(
-                    # include mask-image ID
                     id=f'image-mask-{i}',
                     figure=create_figure_with_subplots(dataset),
                     style={'display': 'inline-block', 'width': '90%', 'padding': '10px'}
                 ),
             ], style={'text-align': 'center', 'margin': '20px 0'})
-            for i in range(args.num_images_to_plot)
+            for i in range(args.num_images_to_plot)  # Ensure this is properly aligned
         ])
     ])
 
