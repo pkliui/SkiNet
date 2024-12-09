@@ -15,3 +15,5 @@ Quick guide how to do various plotting tasks
 
 python plot_random_samples.py --dataset-name DATASET_NAME --path-to-data PATH_TO_DATA --num-images-to-plot NUM_IMAGES_TO_PLOT
 ```
+
+This will start a new Flask application and create a new dataset using its respective dataset class, e.g. ```PH2Dataset" for PH2 images. 
