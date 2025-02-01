@@ -9,6 +9,6 @@ In short, one needs to make a Dockerfile, listing an OS and installing all neces
 
 ```Docker
 docker build -t skinet .
-docker run -it  -v /local/path/to/projects/root/folder/ie/SkiNet:/workspace/SkiNet -t skinet
+docker run --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/workplace/SkiNet --mount type=bind,src=/Users/Pavel/.aws/,dst=/.aws/ -t skinet
 ```
 Then, in Visual Studio Code, right click on the running container and select "Attach Visual Studio". This will open a new VSC window in the Docker container.
