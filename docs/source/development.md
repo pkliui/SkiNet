@@ -5,7 +5,7 @@
 
 We use Ubuntu 22.04 inside a Docker container as our development environment. Please see more details on [developing inside a container using Visual Studio Code](https://code.visualstudio.com/docs/devcontainers/containers)
 
-In short, one needs to make a Dockerfile, listing an OS and installing all necessary dependencies, make an image out of it and run it, specifying the volume.
+In short, one needs to make a Dockerfile, specifying the target OS and all necessary dependencies, make an image out of it and run it, specifying all necessary source and target volumes. For example,
 
 ```Docker
 docker build -t skinet .
