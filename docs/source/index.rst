@@ -17,4 +17,6 @@ Contents
 .. toctree::
 
    documentation
+   development
+   azure_setup
    plotting
