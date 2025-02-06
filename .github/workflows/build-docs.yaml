@@ -1,4 +1,4 @@
-name: "Workflow to update documentation index.html each time the code in docs/source changes"
+name: Workflow to update documentation index.html each time the code in docs/source changes
 
 on:
   push:
@@ -9,22 +9,21 @@ jobs:
   docs:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
-      - name: Set up python
-        uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v2
         with:
-          python-version: 3.8.10 
-      - name: Install dependencies
-        run: |
-          pip install myst_parser
-          pip install sphinx==4.0
-          pip install sphinx-togglebutton
-          pip install furo==2022.9.29
+          activate-environment: skinet-docs
+          environment-file: docs/requirements.yaml
+          auto-activate-base: false
+
       - name: Sphinx build
+        shell: bash -l {0}  # Ensures Conda is properly activated
         run: |
           sphinx-build -b html docs/source/ docs/build/html
-          touch .nojekyll
           touch docs/.nojekyll
+
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/documentation' }}
