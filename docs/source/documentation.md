@@ -1,6 +1,6 @@
 # Documenation
 
-This documenation is built with sphinx. To complete the documentation further:
+This documentation is built with sphinx. To complete the documentation further:
 
 
 ## Make a new conda environment 
@@ -10,6 +10,7 @@ This documenation is built with sphinx. To complete the documentation further:
 # this is a file to make an environment for the documentation of the SkiNet project
 name: skinet-docs
 channels:
+  - defaults
   - conda-forge
 dependencies:
   - sphinx
@@ -25,9 +26,9 @@ conda env create -f environment_docs.yaml
 conda activate skinet-docs
 ```
 
-- Also there is a separate git branch for documentation - ```docs```
+- Also there is a separate git branch for documentation - ```documentation```
 ```bash
-git checkout -b docs
+git checkout -b documentation
 ```
 
 
@@ -136,3 +137,16 @@ Now it is ready under ```SkiNet/docs/build/html/index.html```.
 ```bash
 sphinx-build docs/source -W -b linkcheck -d docs/source docs/build/html
 ```
+
+## Deploy on Github Pages
+
+To publish the documentation on Github Pages, please follow these instructions:
+
+- Move to the branch containing the documentation, i.e. "documentation"
+```bash
+conda activate documentation
+```
+
+
+-  make a set of empty folders called ```.github/workflow``` new folder containing the following yaml file:
+
