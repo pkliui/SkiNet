@@ -142,11 +142,50 @@ sphinx-build docs/source -W -b linkcheck -d docs/source docs/build/html
 
 To publish the documentation on Github Pages, please follow these instructions:
 
-- Move to the branch containing the documentation, i.e. "documentation"
+- Make an empty "gh-pages" branch where we will publish the documentation
+- Check out at the branch containing the documentation, i.e. "documentation"
 ```bash
 conda activate documentation
 ```
+- Put the following .yaml file under ```.github/workflow```  at the project's root to specify the workflow for building documentation:
+e.g. build-docs.aml file
+```
+name: Workflow to update documentation index.html each time the code in docs/source changes
 
+on:
+  push:
+    branches:
+      - documentation
 
--  make a set of empty folders called ```.github/workflow``` new folder containing the following yaml file:
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out at branch documentation
+        uses: actions/checkout@v4
 
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: skinet-docs
+          environment-file: environment_docs.yaml
+          auto-activate-base: false
+
+      - name: Build the documentation using Sphinx
+        shell: bash -l {0}  # -l to ensure a login bash, where the conda environment is correctly set; {0} a template placeholder, replaced at pipeline execution time by the actual script command to execute
+        run: |
+          sphinx-build -b html docs/source/ docs/build/html
+          touch docs/.nojekyll
+
+      - name: Deploy the documentation
+        uses: peaceiris/actions-gh-pages@v4
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/documentation' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build/html
+          force_orphan: true
+```
+
+- In Settings/Actions/General/Workflow permissions, make sure to have "Read and write permissions" selected.
+- Now each time, one pushes to the "documentation" branch, Github Actions will execute this workflow and publish the updated documentation in "gh-pages" branch
