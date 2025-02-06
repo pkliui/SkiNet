@@ -148,8 +148,9 @@ To publish the documentation on Github Pages, please follow these instructions:
 conda activate documentation
 ```
 - Put the following .yaml file under ```.github/workflow```  at the project's root to specify the workflow for building documentation:
-e.g. build-docs.aml file
-```
+e.g. build-docs.yaml file
+
+```yaml
 name: Workflow to update documentation index.html each time the code in docs/source changes
 
 on:
@@ -185,6 +186,13 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/build/html
           force_orphan: true
+```
+
+- Under "docs" folder please add an empty .nojekyll file 
+- Under the same "docs" folder add an "index.html" file with the following content:
+- 
+```html
+<meta http-equiv="refresh" content="0; url=./build/html/index.html" />
 ```
 
 - In Settings/Actions/General/Workflow permissions, make sure to have "Read and write permissions" selected.
