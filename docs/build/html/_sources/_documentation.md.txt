@@ -1,0 +1,19 @@
+# Documentation
+
+This documentation is built with sphinx.
+
+
+## Make a new conda environment 
+* It requires a new conda environment (that is different from the project's environment) with the packages specified in ```SkiNet/environment_docs.yaml```
+
+```yaml
+# this is a file to make an environment for the documentation of skinnet project
+name: skinet-docs
+channels:
+  - conda-forge
+dependencies:
+  - sphinx
+  - furo
+  - myst-parser
+  - sphinx-togglebutton
+```
