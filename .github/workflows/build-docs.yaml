@@ -3,7 +3,7 @@ name: "Workflow to update documentation index.html each time the code in docs/so
 on:
   push:
     branches:
-      - docs
+      - documentation
 
 jobs:
   docs:
@@ -27,9 +27,9 @@ jobs:
           touch docs/.nojekyll
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/docs' }}
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/documentation' }}
         with:
-          publish_branch: docs
+          publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: docs/build/html
           force_orphan: true
