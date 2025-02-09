@@ -31,6 +31,11 @@ def create_figure_with_subplots(data_set):
 
 if __name__ == '__main__':
 
+    """
+    Example:
+    python plot_random_samples.py --dataset-name PH2Dataset --path-to-data /Users/Pavel/Documents/repos_data/UNet/PH2_Dataset_images/PH22 --num-images-to-plot 2
+    """
+
     parser = argparse.ArgumentParser(description="Visualize randomly picked images and masks for a given dataset and number of images")
     parser.add_argument(
         '--dataset-name', 
