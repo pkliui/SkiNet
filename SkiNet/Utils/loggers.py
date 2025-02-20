@@ -66,8 +66,7 @@ def stdout_logging(log_level: int = logging.INFO) -> None:
     if not stdout_logging_handler:
         print("Setting up stdout_logging")
 
-        # Remove any existing handlers attached to the root logger.
-        # This will ensure we don't accumulate handlers over time.
+        # Remove any existing handlers attached to the root logger at start
         if len(logger.handlers) > 0:
             for handler in logger.handlers[:]:
                 logger.removeHandler(handler)
