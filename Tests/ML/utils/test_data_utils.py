@@ -51,7 +51,7 @@ def local_ph2dataset_one_sample_each_missing(tmp_path):
                 img = Image.fromarray(np.random.randint(0, 255, (IMG_SIZE, IMG_SIZE), dtype=np.uint8))
                 img.save(img_folder / f"IMD{ii}.bmp")
             else:
-                logging.getLogger(__name__).info(f"Skipping image sample {ii} while creating local_ph2dataset for testing.")
+                logging.getLogger(__name__).debug(f"Skipping image sample {ii} while creating local_ph2dataset for testing.")
 
             if ii not in mask_sample_num_to_skip:
                 mask_folder = tmp_path / f"IMD{ii}" / f"IMD{ii}_lesion"
@@ -59,7 +59,7 @@ def local_ph2dataset_one_sample_each_missing(tmp_path):
                 mask = Image.fromarray(np.random.randint(0, 255, (IMG_SIZE, IMG_SIZE), dtype=np.uint8))
                 mask.save(mask_folder / f"IMD{ii}_lesion.bmp")
             else:
-                logging.info(f"Skipping mask sample {ii} while creating local_ph2dataset for testing.")
+                logging.debug(f"Skipping mask sample {ii} while creating local_ph2dataset for testing.")
         return tmp_path
 
     yield _local_ph2dataset_one_sample_each_missing
