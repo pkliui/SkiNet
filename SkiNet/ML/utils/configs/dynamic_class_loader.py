@@ -31,7 +31,7 @@ class DynamicClassLoader:
 
             # first import the specified module
             imported_module = importlib.import_module(self.module_name)
-            logging.debug(f"Importing {imported_module}")
+            logging.getLogger(__name__).debug(f"Importing {imported_module}")
 
             # get the specified class from that module
             loaded_class = next(
@@ -41,10 +41,9 @@ class DynamicClassLoader:
                 if inspect.isclass(found_class) and found_name == self.class_name 
                 and inspect.getmodule(found_class) == imported_module
             )
-            logging.debug(f"Found class {loaded_class} in file {imported_module}")
+            logging.getLogger(__name__).info(f"Found class {loaded_class} in file {imported_module}")
             return loaded_class
         except Exception as e:
-            logging.debug(f"Error loading module  for class {self.class_name}: {str(e)}")
             if str(e) != "":
-                logging.warning(f"Error loading module for class  {self.class_name}: {str(e)}")
+                logging.getLogger(__name__).warning(f"Loading module for class  {self.class_name} has not succeed: {str(e)}")
             return None
