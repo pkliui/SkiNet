@@ -18,5 +18,6 @@ Contents
 
    documentation
    development
+   data_handling
    azure_setup
    plotting
