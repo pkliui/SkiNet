@@ -10,8 +10,11 @@ def get_config_from_yaml(path_to_yaml: Path)-> Dict:
     :param path_to_yaml: The file path to the YAML configuration file
     :return: A dictionary containing the configuration from the YAML file.
     """
-    with open(path_to_yaml, 'r') as file:
-        yaml_data = yaml.safe_load(file)
-        if yaml_data:
-            return yaml_data
-        return dict()
+    try:
+        with open(path_to_yaml, 'r') as file:
+            yaml_data = yaml.safe_load(file)
+            if yaml_data:
+                return yaml_data
+            return dict()
+    except FileNotFoundError as e:
+        raise ValueError(f"Config file specified in {path_to_yaml} not found") from e
