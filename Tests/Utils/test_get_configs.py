@@ -48,3 +48,11 @@ def test_get_config_from_yaml_empty(mimicked_yaml_file_empty):
     file_path = mimicked_yaml_file_empty
     loaded_config = get_config_from_yaml(file_path)
     assert loaded_config == {}
+
+def test_get_config_from_yaml_file_not_found(tmp_path):
+    """
+    Test that get_config_from_yaml raises a ValueError if the file does not exist.
+    """
+    non_existent_file = tmp_path / "non_existent.yaml"
+    with pytest.raises(ValueError, match=f"Config file specified in {non_existent_file} not found"):
+        get_config_from_yaml(non_existent_file)
