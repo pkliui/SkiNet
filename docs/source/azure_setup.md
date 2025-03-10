@@ -51,3 +51,6 @@ Now we need to make a new storage account to keep our images.
 - Now when we have set up the service principal, we need to grant it with appropriate rights
 - Go to your Azure Machine Learning Workspace (not studio but the workspace in Azure portal) and under ```Access control (IAM) / Role assignments``` choose "New role assignment"
 - Select ```AzureML Data Scientist```, pick the newly created service principal and finish by clicking ```Save```. You should be able to access the data in your data storage account programmatically using the service principal and AzureMachineLearningFileSystem tools
+
+### Authentication from the code
+To access data stored in the blob container from within the code, one must do an authentication with the SP created above. This is done by calling [```service_principal_authentication()```](https://github.com/pkliui/SkiNet/blob/main/SkiNet/Azure/azure_setup.py) method
