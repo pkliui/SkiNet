@@ -5,6 +5,7 @@ Can be used from the command line or from code
 import argparse
 import logging
 from pathlib import Path
+from typing import Union
 import dash
 from dash import html, dcc
 import plotly.graph_objects as go
@@ -50,7 +51,7 @@ def create_images_masks_subplot(data_set, sample_index_to_plot, random_sample=Tr
     )
     return fig
 
-def plot_images_masks_side_by_side(dataset_name: str = None, dataset: Dataset = None, num_images_to_plot: int = 1, random_sample: bool = True, path_to_data: Path = None):
+def plot_images_masks_side_by_side(dataset_name: str = None, dataset: Dataset = None, num_images_to_plot: int = 1, random_sample: bool = True, path_to_data: Union[str, Path] = None):
     """
     Plot an arbitrary number of images and masks in a dataset, given either its name or provided as a dataset obejct
 
@@ -58,7 +59,7 @@ def plot_images_masks_side_by_side(dataset_name: str = None, dataset: Dataset = 
     :param dataset: A dataset object yielding a dictionary of an image and a mask. If provided, dataset_name is not needed. Can be used only if run from code.
     :param num_images_to_plot: Number of image-mask pairs to display
     :param random_sample: If True, a random sample is picked from the dataset, default is True
-    :param path_to_data: Path to a directory with images and masks
+    :param path_to_data: Path to a directory with images and masks or str
     """
     #
     # load the dataset by providing its name (respective dataset calss should exist as checked in the DynamicClassLoader)

@@ -24,19 +24,20 @@ def get_random_sample(data_set: Dataset) -> dict[np.array, np.array]:
     return {'image': img, 'mask': mask, 'name': sample_name}
 
 
-def read_images_from_directory(directory_path, search_pattern):
+def read_images_from_directory(directory_path, search_pattern, max_num_images_to_return=1):
     """
     Reads all images in the directory that match the given search pattern
 
     :param directory_path: Path to the directory containing images.
     :param search_pattern: for example for bmp images located in a folder  having "Dermoscopic_Image" in its name '*_Dermoscopic_Image/*.bmp'
+    :param num_images_to_plot: Number of images to read. Default is 1.
     :return: A list of PIL Image objects.
     """
     image_paths = list(Path(directory_path).rglob(search_pattern))
     # List to store PIL Image objects
     images = []
     # Loop through the paths and open the images
-    for image_path in image_paths:
+    for image_path in image_paths[:max_num_images_to_return]:
         try:
             # Open image using PIL and append to list
             img = Image.open(image_path)
