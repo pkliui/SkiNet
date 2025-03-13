@@ -6,30 +6,53 @@ Adapted from https://pytorch.org/vision/stable/auto_examples/others/plot_visuali
 from typing import List
 import torch
 from torchvision.utils import draw_segmentation_masks
-from torchvision.io import decode_image, read_file
 import numpy as np
 from matplotlib import pyplot as plt
 import torchvision.transforms.functional as F
 from torchvision import transforms
 
 
-def show(imgs: List[torch.Tensor]):
+import math
+import torch
+from torchvision import transforms
+from matplotlib import pyplot as plt
+import torchvision.transforms.functional as F
+import numpy as np
+
+def show(imgs: List[torch.Tensor], max_cols=2):
     """
-    Show images provided as a list of torch tensors
+    Show images provided as a list of torch tensors, with automatic wrapping of images
+    into multiple rows if needed.
+
+    :param imgs: List of images (torch tensors).
+    :param max_cols: Maximum number of columns per row. The rest will be wrapped into the next row.
     """
     if not isinstance(imgs, list):
         imgs = [imgs]
+    if not imgs:
+        raise ValueError("No images provided to show, img cannot be empty")
 
-    fig, axs = plt.subplots(ncols=len(imgs), squeeze=False)
+    # Calculate the number of rows needed based on max_cols
+    ncols = min(len(imgs), max_cols)  # Ensure no more than max_cols columns
+    nrows = math.ceil(len(imgs) / ncols)  # Wrap images into multiple rows if necessary
+
+    # Create the subplots
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, squeeze=False, figsize=(ncols * 5, nrows * 4))
+
     for i, img in enumerate(imgs):
-        img = img.detach()
         img = F.to_pil_image(img)
-        axs[0, i].imshow(np.asarray(img))
-        axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+        
+        # Calculate row and column index
+        row = i // ncols
+        col = i % ncols
+        
+        axs[row, col].imshow(np.asarray(img))
+        axs[row, col].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
 
+    plt.tight_layout()
     plt.show()
 
-def plot_masks_over_images(images, masks, alpha=0.3, colors="white"):
+def plot_masks_over_images(images, masks, alpha=0.3, colors="white", max_cols=2):
     """
     Plot masks over images with transparency given the images and masks as lists of PIL images
 
@@ -37,6 +60,7 @@ def plot_masks_over_images(images, masks, alpha=0.3, colors="white"):
     :param masks: List of masks (e.g. PIL images)
     :param alpha: Transparency of the mask
     :param colors: Color of the mask
+    :param max_cols: Maximum number of columns per row. The rest will be wrapped into the next row.
     """
     #
     transform = transforms.ToTensor()
@@ -51,4 +75,4 @@ def plot_masks_over_images(images, masks, alpha=0.3, colors="white"):
             mask = mask.to(torch.bool)
         images_with_masks.append(draw_segmentation_masks(image, masks=mask, alpha=alpha, colors = colors))
 
-    show(images_with_masks)
+    show(images_with_masks, max_cols=max_cols)
