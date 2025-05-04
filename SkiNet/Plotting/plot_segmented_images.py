@@ -7,6 +7,16 @@ from typing import List
 import torch
 from torchvision.utils import draw_segmentation_masks
 import numpy as np
+
+from SkiNet.Utils.dev_utils import is_running_in_docker
+# Set matplotlib backend based on environment
+if is_running_in_docker():
+    # to plot in docker
+    import matplotlib
+    matplotlib.use("Agg")
+
+from IPython.display import display
+
 from matplotlib import pyplot as plt
 import torchvision.transforms.functional as F
 from torchvision import transforms
@@ -48,9 +58,16 @@ def show(imgs: List[torch.Tensor], max_cols=2):
         
         axs[row, col].imshow(np.asarray(img))
         axs[row, col].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
-
     plt.tight_layout()
-    plt.show()
+
+    # Use the right method to show the plot
+    if is_running_in_docker():
+        display(fig)  # Use this if you want to force inline plotting
+        plt.show()
+    else:
+        plt.show()  # Normal display outside Docker
+    
+    plt.close(fig)  # Prevents duplicate figures in Jupyter
 
 def plot_masks_over_images(images, masks, alpha=0.3, colors="white", max_cols=2):
     """
@@ -63,7 +80,12 @@ def plot_masks_over_images(images, masks, alpha=0.3, colors="white", max_cols=2)
     :param max_cols: Maximum number of columns per row. The rest will be wrapped into the next row.
     """
     #
-    transform = transforms.ToTensor()
+    #transform = transforms.ToTensor()
+
+    transform = transforms.Compose([
+        transforms.ToTensor(), # Converts to float32 (0-1)
+        transforms.Lambda(lambda x: (x * 255).byte())  # Scale & convert to uint8
+    ])
 
     images_with_masks = []
     for image, mask in zip(images, masks):
