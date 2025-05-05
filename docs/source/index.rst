@@ -19,5 +19,6 @@ Contents
    documentation
    development
    data_handling
+   dataloaders
    azure_setup
    plotting
