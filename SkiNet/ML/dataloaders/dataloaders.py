@@ -1,7 +1,10 @@
+import logging
 from math import ceil
 from typing import Any
-from torch.utils.data import BatchSampler, DataLoader, Dataset, RandomSampler, Sampler, SequentialSampler
-import logging
+
+from torch.utils.data import (BatchSampler, DataLoader, Dataset, RandomSampler,
+                              Sampler, SequentialSampler)
+
 
 class _RepeatSampler(BatchSampler):
 
@@ -55,7 +58,7 @@ class RepeatDataLoader(DataLoader):
 
     def __init__(self,
                  dataset: Dataset,
-                 max_num_to_repeat: int,
+                 max_num_to_repeat: int = 10,
                  batch_size: int = 1,
                  shuffle: bool = False,
                  drop_last: bool = False,
