@@ -1,9 +1,10 @@
 """Various functions to load images and masks"""
-import numpy as np
-from pathlib import Path
-from PIL import Image
 import logging
+from pathlib import Path
+from typing import List
 
+import numpy as np
+from PIL import Image
 from torch import randint
 from torch.utils.data.dataset import Dataset
 
@@ -24,18 +25,22 @@ def get_random_sample(data_set: Dataset) -> dict[np.array, np.array]:
     return {'image': img, 'mask': mask, 'name': sample_name}
 
 
-def read_images_from_directory(directory_path, search_pattern, max_num_images_to_return=1):
+def read_images_from_directory(directory_path: str, 
+                               search_pattern: str, 
+                               max_num_images_to_return: int = 1) -> List[Image.Image]:
     """
-    Reads all images in the directory that match the given search pattern
+    Reads all images in the directory that match the given search pattern.
 
     :param directory_path: Path to the directory containing images.
-    :param search_pattern: for example for bmp images located in a folder  having "Dermoscopic_Image" in its name '*_Dermoscopic_Image/*.bmp'
-    :param num_images_to_plot: Number of images to read. Default is 1.
+    :param search_pattern: For example, for BMP images located in a folder having "Dermoscopic_Image" in its name, use '*_Dermoscopic_Image/*.bmp'.
+    :param max_num_images_to_return: Number of images to read. Default is 1.
+
     :return: A list of PIL Image objects.
     """
+    # Use rglob to find all files matching the search pattern
     image_paths = list(Path(directory_path).rglob(search_pattern))
     # List to store PIL Image objects
-    images = []
+    images: List[Image.Image] = []
     # Loop through the paths and open the images
     for image_path in image_paths[:max_num_images_to_return]:
         try:
