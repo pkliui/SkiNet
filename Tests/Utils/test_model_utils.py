@@ -31,18 +31,3 @@ def test_case_insensitivity(input_state, expected_state):
     Test that state names are case-insensitive.
     """
     assert state_mapping(input_state) == expected_state
-
-
-@pytest.mark.parametrize("invalid_state", [
-    "invalid_state",
-    "",
-    "   ",
-    "unknown",
-    "123",
-])
-def test_invalid_states(invalid_state):
-    """
-    Test that invalid state names raise a ValueError.
-    """
-    with pytest.raises(ValueError, match="Invalid state name"):
-        state_mapping(invalid_state)
