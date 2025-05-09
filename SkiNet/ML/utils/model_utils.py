@@ -20,7 +20,7 @@ def state_mapping(input_state_name: str) -> MLWorkflowState:
     """
 
     #   
-    state_mapping = {
+    state_mapping_dict = {
         "train": MLWorkflowState.TRAIN,
         "training": MLWorkflowState.TRAIN,
         "val": MLWorkflowState.VAL,
@@ -29,7 +29,8 @@ def state_mapping(input_state_name: str) -> MLWorkflowState:
         "testing": MLWorkflowState.TEST,
     }
 
-    state = state_mapping.get(input_state_name.lower())
-    if state is None:
-        raise ValueError(f"Invalid state name: '{input_state_name}'. Must be one of {list(state_mapping.keys())}.")
+    if input_state_name.lower() in state_mapping_dict.keys():
+        state = state_mapping_dict[input_state_name.lower()]
+    else:
+        raise ValueError(f"Invalid ML workflow state name: '{input_state_name}'. Must be one of {list(state_mapping_dict.keys())}.")
     return state
