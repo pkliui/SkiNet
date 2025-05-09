@@ -30,7 +30,7 @@ def plot_masks_over_images(images: Union[torch.Tensor, List[Image.Image]],
                            colors: Optional[Union[List[Union[str, Tuple[int, int, int]]], str, Tuple[int, int, int]]] = "white",
                            max_cols: Optional[int] = 2):
     """
-    Plot masks over images with transparency.
+    Plot masks over images with transparency, given they are provided in a batched tensor or a list
     
     :param images:
         A batched tensor or a list of PIL images of shape (3, H, W) where 3 is the number of channels, 
