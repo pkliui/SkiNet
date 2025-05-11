@@ -101,18 +101,3 @@ config_path = "/workplace/SkiNet/SkiNet/ML/configs/ph2dataset_plotting_config.js
 plot_segmentations(mode = "folder",
                    config=get_config_from_yaml(config_path))
 ```
-
-# Plot random images and masks for overview
-
-- To quickly view  images and masks sitting in a certain folder, use ```SkiNet.Plotting.plot_random_samples```,
-- where you have to specify the dataset's name e.g. PH2Dataset
-- path to a folder where the data are located e.g. /local_folder/data/
-- number of images to plot
-
-
-```python
-
-python plot_random_samples.py --dataset-name DATASET_NAME --path-to-data PATH_TO_DATA --num-images-to-plot NUM_IMAGES_TO_PLOT
-```
-
-This will start a new Flask application and create a new dataset using its respective dataset class, e.g. ```PH2Dataset" for PH2 images. 
