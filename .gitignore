@@ -4,3 +4,17 @@
 
 # sphinx docs
 /docs/build/
+/docs/_sources/
+/docs/_static/
+/docs/.doctrees/
+/docs/.buildinfo
+/docs/azure_setup.html
+/docs/data_handling.html
+/docs/dataloaders.html
+/docs/development.html
+/docs/documentation.html
+/docs/genindex.html
+/docs/plotting.html
+/docs/search.html
+/docs/searchindex.js
+/docs/objects.inv
