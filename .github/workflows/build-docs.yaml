@@ -30,7 +30,8 @@ jobs:
 
       - name: Deploy the documentation
         uses: peaceiris/actions-gh-pages@v4
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/documentation' }}
+        # deployment step to run§ on all branches
+        #if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev_doc' }}
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
