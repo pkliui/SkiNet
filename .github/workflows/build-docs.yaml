@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+      - dev
+      - dev_doc
+
 
 jobs:
   docs:
