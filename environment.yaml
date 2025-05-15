@@ -1,0 +1,24 @@
+---
+name: skinet
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - numpy
+  - pytest
+  - python  # the latest supported version required by s3torchconnector is 3.11, remving this to fix an "import torch" error
+  - scikit-image
+  - matplotlib
+  - ipykernel
+  - jupyterlab
+  - dash
+  - plotly
+  - pandas
+  - param
+  - pytorch
+  - torchvision
+  - torchaudio
+  - torchdata
+  - pip
+  - yacs
