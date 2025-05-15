@@ -26,10 +26,8 @@ conda env create -f environment_docs.yaml
 conda activate skinet-docs
 ```
 
-- Also there is a separate git branch for documentation - ```documentation```
-```bash
-git checkout -b documentation
-```
+The ```documentation``` branch has been merged into dev_doc branch
+
 
 
 ## Configure documentation
@@ -142,10 +140,12 @@ sphinx-build docs/source -W -b linkcheck -d docs/source docs/build/html
 
 To publish the documentation on Github Pages, please follow these instructions:
 
-- Make an empty "gh-pages" branch where we will publish the documentation
-- Check out at the branch containing the documentation, i.e. "documentation"
+-  Make an empty "gh-pages" branch where we will publish the documentation
+-  Before actual pulishing, prepare the following: 
+-  Check out at the git branch containing the documentation locally, i.e. dev_doc at the time of writing
+  
 ```bash
-conda activate documentation
+git checkout dev_doc
 ```
 - Put the following .yaml file under ```.github/workflow```  at the project's root to specify the workflow for building documentation:
 e.g. build-docs.yaml file
@@ -194,6 +194,8 @@ jobs:
 ```html
 <meta http-equiv="refresh" content="0; url=./build/html/index.html" />
 ```
+
+- Push to remote branch containing the documentation
 
 - In Settings/Actions/General/Workflow permissions, make sure to have "Read and write permissions" selected.
 - Now each time, one pushes to the "documentation" branch, Github Actions will execute this workflow and publish the updated documentation in "gh-pages" branch
