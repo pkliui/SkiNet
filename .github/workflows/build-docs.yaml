@@ -1,0 +1,35 @@
+name: Workflow to update documentation index.html each time the code in docs/source changes
+
+on:
+  push:
+    branches:
+      - documentation
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out at branch documentation
+        uses: actions/checkout@v4
+
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: skinet-docs
+          environment-file: environment_docs.yaml
+          auto-activate-base: false
+
+      - name: Build the documentation using Sphinx
+        shell: bash -l {0}  # -l to ensure a login bash, where the conda environment is correctly set; {0} a template placeholder, replaced at pipeline execution time by the actual script command to execute
+        run: |
+          sphinx-build -b html docs/source/ docs/build/html
+          touch docs/.nojekyll
+
+      - name: Deploy the documentation
+        uses: peaceiris/actions-gh-pages@v4
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/documentation' }}
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/build/html
+          force_orphan: true

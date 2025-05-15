@@ -1,0 +1,6 @@
+# ignore IDE files
+.idea/
+
+
+# sphinx docs
+/docs/build/
