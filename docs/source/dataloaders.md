@@ -2,8 +2,8 @@
 
 - This document describes modifications to PyTorch's default DataLoader used in SkiNet to prevent spawning new processes at the beginning of each epoch.
 
-- A Jupyter notebook with examples is available here: [RepeatDataloaders Example Notebook](../SkiNet/Sandbox/RepeatDataloaders.ipynb)
-
+- A Jupyter notebook with examples is available here: [RepeatDataloaders Example Notebook](../../SkiNet/ML/dataloaders/examples/RepeatDataloaders.ipynb)
+  
   ### Dataloaders and subprocesses 
 
 - Let us have a look what happens when we start iterating over a dataloader:
@@ -12,7 +12,7 @@
 
   - **Prefetching & Queues:** Pytorch uses multiprocessing library and exactly at the beginning of epoch 0, when we start iterating over epochs, *Pytorch spawns ```num_workers > 1 ``` separate subprocesses (with their own PIDs) to handle loading the data*. 
   
-  - At this point, the dataset indices are  sent to the workers. This “prefetching” is done by putting up to (prefetch_factor × num_workers) indices in the worker input queues. This happens before the first batch is actually yielded (see *Dataloader with persistent workers*  and *Dataloader with RepeatSampler* sections in [RepeatDataloaders Example Notebook](../SkiNet/Sandbox/RepeatDataloaders.ipynb))
+  - At this point, the dataset indices are  sent to the workers. This “prefetching” is done by putting up to (prefetch_factor × num_workers) indices in the worker input queues. This happens before the first batch is actually yielded (see *Dataloader with persistent workers*  and *Dataloader with RepeatSampler* sections in [RepeatDataloaders Example Notebook](../../SkiNet/ML/dataloaders/examples/RepeatDataloaders.ipynb))
 
   - Each worker process picks up an index from its queue and calls getitem to fetch the data and does this asynchronously. The main process collects these results from a shared result queue and the individual samples are eventually being grouped into batches by the DataLoader. E.g. the pre-collected indicies from epoch 1 may be seen in batches yielded in epoch 2
 
