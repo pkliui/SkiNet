@@ -1,0 +1,35 @@
+name: Workflow to update documentation upon push to dev branch
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out at the current branch
+        uses: actions/checkout@v4
+
+      - name: Set up conda environment "skinet-docs" to build documentation
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: skinet-docs
+          environment-file: environment_docs.yaml
+          auto-activate-base: false
+
+      - name: Build the documentation using Sphinx
+        shell: bash -l {0}  # -l to ensure a login bash, where the conda environment is correctly set; {0} a template placeholder, replaced at pipeline execution time by the actual script command to execute
+        run: | # build sphinx documentation directly into /docs to have index.html in /docs; this is expected so when the GitHub Pages site is being built from branch "gh-pages", folder "/root" (see Settings/Pages/Build and deployment)
+          sphinx-build -b html docs/source/ docs/ 
+          touch docs/.nojekyll 
+
+      - name: Deploy the documentation to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+        with: # the branch specified in "publish_branch" should be the same as in Settings/Pages, e.g. "gh-pages" and folder "/root"
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: docs/
+          force_orphan: true
