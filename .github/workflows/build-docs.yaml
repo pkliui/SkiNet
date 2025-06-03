@@ -1,10 +1,9 @@
-name: Workflow to update documentation index.html each time the code in docs/source changes
+name: Workflow to update documentation index.html each time the code in branch dev_doc changes
 
 on:
   push:
     branches:
       - dev_doc
-
 
 jobs:
   docs:
