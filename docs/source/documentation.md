@@ -1,9 +1,12 @@
 # Documenation
 
-This documentation is built with sphinx. To complete the documentation further:
+At present the documentation is built with sphinx in the dev branch and its remote version (GitHub Pages site https://pkliui.github.io/SkiNet/) is updated upon a push to the dev branch as specified in the workflow (see below).
 
+To complete the documentation further:
 
-## Make a new conda environment 
+## Building documentation locally
+
+### Make a new conda environment 
 - It requires a new conda environment (that is different from the project's environment) as specified in ```skinet/environment_docs.yaml```
 
 ```yaml
@@ -21,16 +24,11 @@ dependencies:
 
 ```bash
 conda env create -f environment_docs.yaml
-```
-```bash
 conda activate skinet-docs
 ```
 
-The ```documentation``` branch has been merged into dev_doc branch
 
-
-
-## Configure documentation
+### Configure documentation
 
 - Following the instructions on https://www.sphinx-doc.org/en/master/tutorial/getting-started.html, go to the project's root directory and run 
 ```bash
@@ -54,7 +52,7 @@ SkiNet
 |    ├── project's modules
 ```
 
-- ```docs/source/index.rst``` serves as a welcome page and contains the root of the “table of contents tree”. 
+- File ```docs/source/index.rst``` serves as a welcome page and contains the root of the “table of contents tree”. 
 
 - Whenever you add a new file (page) to your project, add it to the Contents section under the "toctree", e.g.:
 ```
@@ -121,14 +119,14 @@ html_static_path = ['_static']
 ```
 
 
-## Build documentation
-- Given you are in the project folder containing the ```docs``` folder, run the build:
+### Build documentation
+- Given you are in the project folder containing the ```docs``` folder, run:
 
 ```bash
 sphinx-build -M html docs/source/ docs/build/
 ```
 
-Now it is ready under ```SkiNet/docs/build/html/index.html```. 
+- Now the documentation is ready under ```SkiNet/docs/build/html/index.html```. 
 
 - Check that all links are working with
 
@@ -140,32 +138,31 @@ sphinx-build docs/source -W -b linkcheck -d docs/source docs/build/html
 
 To publish the documentation on Github Pages, please follow these instructions:
 
--  Make an empty "gh-pages" branch where we will publish the documentation
--  Before actual pulishing, prepare the following: 
--  Check out at the git branch containing the documentation locally, i.e. dev_doc at the time of writing
+-  Make an empty "gh-pages" branch where the documentation will be published as a GitHub Pages site
+-  Check out at the git branch containing the documentation locally, i.e. dev at the time of writing
   
 ```bash
-git checkout dev_doc
+git checkout dev
 ```
-- Put the following .yaml file under ```.github/workflow```  at the project's root to specify the workflow for building documentation:
+- Put the following .yaml file under ```.github/workflow```  to specify the workflow for building documentation:
 e.g. build-docs.yaml file
 
 ```yaml
-name: Workflow to update documentation index.html each time the code in docs/source changes
+name: Workflow to update documentation upon push to dev branch
 
 on:
   push:
     branches:
-      - documentation
+      - dev
 
 jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out at branch documentation
+      - name: Check out at the current branch
         uses: actions/checkout@v4
 
-      - name: Set up Miniconda
+      - name: Set up conda environment "skinet-docs" to build documentation
         uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: skinet-docs
@@ -174,28 +171,28 @@ jobs:
 
       - name: Build the documentation using Sphinx
         shell: bash -l {0}  # -l to ensure a login bash, where the conda environment is correctly set; {0} a template placeholder, replaced at pipeline execution time by the actual script command to execute
-        run: |
-          sphinx-build -b html docs/source/ docs/build/html
-          touch docs/.nojekyll
+        run: | # build sphinx documentation directly into /docs to have index.html in /docs; this is expected so when the GitHub Pages site is being built from branch "gh-pages", folder "/root" (see Settings/Pages/Build and deployment)
+          sphinx-build -b html docs/source/ docs/ 
+          touch docs/.nojekyll 
 
-      - name: Deploy the documentation
+      - name: Deploy the documentation to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/documentation' }}
-        with:
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+        with: # the branch specified in "publish_branch" should be the same as in Settings/Pages, e.g. "gh-pages" and folder "/root"
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/build/html
+          publish_dir: docs/
           force_orphan: true
+
 ```
 
-- Under "docs" folder please add an empty .nojekyll file 
-- Under the same "docs" folder add an "index.html" file with the following content:
-- 
-```html
-<meta http-equiv="refresh" content="0; url=./build/html/index.html" />
-```
+- Under "docs" folder please add an empty ".nojekyll" file. 
+      - The ".nojekyll" file is used to disable Jekyll processing on GitHub Pages and ensure sphinx-generated documentation is correctly served
 
-- Push to remote branch containing the documentation
+- Push the changes to remote
 
 - In Settings/Actions/General/Workflow permissions, make sure to have "Read and write permissions" selected.
-- Now each time, one pushes to the "documentation" branch, Github Actions will execute this workflow and publish the updated documentation in "gh-pages" branch
+
+- Under Settings/General/Pages, make sure to select  "Deploy from branch", Branch "gh-pages", "/root" folder (NOT "dev" branch!)
+  
+- Now each time, one pushes to the "dev" branch, Github Actions will execute this workflow and publish the updated documentation in "gh-pages" branch
