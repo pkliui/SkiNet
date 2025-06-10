@@ -39,6 +39,5 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 import furo
-html_theme = 'furo'
 
-html_static_path = ['_static']
+html_theme = 'furo'
