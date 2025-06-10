@@ -3,7 +3,7 @@
 Quick guide how to do various plotting tasks
 
 
-# Read and plot images and masks from a local directory
+## Read and plot images and masks from a local directory
 
 ### When can be used: 
 - Images and masks sitting in a local directory
