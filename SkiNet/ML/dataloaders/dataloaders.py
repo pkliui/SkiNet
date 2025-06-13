@@ -71,6 +71,9 @@ class RepeatDataLoader(DataLoader):
         :param drop_last: If True, drops incomplete minibatches at the end.
         :param kwargs: Any additional arguments that will be passed through to the Dataloader constructor.
         """
+        import os
+        logging.getLogger(__name__).debug(f"The process ID in RepeatDataloader: {os.getpid()}")
+
         self.dataset = dataset
         self.max_num_to_repeat = max_num_to_repeat
         self.batch_size = batch_size
