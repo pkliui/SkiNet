@@ -3,12 +3,22 @@
 - This document describes modifications to PyTorch's default DataLoader used in SkiNet to prevent spawning new processes at the beginning of each epoch.
 
 - A Jupyter notebook with examples is available here: [RepeatDataloaders Example Notebook](../../SkiNet/ML/dataloaders/examples/RepeatDataloaders.ipynb)
+
+
+### Motivation
+
+Spawning new worker processes at the beginning of each epoch in PyTorch's DataLoader (when num_workers > 0 and persistent_workers=False) can lead to several disadvantages:
+- Overhead of initialising the dataset in each worker (by deserialising from the main process), slowing down training
+- Memory overhead as each worker process requires its own memory space
+- Any state maintained by workers (cached data, preloaded resources) is lost when workers are shut down
+- If the dataset contains python ojects such as lists and dictionaries, the copy-on-write behaviour during spawning can increase memory consumption futher 
+- May result in deadlocks and race conditions if shared resources are not managed properly
   
   ### Dataloaders and subprocesses 
 
 - Let us have a look what happens when we start iterating over a dataloader:
-  - **Dataset initialisation** begins with the ```Dataset.__init__()``` method being called in the main process
-  - **Dataloader initialisation** is done in the ```Dataloader.__init__()```  method
+  - **Dataset initialisation** begins with the ```Dataset.__init__()``` and runs in the main process
+  - **Dataloader initialisation** is done in the ```Dataloader.__init__()```  and runs in the main process
 
   - **Prefetching & Queues:** Pytorch uses multiprocessing library and exactly at the beginning of epoch 0, when we start iterating over epochs, *Pytorch spawns ```num_workers > 1 ``` separate subprocesses (with their own PIDs) to handle loading the data*. 
   
@@ -18,7 +28,7 @@
 
    
   - **What happens under the hood at the beginning of each epoch:** At the beginning of each epoch, we call ```for batch in loader``` and under the hood Pytorch calls
-
+a
     ```
     iterator = iter(loader)
     batch = next(iterator
