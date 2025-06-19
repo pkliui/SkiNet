@@ -6,18 +6,54 @@ import argparse
 import logging
 from pathlib import Path
 from typing import Union
+
 import dash
-from dash import html, dcc
 import plotly.graph_objects as go
+from dash import dcc, html
+from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
 from torch.utils.data.dataset import Dataset
 
-from SkiNet.Plotting.get_data.get_images_and_masks import get_random_sample
-from SkiNet.Plotting.adjust_data.adjust_masks import adjust_mask_for_goimage
 from SkiNet.ML.utils.configs.dynamic_class_loader import DynamicClassLoader
-
-import logging
+from SkiNet.Plotting.adjust_data.adjust_masks import adjust_mask_for_goimage
+from SkiNet.Plotting.get_data.get_images_and_masks import get_random_sample
 from SkiNet.Utils.loggers import stdout_logging
+
+
+def plot_images_masks_side_by_side_matplotlib(dataset, num_samples=5):
+    """
+    Plots images and their corresponding masks side by side with colorbars using matplotlib
+
+    :param dataset: A PyTorch Dataset
+    :param num_samples: Number of image-mask pairs to plot.
+    """
+
+
+    # Create a figure with subplots
+    fig, axes = plt.subplots(num_samples, 2, figsize=(10, 5 * num_samples))
+    if num_samples == 1:
+        axes = [axes]  # Ensure axes is iterable for a single sample
+
+    for i in range(num_samples):
+        # Get a sample from the dataset
+        sample = dataset[i]
+        image = sample['image'].numpy().transpose(1, 2, 0)  # Convert to HWC format
+        mask = sample['mask'].numpy().squeeze()  # Remove channel dimension if present
+
+        # Plot the image
+        im = axes[i][0].imshow(image)
+        axes[i][0].set_title(f"Image {i+1}")
+        axes[i][0].axis('off')
+        fig.colorbar(im, ax=axes[i][0], orientation='vertical')
+
+        # Plot the mask
+        m = axes[i][1].imshow(mask, cmap='gray')
+        axes[i][1].set_title(f"Mask {i+1}")
+        axes[i][1].axis('off')
+        fig.colorbar(m, ax=axes[i][1], orientation='vertical')
+
+    plt.tight_layout()
+    plt.show()
 
 
 def create_images_masks_subplot(data_set, sample_index_to_plot, random_sample=True):
@@ -95,7 +131,7 @@ def plot_images_masks_side_by_side(dataset_name: str = None, dataset: Dataset = 
         ])
     ])
 
-    app.run_server(debug=True)
+    app.run(debug=True)
 
 if __name__ == '__main__':
     stdout_logging(logging.DEBUG)
