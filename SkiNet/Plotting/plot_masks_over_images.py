@@ -93,7 +93,7 @@ def show(input_images: List[torch.Tensor],
          max_cols: int = 2):
     """
     Show images provided as a list of torch tensors, with automatic wrapping of images
-    into multiple rows if needed.
+    into multiple rows if needed. Can be used to plot either images or images with masks overlayed on them.
 
     Adapted from https://pytorch.org/vision/stable/auto_examples/others/plot_visualization_utils.html#sphx-glr-auto-examples-others-plot-visualization-utils-py
 
