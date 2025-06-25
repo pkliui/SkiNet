@@ -1,10 +1,12 @@
 """
 Contains various functions to handle data
 """
-from pathlib import Path
-import re
-from typing import List, Tuple
 import logging
+import re
+from pathlib import Path
+from typing import List, Tuple
+
+from PIL import Image
 
 
 def extract_sample_number(file_path: Path) -> int:
@@ -21,6 +23,7 @@ def extract_sample_number(file_path: Path) -> int:
     # Find the first group of digits in the filename (we assume they are the only one)
     first_matching_digits = re.search(r'\d+', file_stem)
     return int(first_matching_digits.group()) if first_matching_digits else 0
+
 
 
 def filter_missing_images_and_masks(image_paths: List[Path], mask_paths: List[Path]) -> Tuple[List[Path], List[Path]]:
@@ -50,3 +53,27 @@ def filter_missing_images_and_masks(image_paths: List[Path], mask_paths: List[Pa
     paired_masks = [mask_dict[key] for key in sorted(common_keys)]
     return paired_images, paired_masks
     
+
+def filter_images_and_masks_of_different_sizes(image_paths: List[Path], mask_paths: List[Path]) -> Tuple[List[Path], List[Path]]:
+    """
+    Filter out images and masks that do not have the same size.
+    
+    :param image_paths: List of image file paths
+    :param mask_paths: List of mask file paths
+    :return: Two lists: filtered image paths and filtered mask paths
+    """
+    filtered_images_paths = []
+    filtered_masks_paths = []
+    
+    for img_path, msk_path in zip(image_paths, mask_paths):
+        img = Image.open(img_path)
+        msk = Image.open(msk_path)
+        
+        if img.size == msk.size:
+            filtered_images_paths.append(img_path)
+            filtered_masks_paths.append(msk_path)
+        else:
+            logging.getLogger(__name__).info(f"Image {img_path} and mask {msk_path} do not have the same size, skipping this pair.")
+    
+    return filtered_images_paths, filtered_masks_paths
+
