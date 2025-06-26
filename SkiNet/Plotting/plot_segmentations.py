@@ -12,7 +12,7 @@ from SkiNet.ML.datasets.ph2dataset import PH2Dataset
 from SkiNet.ML.utils.configs.dynamic_class_loader import DynamicClassLoader
 from SkiNet.ML.utils.model_utils import MLWorkflowState, state_mapping
 from SkiNet.Plotting.get_data.get_images_and_masks import \
-    read_images_from_directory
+    read_images_and_masks_from_directory
 from SkiNet.Plotting.plot_masks_over_images import plot_masks_over_images
 from SkiNet.Utils.dev_utils import is_running_in_docker
 
@@ -209,12 +209,14 @@ def plot_segmentations(mode: str,
     
     to plot from a folder:
     --------------------------------
+    # given arguments
     from SkiNet.Plotting.plot_segmentations import plot_segmentations
     plot_segmentations(mode = "folder",
                     data_root = "/workplace/SkiNet/PH2_Dataset_images",
                     search_pattern_images = "*_Dermoscopic_Image/*.bmp",
                     search_pattern_masks = "*_lesion/*.bmp",
-                    max_images_to_plot = 10)                   
+                    max_cols = 5,
+                    max_images_to_plot = 10)            
 
     """
 
@@ -280,8 +282,13 @@ def plot_segmentations(mode: str,
         if not all([search_pattern_images, search_pattern_masks]):
             raise ValueError("Missing required parameters for 'folder' mode.")
 
-        images = read_images_from_directory(data_root, search_pattern_images, max_num_images_to_return=max_images_to_plot)
-        masks = read_images_from_directory(data_root, search_pattern_masks, max_num_images_to_return=max_images_to_plot)
+        # read both images and masks
+        images, masks = read_images_and_masks_from_directory(
+            directory_path=data_root,
+            search_pattern_images=search_pattern_images,
+            search_pattern_masks=search_pattern_masks,
+            max_num_images_to_return=max_images_to_plot
+        )
         plotter = PlotSegmentations.from_paths(
             images,
             masks,
