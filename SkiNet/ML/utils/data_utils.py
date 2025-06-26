@@ -24,20 +24,36 @@ def extract_sample_number(file_path: Path) -> int:
     first_matching_digits = re.search(r'\d+', file_stem)
     return int(first_matching_digits.group()) if first_matching_digits else 0
 
+def filter_and_pair_valid_paths(paths_to_images: List[Path], paths_to_masks: List[Path]) -> Tuple[List[Path], List[Path]]:
+    """
+    Filters and pairs image and mask paths so that:
+    - Only pairs with both image and mask present are kept
+    - Only pairs where image and mask have the same size are kept
+
+    :param paths_to_images: List of image file paths
+    :param paths_to_masks: List of mask file paths
+    :return: Two lists: filtered and paired image paths and mask paths
+    """
+    # filter images and masks that do not have a counterpart
+    paths_to_images_paired, paths_to_masks_paired  = filter_missing_images_and_masks(paths_to_images, paths_to_masks)
+    # filter images and masks that do not have the same size
+    paths_to_images_filtered, paths_to_masks_filtered = filter_images_and_masks_of_different_sizes(paths_to_images_paired, paths_to_masks_paired)
+
+    return paths_to_images_filtered, paths_to_masks_filtered
 
 
-def filter_missing_images_and_masks(image_paths: List[Path], mask_paths: List[Path]) -> Tuple[List[Path], List[Path]]:
+def filter_missing_images_and_masks(paths_to_images: List[Path], paths_to_masks: List[Path]) -> Tuple[List[Path], List[Path]]:
     """
     Given paths to images and masks, identify pairs of those based on a unique sample number extracted from the filename.
     Modify the provided paths by including only image and masks that have the same sample number, i.e. have a pair
     
-    :param image_paths: List of image file paths, not necessarily sorted
-    :param mask_paths: List of mask file paths, not necessarily sorted
+    :param paths_to_images: List of image file paths, not necessarily sorted
+    :param paths_to_masks: List of mask file paths, not necessarily sorted
     :return: Two lists: image paths and mask paths, in which all items are uniquely pairable by their sample number, sorted
     """
     # Create dictionaries keyed by the sample number and identify common keys
-    image_dict = {extract_sample_number(img): img for img in image_paths}
-    mask_dict = {extract_sample_number(msk): msk for msk in mask_paths}
+    image_dict = {extract_sample_number(img): img for img in paths_to_images}
+    mask_dict = {extract_sample_number(msk): msk for msk in paths_to_masks}
     common_keys = set(image_dict.keys()) & set(mask_dict.keys())
     
     # Identify missing items
@@ -54,18 +70,18 @@ def filter_missing_images_and_masks(image_paths: List[Path], mask_paths: List[Pa
     return paired_images, paired_masks
     
 
-def filter_images_and_masks_of_different_sizes(image_paths: List[Path], mask_paths: List[Path]) -> Tuple[List[Path], List[Path]]:
+def filter_images_and_masks_of_different_sizes(paths_to_images: List[Path], paths_to_masks: List[Path]) -> Tuple[List[Path], List[Path]]:
     """
     Filter out images and masks that do not have the same size.
     
-    :param image_paths: List of image file paths
-    :param mask_paths: List of mask file paths
+    :param paths_to_images: List of image file paths
+    :param paths_to_masks: List of mask file paths
     :return: Two lists: filtered image paths and filtered mask paths
     """
     filtered_images_paths = []
     filtered_masks_paths = []
     
-    for img_path, msk_path in zip(image_paths, mask_paths):
+    for img_path, msk_path in zip(paths_to_images, paths_to_masks):
         img = Image.open(img_path)
         msk = Image.open(msk_path)
         
