@@ -24,22 +24,26 @@ def extract_sample_number(file_path: Path) -> int:
     first_matching_digits = re.search(r'\d+', file_stem)
     return int(first_matching_digits.group()) if first_matching_digits else 0
 
-def filter_and_pair_valid_paths(paths_to_images: List[Path], paths_to_masks: List[Path]) -> Tuple[List[Path], List[Path]]:
+def filter_and_pair_valid_paths(paths_to_images: List[Path], 
+                                paths_to_masks: List[Path],
+                                filter_if_size_different: bool) -> Tuple[List[Path], List[Path]]:
     """
     Filters and pairs image and mask paths so that:
     - Only pairs with both image and mask present are kept
-    - Only pairs where image and mask have the same size are kept
+    - Only pairs where image and mask have the same size are kept, if filter_if_size_different is True.
 
     :param paths_to_images: List of image file paths
     :param paths_to_masks: List of mask file paths
+    :param filter_if_size_different: If True, filter out pairs where images and masks do not have the same size
     :return: Two lists: filtered and paired image paths and mask paths
     """
     # filter images and masks that do not have a counterpart
-    paths_to_images_paired, paths_to_masks_paired  = filter_missing_images_and_masks(paths_to_images, paths_to_masks)
-    # filter images and masks that do not have the same size
-    paths_to_images_filtered, paths_to_masks_filtered = filter_images_and_masks_of_different_sizes(paths_to_images_paired, paths_to_masks_paired)
+    paths_to_images, paths_to_masks  = filter_missing_images_and_masks(paths_to_images, paths_to_masks)
+    if filter_if_size_different:
+        # filter images and masks that do not have the same size
+        paths_to_images, paths_to_masks = filter_images_and_masks_of_different_sizes(paths_to_images, paths_to_masks)
 
-    return paths_to_images_filtered, paths_to_masks_filtered
+    return paths_to_images, paths_to_masks
 
 
 def filter_missing_images_and_masks(paths_to_images: List[Path], paths_to_masks: List[Path]) -> Tuple[List[Path], List[Path]]:
