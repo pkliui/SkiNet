@@ -292,7 +292,7 @@ def test_filter_and_pair_valid_paths_composed_filters():
         image_paths = [img1, img2, img4, img5]
         mask_paths = [msk1, msk3, msk4, msk5]
         
-        filtered_imgs, filtered_msks = filter_and_pair_valid_paths(image_paths, mask_paths)
+        filtered_imgs, filtered_msks = filter_and_pair_valid_paths(image_paths, mask_paths, True)
         
         # Only (img1, msk1) and (img5, msk5) should remain
         assert filtered_imgs == [img1, img5]
