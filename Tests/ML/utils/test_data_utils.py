@@ -1,17 +1,21 @@
-import pytest
-from pathlib import Path
 import logging
-import tempfile
-from PIL import Image
-import numpy as np
-from typing import List
 import random
-from SkiNet.ML.utils.data_utils import extract_sample_number, filter_missing_images_and_masks
+import tempfile
+from pathlib import Path
+from typing import List
+
+import numpy as np
+import pytest
+from PIL import Image
+
+from SkiNet.ML.utils.data_utils import (
+    extract_sample_number, filter_images_and_masks_of_different_sizes,
+    filter_missing_images_and_masks)
 
 IMG_SIZE = 128
 NUM_SAMPLES = 7
 
-"""Testing extract_sample_number"""
+"""---------------------------------------------------------------------Testing extract_sample_number---------------------------------------------------------------------"""
 
 @pytest.mark.parametrize("filename, expected", [
     ("IMD001.bmp", 1), # should return 1, not 001
@@ -30,7 +34,8 @@ def test_extract_sample_number(filename, expected):
     assert extract_sample_number(file_path) == expected
 
 
-"""Testing local_ph2dataset"""
+"""---------------------------------------------------------------------Testing filter_missing_images_and_masks - local ph2 dataset---------------------------------------------------------------------"""
+
 
 @pytest.fixture
 def local_ph2dataset_one_sample_each_missing(tmp_path):
@@ -191,3 +196,49 @@ def test_pair_image_mask_paths_one_sample_missing_unsorted(local_ph2dataset_one_
     assert masks == expected_masks, f"Paired masks do not match expected paths: {masks} vs {expected_masks}"
 
 
+"""---------------------------------------------------------------------Testing filter_images_and_masks_of_different_sizes - arbitrary dataset---------------------------------------------------------------------"""
+
+def create_image(path: Path, size=(32, 32), color=128):
+    img = Image.new("L", size, color)
+    img.save(path)
+
+def test_filter_images_and_masks_of_different_sizes():
+    """
+    Test that filter_images_and_masks_of_different_sizes correctly filters out images and masks that do not have the same size.
+    This test creates a temporary directory with images and masks of different sizes, then applies the filter function.
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        # Create matching image/mask pairs
+        img1 = tmpdir / "img1.png"
+        msk1 = tmpdir / "msk1.png"
+        create_image(img1, (32, 32))
+        create_image(msk1, (32, 32))
+        
+        # Create mismatched image/mask pair
+        img2 = tmpdir / "img2.png"
+        msk2 = tmpdir / "msk2.png"
+        create_image(img2, (32, 32))
+        create_image(msk2, (34, 32))
+        
+        # Create mismatched image/mask pair
+        img4 = tmpdir / "img4.png"
+        msk4 = tmpdir / "msk4.png"
+        create_image(img4, (32, 32))
+        create_image(msk4, (33, 32))
+        
+
+        # Another matching pair
+        img3 = tmpdir / "img3.png"
+        msk3 = tmpdir / "msk3.png"
+        create_image(img3, (16, 16))
+        create_image(msk3, (16, 16))
+        
+        image_paths = [img1, img2, img3, img4]
+        mask_paths = [msk1, msk2, msk3, img4]
+        
+        filtered_imgs, filtered_msks = filter_images_and_masks_of_different_sizes(image_paths, mask_paths)
+        
+        # Only pairs (img1, msk1) and (img3, msk3) should remain
+        assert filtered_imgs == [img1, img3]
+        assert filtered_msks == [msk1, msk3]
