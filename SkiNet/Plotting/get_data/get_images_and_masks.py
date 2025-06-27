@@ -59,7 +59,8 @@ def read_images_from_directory(directory_path: str,
 def read_images_and_masks_from_directory(directory_path: str, 
                                 search_pattern_images: str, 
                                 search_pattern_masks: str,
-                                max_num_images_to_return: int = 1) -> Tuple[List[Image.Image], List[Image.Image]]:
+                                max_num_images_to_return: int = 1,
+                                ) -> Tuple[List[Image.Image], List[Image.Image]]:
     """
     Reads all images and masks in the directory that match the given search pattern. Filter out pairs where images and masks are not present or have different sizes.
     Replaces read_images_from_directory where no filtering was done.
@@ -77,8 +78,8 @@ def read_images_and_masks_from_directory(directory_path: str,
     images_paths = list(Path(directory_path).rglob(search_pattern_images))
     masks_paths = list(Path(directory_path).rglob(search_pattern_masks))
 
-    # filter missing pairs or pairs where images and masks are of different size
-    images_paths, masks_paths = filter_and_pair_valid_paths(images_paths, masks_paths)
+    # filter missing pairs  AND pairs where images and masks are of different size
+    images_paths, masks_paths = filter_and_pair_valid_paths(images_paths, masks_paths, True)
 
     # List to store PIL Image objects
     images: List[Image.Image] = []

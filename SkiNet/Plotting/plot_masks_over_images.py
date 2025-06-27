@@ -4,6 +4,7 @@ Adapted from https://pytorch.org/vision/stable/auto_examples/others/plot_visuali
 """
 
 import math
+from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
