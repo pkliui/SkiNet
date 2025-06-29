@@ -244,7 +244,7 @@ def test_filter_images_and_masks_of_different_sizes():
         assert filtered_msks == [msk1, msk3]
 
 
-"""---------------------------------------------------------------------Testing filter_and_pair_valid_pathss - arbitrary dataset---------------------------------------------------------------------"""
+"""---------------------------------------------------------------------Testing filter_and_pair_valid_pathss - arbitrary dataset - filter_if_size_different=True---------------------------------------------------------------------"""
 
 from SkiNet.ML.utils.data_utils import filter_and_pair_valid_paths
 
@@ -253,10 +253,11 @@ def create_image(path: Path, size=(32, 32), color=128):
     img = Image.new("L", size, color)
     img.save(path)
 
-def test_filter_and_pair_valid_paths_composed_filters():
+def test_filter_and_pair_valid_paths_with_size_check():
     """
     Test that filter_and_pair_valid_paths returns only pairs that:
     - have both image and mask present (by sample number)
+
     - have the same size
     """
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -297,3 +298,60 @@ def test_filter_and_pair_valid_paths_composed_filters():
         # Only (img1, msk1) and (img5, msk5) should remain
         assert filtered_imgs == [img1, img5]
         assert filtered_msks == [msk1, msk5]
+
+
+    
+
+"""---------------------------------------------------------------------Testing filter_and_pair_valid_pathss - arbitrary dataset - filter_if_size_different=False---------------------------------------------------------------------"""
+
+from SkiNet.ML.utils.data_utils import filter_and_pair_valid_paths
+
+
+def create_image(path: Path, size=(32, 32), color=128):
+    img = Image.new("L", size, color)
+    img.save(path)
+
+def test_filter_and_pair_valid_paths_without_size_check():
+    """
+    Test that filter_and_pair_valid_paths returns only pairs that:
+    - have both image and mask present (by sample number)
+    - have the same size
+    """
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir = Path(tmpdir)
+        # Valid pair
+        img1 = tmpdir / "img1.png"
+        msk1 = tmpdir / "img1_mask.png"
+        create_image(img1, (32, 32))
+        create_image(msk1, (32, 32))
+        
+        # Pair with missing mask
+        img2 = tmpdir / "img2.png"
+        create_image(img2, (32, 32))
+        # No mask2
+        
+        # Pair with missing image
+        msk3 = tmpdir / "img3_mask.png"
+        create_image(msk3, (32, 32))
+        # No img3
+        
+        # Pair with mismatched size
+        img4 = tmpdir / "img4.png"
+        msk4 = tmpdir / "img4_mask.png"
+        create_image(img4, (32, 32))
+        create_image(msk4, (16, 16))
+        
+        # Another valid pair
+        img5 = tmpdir / "img5.png"
+        msk5 = tmpdir / "img5_mask.png"
+        create_image(img5, (24, 24))
+        create_image(msk5, (24, 24))
+        
+        image_paths = [img1, img2, img4, img5]
+        mask_paths = [msk1, msk3, msk4, msk5]
+        
+        filtered_imgs, filtered_msks = filter_and_pair_valid_paths(image_paths, mask_paths, False)
+        
+        # Only (img1, msk1) and (img5, msk5) should remain
+        assert filtered_imgs == [img1, img4, img5]
+        assert filtered_msks == [msk1, msk4, msk5]
