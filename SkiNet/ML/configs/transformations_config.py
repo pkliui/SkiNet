@@ -119,9 +119,14 @@ config.augmentation_off.center_crop.size = (500, 500)
 
 def get_default_config() -> CfgNode:
     """
-    Return a copy of the default configuration.
+    Return a clone of the default configuration as a yacs CfgNode object with default values.
 
     This is useful for creating a new configuration object with the default values, 
     without a risk of modifying the original configuration.
+    This is for the "local variable" use pattern.
     """
     return config.clone()
+
+# Alternatively, provide a way to import the defaults as
+# a global singleton:
+# cfg = config  # users can `from transformations_config import cfg`
