@@ -194,7 +194,7 @@ def test_transformdata_pipeline_with_pil():
     assert isinstance(out, torch.Tensor)
 
 
-"""------------------------------------------------------------------TESTS for   transformations_config.make_transform_from_config using default YACS config ---------------------------------------------------------------"""
+"""------------------------------------------------------------------TESTS for make_transform_from_config using default YACS config ---------------------------------------------------------------"""
 
 
 # the below uses default YACS transformations config  specified in Tests.ML.configs.transformation_configs_paths_for_test.config_test_transform_data
@@ -445,7 +445,7 @@ def test_make_transform_from_config_PIL_image_augmentations_off(explicit_transfo
     assert torch.isclose(expected_transformed_image, transformed_image).all()
 
 
-"""------------------------------------------------------------------TESTS for   transformations_config.make_transform_from_config using YAML ---------------------------------------------------------------"""
+"""------------------------------------------------------------------TESTS for make_transform_from_config using YAML ---------------------------------------------------------------"""
 
 from SkiNet.ML.transformations.transform_data import (
     TransformData, make_transform_from_config)
