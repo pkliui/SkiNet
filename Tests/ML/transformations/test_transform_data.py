@@ -198,7 +198,7 @@ def test_transformdata_pipeline_with_pil():
 
 from SkiNet.ML.transformations.transform_data import (
     TransformData, make_transform_from_config)
-from Tests.ML.configs.test_transformation_configs import \
+from Tests.ML.configs.transformation_configs_paths_for_test import \
     config_test_transform_data
 
 
@@ -440,3 +440,90 @@ def test_make_transform_from_config_PIL_image_augmentations_off(explicit_transfo
 
     # assert both results are the same
     assert torch.isclose(expected_transformed_image, transformed_image).all()
+
+
+"""------------------------------------------------------------------TESTS for using YAML for transformations_config---------------------------------------------------------------"""
+
+from SkiNet.ML.transformations.transform_data import (
+    TransformData, make_transform_from_config)
+from Tests.ML.configs.transformation_configs_paths_for_test import \
+    config_yaml_test_transform_data
+
+
+# Example YAML config file (here just for visual ciomparison with the explicit_transforms_YAML elow)
+# the actual YAML file is loaded in and its path is specified in config_yaml_test_transform_data
+"""
+augmentation:
+  random_affine_apply: True
+  random_affine:
+    degrees: 90
+    translate: (0.1, 0.1)
+
+  random_rotation_apply: False
+
+  crop_apply: True
+  center_crop:
+    size: (400, 400)
+"""
+
+
+@pytest.fixture
+def explicit_transforms_YAML():
+    explicit_transforms_from_config = [
+    T.RandomAffine(degrees=90, translate=(0.1, 0.1), scale = (0.1, 0.3), shear=30), # changed as per YAML
+    #T.RandomRotation(degrees = 30), # is False in YAML
+    T.RandomHorizontalFlip(p=0.5),
+    T.RandomVerticalFlip(p=0.5),
+    T.ElasticTransform(sigma=5.0, alpha=50),
+    T.RandomPerspective(distortion_scale = 0.5, p = 0.5),
+    T.RandomEqualize(p=0.5),
+    T.ColorJitter(saturation=0.5, brightness=0.5, contrast=0.5, hue = 0.5),
+    T.CenterCrop(size=(400, 400)), # changed as per YAML
+    T.ToDtype(torch.float32, scale=True)
+]
+    return explicit_transforms_from_config
+
+
+def test_make_transform_from_config_PIL_image_YAML(explicit_transforms_YAML) -> None:
+    """
+    Test that make_transform_from_config returns the correctly transformed input 
+    that is a PIL image, 
+    using a YAML config file altering the default configuration
+    """
+    #
+    # return the transformation pipeline by make_transform_from_config using the provided configuration + YAML file
+    transform_from_config_yaml = make_transform_from_config(
+        config_yaml_test_transform_data,
+        augmentation_required=True
+    )
+    
+    # list all transforms from config_yaml_test_transform_data  explicitly
+    explicit_transforms_from_config_YAML = explicit_transforms_YAML
+    # input as a PIL image
+    image_input = torch.randint(0, 256, size=(3, *IMAGE_SIZE), dtype=torch.uint8)
+    image_input = T.ToPILImage()(image_input)
+
+    # get the transformed image using transforms returned by make_transform_from_config
+    np.random.seed(3)
+    torch.manual_seed(3)
+    random.seed(3)
+    # transformed_image will be of TVImage type
+    # use transform_from_config_yaml
+    transformed_image = transform_from_config_yaml(image_input)
+    logging.getLogger(__name__).debug(type(transformed_image))
+    assert isinstance(transformed_image, TVImage)
+    assert isinstance(transformed_image, torch.Tensor) # TVImage is a subclass of torch.Tensor
+
+    # get the transformed image using the pipeline above
+    np.random.seed(3)
+    torch.manual_seed(3)
+    random.seed(3)
+    # convert to ToImage first, because this is done so in TransformData for all inputs that are not TVImage
+    # use explicit_transforms_from_config_YAML
+    expected_transformed_image = T.ToImage()(image_input) 
+    for transform in explicit_transforms_from_config_YAML:
+        expected_transformed_image = transform(expected_transformed_image)
+
+    # assert both results are the same
+    assert torch.isclose(expected_transformed_image, transformed_image).all()
+
