@@ -1,0 +1,11 @@
+augmentation:
+  random_affine_apply: True
+  random_affine:
+    degrees: 90
+    translate: (0.1, 0.1)
+
+  random_rotation_apply: False
+
+  crop_apply: True
+  center_crop:
+    size: (400, 400)
