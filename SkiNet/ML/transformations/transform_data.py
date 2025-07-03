@@ -73,10 +73,54 @@ def make_transform_from_config(config: CfgNode, augmentation_required: bool):
     """
     Create transforms for augmentation and resizing using torchvision.transforms.v2.
 
-    :param config: Configuration object containing augmentation parameters
+    :param config: Configuration object is a CfgNode object set up as in SkiNet/ML/configs/transformations_config.py.
+        Typically the default configuration in there should be overriden by a YAML configuration file for a specific experiment.
     :param augmentation_required: Boolean flag indicating whether augmentation is required
         If False, only resize and crop are applied.
     :return: A torchvision transform.Compose object
+
+
+    Example making a YAML configuration file:
+
+    ```yaml
+    augmentation:
+    random_affine_apply: True
+    random_affine:
+        degrees: 90
+        translate: (0.1, 0.1)
+
+    random_rotation_apply: False
+
+    crop_apply: True
+    center_crop:
+        size: (400, 400)
+    ```
+
+    ```python
+    # import default config
+    from SkiNet.ML.configs import transformations_config
+    config = transformations_config.get_default_config()
+
+    # import yaml settings
+    from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH 
+    config.merge_from_file(TRANSFORMATION_CONFIGS_YAML_PATH) # override from YAML
+    config.freeze() #  to prevent further modification
+    ```
+
+
+    Example making a transformation:
+
+    ```python
+    from SkiNet.ML.transformations.transform_data import make_transform_from_config
+    transform_from_config = make_transform_from_config(
+        config,
+        augmentation_required=False)
+    transformed_image = transform_from_config(input_image)
+    ```
+
+
+    The input image can be a torch.Tensor, TVImage, or PIL.Image.Image or a tuple of these types, as per v2.transformations.
+
     """
     transforms_list = []
 
