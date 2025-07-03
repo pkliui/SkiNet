@@ -40,3 +40,60 @@ Example jupyter notebook showing this problem (from the authors on Github) https
 
 
 
+## Augmentation of data
+
+Data are augmented using ```TransformData``` class in ```SkiNet/ML/transformations/transform_data.py```. In practice one can make a transformation pipeline using ```make_transform_from_config``` function and a respective configuration object ```config```. 
+
+### Configuration for transformation
+- The configuration options for transformations are defined using (YASC library)[https://github.com/rbgirshick/yacs].
+- ```SkiNet/ML/configs/transformations_config.py```is a project config file for performing transformations in SkiNet that holds the default settings.
+- For each experiment one typically creates a dedicated YAML configuration file where the options that are different from the default options are listed. Example:
+
+```yaml
+augmentation:
+  random_affine_apply: True
+  random_affine:
+    degrees: 90
+    translate: (0.1, 0.1)
+
+  random_rotation_apply: False
+
+  crop_apply: True
+  center_crop:
+    size: (400, 400)
+```
+
+- The imported config settings are overriden by the YAML file's content and then frozen to prevent any further modifications:
+
+```python
+# import default config
+from SkiNet.ML.configs import transformations_config
+config = transformations_config.get_default_config()
+
+# import yaml settings
+from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH 
+config.merge_from_file(TRANSFORMATION_CONFIGS_YAML_PATH) # override from YAML
+config.freeze() #  to prevent further modification
+```
+
+
+### Making transformations
+
+- This configuration object ```config``` can now be used to make a transformation pipeline using ```make_transform_from_config```:
+
+```python
+from SkiNet.ML.transformations.transform_data import make_transform_from_config
+
+transform_from_config = make_transform_from_config(
+    config,
+    augmentation_required=True)
+transformed_image = transform_from_config(input_image)
+```
+
+- Since class ```TransformData```uses```v2.transforms```under the hood, the input image can be a torch.Tensor, TVImage, or PIL.Image.Image or a tuple of these types.  According to the torch documentation, v2.transforms support arbitrary input structures, such as single image, a tuple or a dictionary. The same structure will be returned as output. Pure torch.Tensor objects are treated as images. However, if the input is an Image, Video, or PIL.Image.Image instance, all other pure tensors are passed-through (not transformed). If there is no Image or Video instance, only the first pure torch.Tensor will be transformed as image or video, while all others will be passed-through. Here “first” means “first in a depth-wise traversal”.
+ https://docs.pytorch.org/vision/main/auto_examples/transforms/plot_transforms_getting_started.html#sphx-glr-auto-examples-transforms-plot-transforms-getting-started-py
+
+
+
+
+
