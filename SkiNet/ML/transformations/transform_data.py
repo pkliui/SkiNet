@@ -133,15 +133,7 @@ def make_transform_from_config(config: CfgNode, augmentation_required: bool):
                 T.RandomAffine(
                     degrees=config.augmentation.random_affine.degrees,
                     translate=config.augmentation.random_affine.translate,
-                    scale=config.augmentation.random_affine.scale,
                     shear=config.augmentation.random_affine.shear
-                )
-            )
-        # Random rotation as per torchvision.transforms.v2.RandomRotation
-        if config.augmentation.random_rotation_apply:
-            transforms_list.append(
-                T.RandomRotation(
-                    degrees=config.augmentation.random_rotation.degrees
                 )
             )
         # Random flips as per torchvision.transforms.v2.RandomHorizontalFlip and RandomVerticalFlip
@@ -190,30 +182,33 @@ def make_transform_from_config(config: CfgNode, augmentation_required: bool):
                     hue=config.augmentation.random_colorjitter.hue
                 )
             )
+
+        # Centre crop  as per torchvision.transforms.v2.CenterCrop
+        if config.augmentation.center_crop_apply:
+            transforms_list.append(
+                T.CenterCrop(size=config.augmentation.center_crop.size)
+                )
         
-        #########################
         # Resize  as per torchvision.transforms.v2.Resize
         if config.augmentation.resize_apply:
             transforms_list.append(
                 T.Resize(size=config.augmentation.resize.size)
                 )
-        # Centre crop  as per torchvision.transforms.v2.CenterCrop
-        if config.augmentation.crop_apply:
-            transforms_list.append(
-                T.CenterCrop(size=config.augmentation.center_crop.size)
-                )
+
+
     else:
+        # Centre crop  as per torchvision.transforms.v2.CenterCrop
+        if config.augmentation_off.center_crop_apply:
+            transforms_list.append(
+                T.CenterCrop(size=config.augmentation_off.center_crop.size)
+                )
+            
         # Resize  as per torchvision.transforms.v2.Resize
         if config.augmentation_off.resize_apply:
             transforms_list.append(
                 T.Resize(size=config.augmentation_off.resize.size)
                 )
-        # Centre crop  as per torchvision.transforms.v2.CenterCrop
-        if config.augmentation_off.crop_apply:
-            transforms_list.append(
-                T.CenterCrop(size=config.augmentation_off.center_crop.size)
-                )
-            
+       
     transforms_list.append(T.ToDtype(torch.float32, scale=True))
     pipeline = TransformData(T.Compose(transforms_list))
 
