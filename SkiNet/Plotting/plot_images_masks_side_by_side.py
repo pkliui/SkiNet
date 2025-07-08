@@ -96,6 +96,10 @@ def plot_images_masks_side_by_side(dataset_name: str = None, dataset: Dataset = 
     :param num_images_to_plot: Number of image-mask pairs to display
     :param random_sample: If True, a random sample is picked from the dataset, default is True
     :param path_to_data: Path to a directory with images and masks or str
+
+    Example of use from command line (being in SkiNet/ within SkiNet environment):
+    python SkiNet/Plotting/plot_images_masks_side_by_side.py --dataset-name "PH2Dataset" --path-to-data "PH2_Dataset_images" --num-images-to-plot 10
+
     """
     #
     # load the dataset by providing its name (respective dataset calss should exist as checked in the DynamicClassLoader)
