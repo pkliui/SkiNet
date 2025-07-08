@@ -11,8 +11,8 @@ from PIL import Image
 from SkiNet.ML.transformations.transform_data import (
     TransformData, make_transform_from_config)
 
-IMAGE_SIZE = (600, 600)
-RESIZE_SIZE = (512, 512)
+IMAGE_SIZE = (500, 500)
+RESIZE_SIZE = (400, 400)
 
 """------------------------------------------------------------------TESTS for ensure_tv_image---------------------------------------------------------------"""
 
@@ -208,13 +208,13 @@ from Tests.ML.configs.transformation_configs_paths_for_test import \
 @pytest.fixture
 def explicit_transforms():
     explicit_transforms_from_config = [
-    T.RandomAffine(degrees=30, translate=(0.05, 0.05), scale = (0.1, 0.3), shear=30),
+    T.RandomAffine(degrees=180, translate=(0.1, 0.1), shear=30),
     T.RandomHorizontalFlip(p=0.5),
     T.RandomVerticalFlip(p=0.5),
-    T.ElasticTransform(sigma=5.0, alpha=50),
-    T.RandomPerspective(distortion_scale = 0.5, p = 0.5),
-    T.RandomEqualize(p=0.5),
-    T.ColorJitter(saturation=0.5, brightness=0.5, contrast=0.5, hue = 0.5),
+    #T.ElasticTransform(sigma=5.0, alpha=5.0),
+    #T.RandomPerspective(distortion_scale = 0.01, p = 0.5),
+    #T.RandomEqualize(p=0.5),
+    #T.ColorJitter(saturation=0.5, brightness=0.5, contrast=0.5, hue = 0.5),
     T.CenterCrop(size=(500, 500)),
     T.ToDtype(torch.float32, scale=True)
 ]
@@ -470,13 +470,13 @@ augmentation:
 @pytest.fixture
 def explicit_transforms_YAML():
     explicit_transforms_from_config = [
-    T.RandomAffine(degrees=90, translate=(0.1, 0.1), scale = (0.1, 0.3), shear=30), # changed as per YAML
+    T.RandomAffine(degrees=180, translate=(0.1, 0.1),  shear=30), # changed as per YAML
     T.RandomHorizontalFlip(p=0.5),
     T.RandomVerticalFlip(p=0.5),
-    T.ElasticTransform(sigma=5.0, alpha=50),
-    T.RandomPerspective(distortion_scale = 0.5, p = 0.5),
-    T.RandomEqualize(p=0.5),
-    T.ColorJitter(saturation=0.5, brightness=0.5, contrast=0.5, hue = 0.5),
+    #T.ElasticTransform(sigma=5.0, alpha=5.0),
+    #T.RandomPerspective(distortion_scale = 0.5, p = 0.5),
+    #T.RandomEqualize(p=0.5),
+    #T.ColorJitter(saturation=0.5, brightness=0.5, contrast=0.5, hue = 0.5),
     T.CenterCrop(size=(400, 400)), # changed as per YAML
     T.ToDtype(torch.float32, scale=True)
 ]
