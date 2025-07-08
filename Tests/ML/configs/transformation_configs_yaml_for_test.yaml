@@ -1,11 +1,47 @@
 augmentation:
   random_affine_apply: True
+  random_horizontal_flip_apply: False
+  random_vertical_flip_apply: False
+  random_perspective_apply : False
+  random_equalize_apply: False
+  random_colorjitter_apply: False
   random_affine:
-    degrees: 90
+    degrees: 180
     translate: (0.1, 0.1)
+    shear: 30
+  random_horizontal_flip:
+    p: 0.5
+  random_vertical_flip:
+    p: 0.5
+  random_perspective:
+    distortion_scale: 0.1
+    p: 0.5
+  random_equalize:
+    p: 0.5
+  random_colorjitter:
+    brightness: 0.5
+    contrast: 0.5
+    saturation: 0.5
+    hue: 0.5
 
-  random_rotation_apply: False
 
-  crop_apply: True
-  center_crop:
-    size: (400, 400)
+
+# preprocess:
+#   center_crop_size: 224
+#   resize: 256
+# augmentation:
+#   use_random_color: True
+#   use_random_crop: True
+#   use_gamma_transform: True
+#   use_random_erasing: True
+#   add_gaussian_noise: True
+
+#   random_erasing:
+#       scale: (0.15, 0.4)
+#       ratio: (0.33, 3)
+
+
+#   random_crop:
+#     scale: (0.4, 1.0)
+#   gaussian_noise:
+#     std: 0.05

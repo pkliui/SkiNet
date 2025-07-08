@@ -24,7 +24,7 @@ def plot_images_masks_side_by_side_matplotlib(dataset, num_samples=5):
     """
     Plots images and their corresponding masks side by side with colorbars using matplotlib
 
-    :param dataset: A PyTorch Dataset
+    :param dataset: A PyTorch Dataset that returns a dictionary with the keys "image" and "mask"
     :param num_samples: Number of image-mask pairs to plot.
     """
 
@@ -60,7 +60,7 @@ def create_images_masks_subplot(data_set, sample_index_to_plot, random_sample=Tr
     """
     Create a figure where images and masks are placed side by side as subplots
 
-    :param data_set: A dataset object, e.g. PH2Dataset returning one image and one mask at a time by providing the sample number
+    :param data_set: A PyTorch Dataset that returns a dictionary with the keys "image" and "mask"
     :param sample_num_to_plot: Number of a sample to plot
     :param random_sample: If True, a random sample is picked from the dataset, default is True
 
@@ -73,7 +73,7 @@ def create_images_masks_subplot(data_set, sample_index_to_plot, random_sample=Tr
     else:
         # or get a specific sample
         sample = data_set[sample_index_to_plot]
-        sample_name = Path(data_set.images_list[sample_index_to_plot]).parent.parent.name
+        sample_name = Path(str(data_set.images_list[sample_index_to_plot])).parent.parent.name # images_list may return numpy array, convert it to str and then to Path
     #
     # make a figure
     fig = make_subplots(rows=1, cols=2, subplot_titles=("Image", "Mask"))

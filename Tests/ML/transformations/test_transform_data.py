@@ -209,7 +209,6 @@ from Tests.ML.configs.transformation_configs_paths_for_test import \
 def explicit_transforms():
     explicit_transforms_from_config = [
     T.RandomAffine(degrees=30, translate=(0.05, 0.05), scale = (0.1, 0.3), shear=30),
-    T.RandomRotation(degrees = 30),
     T.RandomHorizontalFlip(p=0.5),
     T.RandomVerticalFlip(p=0.5),
     T.ElasticTransform(sigma=5.0, alpha=50),
@@ -462,8 +461,6 @@ augmentation:
     degrees: 90
     translate: (0.1, 0.1)
 
-  random_rotation_apply: False
-
   crop_apply: True
   center_crop:
     size: (400, 400)
@@ -474,7 +471,6 @@ augmentation:
 def explicit_transforms_YAML():
     explicit_transforms_from_config = [
     T.RandomAffine(degrees=90, translate=(0.1, 0.1), scale = (0.1, 0.3), shear=30), # changed as per YAML
-    #T.RandomRotation(degrees = 30), # is False in YAML
     T.RandomHorizontalFlip(p=0.5),
     T.RandomVerticalFlip(p=0.5),
     T.ElasticTransform(sigma=5.0, alpha=50),
