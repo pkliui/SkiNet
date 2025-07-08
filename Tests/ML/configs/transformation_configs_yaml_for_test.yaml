@@ -1,10 +1,11 @@
 augmentation:
   random_affine_apply: True
-  random_horizontal_flip_apply: False
-  random_vertical_flip_apply: False
+  random_horizontal_flip_apply: True
+  random_vertical_flip_apply: True
   random_perspective_apply : False
   random_equalize_apply: False
   random_colorjitter_apply: False
+  center_crop_apply: True
   random_affine:
     degrees: 180
     translate: (0.1, 0.1)
@@ -23,6 +24,8 @@ augmentation:
     contrast: 0.5
     saturation: 0.5
     hue: 0.5
+  center_crop:
+    size: (400, 400)
 
 
 
