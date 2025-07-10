@@ -1,6 +1,6 @@
 """
-This is a default configuration for image segmentation.
-One shall use pytorch.torchvision.v2 for this configuration.
+Default configuration for image segmentation.
+It uses albumentations library.
 
 References:
 Chlap, P., Min, H., Vandenberg, N., Dowling, J., Holloway, L., & Haworth, A. (2021). 
@@ -32,84 +32,42 @@ config.augmentation = CfgNode()
 config.augmentation_off = CfgNode()
 
 
-####################################################################################################
-# Transformations applied when augmentation_required=True in make_transform_from_config
-
 #########################
 # Geometric transformations
-# Random affine transformations as per torchvision.transforms.v2.RandomAffine
-config.augmentation.random_affine_apply = True
-config.augmentation.random_affine = CfgNode()
-config.augmentation.random_affine.degrees = 180
-config.augmentation.random_affine.translate = (0.1, 0.1)
-config.augmentation.random_affine.shear = 30
+# Random flips as per albumentations.HorizontalFlip and albumentations.VerticalFlip
+config.augmentation.horizontal_flip_apply = True
+config.augmentation.horizontal_flip = CfgNode()
+config.augmentation.horizontal_flip.p = 0.5 # probability of applying the transformation
 
-# Random flips as per torchvision.transforms.v2.RandomHorizontalFlip and RandomVerticalFlip
-config.augmentation.random_horizontal_flip_apply = True
-config.augmentation.random_vertical_flip_apply = True
-config.augmentation.random_horizontal_flip = CfgNode()
-config.augmentation.random_horizontal_flip.p = 0.5 # probability of applying the transformation
-config.augmentation.random_vertical_flip = CfgNode()
-config.augmentation.random_vertical_flip.p = 0.5 # probability of applying the transformation
+config.augmentation.vertical_flip_apply = True
+config.augmentation.vertical_flip = CfgNode()
+config.augmentation.vertical_flip.p = 0.5 # probability of applying the transformation
 
-#########################
-# Deformable augmentation
-# Elastic transforms as per torchvision.transforms.v2.ElasticTransform
-config.augmentation.elastic_transforms_apply = False
-config.augmentation.elastic_transforms = CfgNode()
-config.augmentation.elastic_transforms.alpha = 5.0 # controls the strength
-config.augmentation.elastic_transforms.sigma = 5.0 # controls the smoothness of the deformation
-
-# Random perspective as per torchvision.transforms.v2.RandomPerspective
-config.augmentation.random_perspective_apply = False
-config.augmentation.random_perspective = CfgNode()
-config.augmentation.random_perspective.distortion_scale = 0.01
-config.augmentation.random_perspective.p = 0.5 # probability of applying the transformation
-
-#########################
-# Photometric transformations
-# Random equalization of the historgram as per torchvision.transforms.v2.RandomEqualize
-config.augmentation.random_equalize_apply = False
-config.augmentation.random_equalize = CfgNode()
-config.augmentation.random_equalize.p = 0.5 # probability of applying the transformation
-
-# Brightness and contrast as per torchvision.transforms.v2.ColorJitter
-config.augmentation.random_colorjitter_apply = False
-config.augmentation.random_colorjitter = CfgNode()
-config.augmentation.random_colorjitter.brightness = 0.5 # brightness factor
-config.augmentation.random_colorjitter.contrast = 0.5 # contrast factor
-config.augmentation.random_colorjitter.saturation = 0.5 # saturation factor
-config.augmentation.random_colorjitter.hue = 0.5 # hue factor
+# Random affine transformations as per albumentations.Affine
+config.augmentation.affine_apply = True
+config.augmentation.affine = CfgNode()
+config.augmentation.affine.rotate = (-90, 90) # degrees
+config.augmentation.affine.translate_percent = (0.1, 0.1) # translate in percent
+config.augmentation.affine.shear = (0, 30) # degrees
 
 
 #########################
-# Centre crop  as per torchvision.transforms.v2.CenterCrop
+# Colour augmentation
+# Color jitter as per albumentations.ColorJitter
+config.augmentation.colorjitter_apply = True
+config.augmentation.colorjitter = CfgNode()
+config.augmentation.colorjitter.brightness = 0.2 # brightness factor
+config.augmentation.colorjitter.contrast = 0.2 # contrast factor
+config.augmentation.colorjitter.saturation = 0.2 # saturation factor
+config.augmentation.colorjitter.p = 0.5 # probability of applying the transformation
+
+#########################
+# Cropping and resizing
+# Center crop as per albumentations.CenterCrop
 config.augmentation.center_crop_apply = True
 config.augmentation.center_crop = CfgNode()
-config.augmentation.center_crop.size = (500, 500)
-
-# Resize as per torchvision.transforms.v2.Resize
-config.augmentation.resize_apply = False
-config.augmentation.resize = CfgNode()
-config.augmentation.resize.size = (400, 400)
-
-
-
-
-####################################################################################################
-# Transformations applied when augmentation_required=False in make_transform_from_config
-
-#########################
-# Resize as per torchvision.transforms.v2.Resize
-config.augmentation_off.resize_apply = False
-config.augmentation_off.resize = CfgNode()
-config.augmentation_off.resize.size = (500, 500)
-
-# Centre crop  as per torchvision.transforms.v2.CenterCrop
-config.augmentation_off.center_crop_apply = False
-config.augmentation_off.center_crop = CfgNode()
-config.augmentation_off.center_crop.size = (500, 500)
-
+config.augmentation.center_crop.height = 500
+config.augmentation.center_crop.width = 500
 
 
 def get_default_config() -> CfgNode:
