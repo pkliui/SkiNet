@@ -6,210 +6,145 @@ import numpy as np
 import PIL
 import torch
 import torchvision.transforms.v2 as T
+import albumentations as A
 from torchvision.tv_tensors import Image as TVImage
 from yacs.config import CfgNode
 
-ImageData = Union[torch.Tensor, 
-                  PIL.Image.Image,
-                  TVImage, 
-                  Tuple[torch.Tensor, torch.Tensor], 
-                  Tuple[TVImage, TVImage], 
-                  Tuple[PIL.Image.Image, PIL.Image.Image]]
+# possible input image data types that will be onverted to np.ndarray as per compatibility with albumentaions
+ImageData = Union[np.ndarray,
+                  torch.Tensor, 
+                  PIL.Image.Image]
 
 
 class TransformData:
     def __init__(self, 
-                 pipeline: T.Compose):
+                 pipeline: A.Compose):
         """
         TransformData class to apply a series of transformations to images and masks.
         
-        :param pipeline: A torchvision.transforms.Compose object containing the transformation pipeline.
+        :param pipeline: An albumentations.Compose object containing the transformation pipeline.
         """
         self.pipeline = pipeline
 
-    def ensure_tv_image(self, x: ImageData) -> TVImage:
+    def ensure_np_image(self, x: ImageData) -> np.ndarray:
         """
-        Ensure the input is a torchvision Image
-        :param x: The input image, which can be a torch.Tensor, TVImage, or PIL.Image.Image or a tuple of these types.
-        :return: A torchvision Image object.
+        Ensure the input is a numpy array and that its shape is  (H, W, C) as required by Albumentations library.
+        :param x: The input image that can be a numpy array or a tensor or a PIL image
+        :return: A numpy array of (H, W, C)
         """
-        if isinstance(x, TVImage):
-            return x
-        return T.ToImage()(x)
-
-    def apply_transforms(self, image: ImageData) -> TVImage:
-        """
-        Apply the transformation pipeline to the input
-
-        According to the torch documentation, v2.transforms support arbitrary input structures, such as single image, a tuple or a dictionary. 
-        The same structure will be returned as output. Pure torch.Tensor objects are treated as images. 
-        However, if the input is an Image, Video, or PIL.Image.Image instance, all other pure tensors are passed-through (not transformed).
-        If there is no Image or Video instance, only the first pure torch.Tensor will be transformed as image or video, while all others will be passed-through. Here “first” means “first in a depth-wise traversal”.
-        https://docs.pytorch.org/vision/main/auto_examples/transforms/plot_transforms_getting_started.html#sphx-glr-auto-examples-transforms-plot-transforms-getting-started-py
-
-        Hence, if the input is a tuple of torch.Image instances, all images will be transformed, 
-        but if the input is a tuple of torch.Tensor, only the first tensor will be transformed.
-        
-        :param image: Input provided as a torch.Tensor, TVImage, PIL.Image.Image, or a tuple of these types.
-        :return: The transformed input, where all images in the input are transformed according to the pipeline.
-        """
-
-        if isinstance(image, tuple):
-            # Recursively ensure that each element in the tuple is of type torchvision.tv_tensors.Image
-            # typically this should have been done in the dataset whilst reading out data
-            # double check here in case this has not been done in the dataset
-            image = tuple(self.ensure_tv_image(im) for im in image)
+        if isinstance(x, np.ndarray):
+            arr = x
         else:
-            image = self.ensure_tv_image(image)
+            arr = np.array(x)
+        # If array is 3D and channels are first and there are either 1 or 3 channels, 
+        # move them to last
+        if arr.ndim == 3 and arr.shape[0] in [1, 3] and arr.shape[0] < min(arr.shape[1:]):
+            arr = np.transpose(arr, (1, 2, 0))  # (C, H, W) -> (H, W, C)
+        return arr
 
-        # at this point the input to the pipeline is TVImage
-        return self.pipeline(image)
+    def apply_transforms(self, image: ImageData, mask: Optional[ImageData] = None) -> dict:
+        """
+        Apply the transformation pipeline to the input, assuming the use of Albumentations library
 
-    def __call__(self, image: Union[torch.Tensor, TVImage]) -> torch.Tensor:
-        return self.apply_transforms(image)
+        :param image: Input image, must be of shape (H, W, C) or (H, W) if C==1.
+        :param mask: Optional input mask, must be of shape (H, W, C) or (H, W) if C==1
 
+        :return: The transformed input returned as a dictionary with leys according to the inputs.
+            For example, If mask is provided, the dit will have key 'mask'.
+            Otherwise, it will have only key 'image'
+            As per augmentations library internals, the output dimensions are (C, H, W) unless C==1, then (H, W)
+        """
 
-def make_transform_from_config(config: CfgNode, augmentation_required: bool):
+        image = self.ensure_np_image(image)
+        if mask is not None:
+            mask = self.ensure_np_image(mask)
+            return self.pipeline(image = image, mask = mask)
+        else:
+            return self.pipeline(image = image)
+
+    def __call__(self, image: ImageData, mask: Optional[ImageData] = None) -> dict:
+        """
+        Return transformed image and mask as the dictionary's entries with keys 'image' and 'mask',
+        as per Albumentations library conventions.
+        If mask is not provided, only the image is transformed.
+        """
+        if mask:
+            transformed = self.apply_transforms(image=image, mask=mask)
+            return {'image': transformed['image'], 'mask': transformed['mask']}
+        else:
+            transformed = self.apply_transforms(image=image)
+            return {'image': transformed['image']}
+
+def make_transform_from_config(config: CfgNode, 
+                               augmentation_required: bool, 
+                               seed_value: Optional[int] = None) -> TransformData:
     """
-    Create transforms for augmentation and resizing using torchvision.transforms.v2.
+    Create transforms for augmentation and resizing using Albumentations library
 
     :param config: Configuration object is a CfgNode object set up as in SkiNet/ML/configs/transformations_config.py.
         Typically the default configuration in there should be overriden by a YAML configuration file for a specific experiment.
     :param augmentation_required: Boolean flag indicating whether augmentation is required
-        If False, only resize and crop are applied.
-    :return: A torchvision transform.Compose object
+        If False, only transforms under augmentations_off are applied.
+    :seed_value: Optional seed value for reproducibility of the transformations. 
+        In Albumentations, it is provided as a seed to the Compose object. Note that Albumentations uses its own internal random state 
+        that is completely independent from global random seeds. 
 
-
-    Example making a YAML configuration file:
-
-    ```yaml
-    augmentation:
-    random_affine_apply: True
-    random_affine:
-        degrees: 90
-        translate: (0.1, 0.1)
-
-    random_rotation_apply: False
-
-    crop_apply: True
-    center_crop:
-        size: (400, 400)
-    ```
-
-    ```python
-    # import default config
-    from SkiNet.ML.configs import transformations_config
-    config = transformations_config.get_default_config()
-
-    # import yaml settings
-    from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH 
-    config.merge_from_file(TRANSFORMATION_CONFIGS_YAML_PATH) # override from YAML
-    config.freeze() #  to prevent further modification
-    ```
-
-
-    Example making a transformation:
-
-    ```python
-    from SkiNet.ML.transformations.transform_data import make_transform_from_config
-    transform_from_config = make_transform_from_config(
-        config,
-        augmentation_required=False)
-    transformed_image = transform_from_config(input_image)
-    ```
-
-
-    The input image can be a torch.Tensor, TVImage, or PIL.Image.Image or a tuple of these types, as per v2.transformations.
-
+    :return: An instance of TransformData
     """
     transforms_list = []
+
+    #########################
 
     if augmentation_required:
         #########################
         # Geometric transformations
-        # Random affine transformations as per torchvision.transforms.v2.RandomAffine
-        if config.augmentation.random_affine_apply:
+
+        # Random flips as per albumentations.HorizontalFlip and albumentations.VerticalFlip
+        if config.augmentation.horizontal_flip_apply:
             transforms_list.append(
-                T.RandomAffine(
-                    degrees=config.augmentation.random_affine.degrees,
-                    translate=config.augmentation.random_affine.translate,
-                    shear=config.augmentation.random_affine.shear
-                )
+                A.HorizontalFlip(p=config.augmentation.horizontal_flip.p)
             )
-        # Random flips as per torchvision.transforms.v2.RandomHorizontalFlip and RandomVerticalFlip
-        if config.augmentation.random_horizontal_flip_apply:
+        if config.augmentation.vertical_flip_apply:
             transforms_list.append(
-                T.RandomHorizontalFlip(p=config.augmentation.random_horizontal_flip.p)
-            )
-        if config.augmentation.random_vertical_flip_apply:
-            transforms_list.append(
-                T.RandomVerticalFlip(p=config.augmentation.random_vertical_flip.p)
+                A.VerticalFlip(p=config.augmentation.vertical_flip.p)
             )
 
-        #########################
-        # Deformable augmentation
-        # Elastic transforms as per torchvision.transforms.v2.ElasticTransform
-        if config.augmentation.elastic_transforms_apply:
+        # Random affine transformations as per albumentations.Affine
+        if config.augmentation.affine_apply:
             transforms_list.append(
-                T.ElasticTransform(
-                    alpha=config.augmentation.elastic_transforms.alpha,
-                    sigma=config.augmentation.elastic_transforms.sigma
-                )
-            )
-        # Random perspective as per torchvision.transforms.v2.RandomPerspective
-        if config.augmentation.random_perspective_apply:
-            transforms_list.append(
-                T.RandomPerspective(
-                    distortion_scale=config.augmentation.random_perspective.distortion_scale,
-                    p=config.augmentation.random_perspective.p
+                A.Affine(
+                    rotate=config.augmentation.affine.rotate,
+                    translate_percent=config.augmentation.affine.translate_percent,
+                    shear=config.augmentation.affine.shear
                 )
             )
 
-        #########################
-        # Photometric transformations
-        # Random equalization of the historgram as per torchvision.transforms.v2.RandomEqualize
-        if config.augmentation.random_equalize_apply:
+        ##########################
+        # Colour transforms
+        # Random perspective as per albumentations.ColorJitter
+        if config.augmentation.colorjitter_apply:
             transforms_list.append(
-                T.RandomEqualize(p=config.augmentation.random_equalize.p)
-            )
-        # Brightness and contrast as per torchvision.transforms.v2.ColorJitter
-        if config.augmentation.random_colorjitter_apply:
-            transforms_list.append(
-                T.ColorJitter(
-                    brightness=config.augmentation.random_colorjitter.brightness,
-                    contrast=config.augmentation.random_colorjitter.contrast,
-                    saturation=config.augmentation.random_colorjitter.saturation,
-                    hue=config.augmentation.random_colorjitter.hue
+                A.ColorJitter(
+                    brightness=config.augmentation.colorjitter.brightness,
+                    contrast=config.augmentation.colorjitter.contrast,
+                    saturation=config.augmentation.colorjitter.saturation,
+                    p=config.augmentation.colorjitter.p
                 )
             )
 
-        # Centre crop  as per torchvision.transforms.v2.CenterCrop
+        ################################################
+        # Center crop as per albumentations.CenterCrop
         if config.augmentation.center_crop_apply:
             transforms_list.append(
-                T.CenterCrop(size=config.augmentation.center_crop.size)
-                )
-        
-        # Resize  as per torchvision.transforms.v2.Resize
-        if config.augmentation.resize_apply:
-            transforms_list.append(
-                T.Resize(size=config.augmentation.resize.size)
-                )
+                A.CenterCrop(height=config.augmentation.center_crop.height,
+                             width=config.augmentation.center_crop.width)
+            )
 
-
-    else:
-        # Centre crop  as per torchvision.transforms.v2.CenterCrop
-        if config.augmentation_off.center_crop_apply:
-            transforms_list.append(
-                T.CenterCrop(size=config.augmentation_off.center_crop.size)
-                )
             
-        # Resize  as per torchvision.transforms.v2.Resize
-        if config.augmentation_off.resize_apply:
-            transforms_list.append(
-                T.Resize(size=config.augmentation_off.resize.size)
-                )
-       
-    transforms_list.append(T.ToDtype(torch.float32, scale=True))
-    pipeline = TransformData(T.Compose(transforms_list))
-
+    transforms_list.append(A.ToTensorV2())  # Convert images to torch.Tensor
+    if seed_value is not None:
+        pipeline = TransformData(A.Compose(transforms_list, seed=seed_value))
+    else:
+        pipeline = TransformData(A.Compose(transforms_list))
+    
     return pipeline

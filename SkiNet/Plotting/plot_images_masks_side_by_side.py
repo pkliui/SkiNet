@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Union
 
 import dash
+import numpy as np
 import plotly.graph_objects as go
 from dash import dcc, html
 from matplotlib import pyplot as plt
@@ -25,6 +26,7 @@ def plot_images_masks_side_by_side_matplotlib(dataset, num_samples=5):
     Plots images and their corresponding masks side by side with colorbars using matplotlib
 
     :param dataset: A PyTorch Dataset that returns a dictionary with the keys "image" and "mask"
+        Each image and mask is assumed to be of type numpy array
     :param num_samples: Number of image-mask pairs to plot.
     """
 
@@ -37,8 +39,8 @@ def plot_images_masks_side_by_side_matplotlib(dataset, num_samples=5):
     for i in range(num_samples):
         # Get a sample from the dataset
         sample = dataset[i]
-        image = sample['image'].numpy().transpose(1, 2, 0)  # Convert to HWC format
-        mask = sample['mask'].numpy().squeeze()  # Remove channel dimension if present
+        image = sample['image']
+        mask = sample['mask']
 
         # Plot the image
         im = axes[i][0].imshow(image)
