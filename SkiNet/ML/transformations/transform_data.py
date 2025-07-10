@@ -26,22 +26,6 @@ class TransformData:
         """
         self.pipeline = pipeline
 
-    def ensure_np_image(self, x: ImageData) -> np.ndarray:
-        """
-        Ensure the input is a numpy array and that its shape is  (H, W, C) as required by Albumentations library.
-        :param x: The input image that can be a numpy array or a tensor or a PIL image
-        :return: A numpy array of (H, W, C)
-        """
-        if isinstance(x, np.ndarray):
-            arr = x
-        else:
-            arr = np.array(x)
-        # If array is 3D and channels are first and there are either 1 or 3 channels, 
-        # move them to last
-        if arr.ndim == 3 and arr.shape[0] in [1, 3] and arr.shape[0] < min(arr.shape[1:]):
-            arr = np.transpose(arr, (1, 2, 0))  # (C, H, W) -> (H, W, C)
-        return arr
-
     def apply_transforms(self, image: ImageData, mask: Optional[ImageData] = None) -> dict:
         """
         Apply the transformation pipeline to the input, assuming the use of Albumentations library
@@ -55,9 +39,9 @@ class TransformData:
             As per augmentations library internals, the output dimensions are (C, H, W) unless C==1, then (H, W)
         """
 
-        image = self.ensure_np_image(image)
+        image = ensure_np_image(image)
         if mask is not None:
-            mask = self.ensure_np_image(mask)
+            mask = ensure_np_image(mask)
             return self.pipeline(image = image, mask = mask)
         else:
             return self.pipeline(image = image)
@@ -68,12 +52,32 @@ class TransformData:
         as per Albumentations library conventions.
         If mask is not provided, only the image is transformed.
         """
-        if mask:
+        if mask is not None:
             transformed = self.apply_transforms(image=image, mask=mask)
             return {'image': transformed['image'], 'mask': transformed['mask']}
         else:
             transformed = self.apply_transforms(image=image)
             return {'image': transformed['image']}
+
+def ensure_np_image(x: ImageData) -> np.ndarray:
+    """
+    Ensure the input is a numpy array and that its shape is  (H, W, C) as required by Albumentations library.
+    :param x: The input image that can be a numpy array or a tensor or a PIL image
+    :return: A numpy array of (H, W, C)
+    """
+    if isinstance(x, np.ndarray):
+        arr = x
+    else:
+        arr = np.array(x)
+    # If array is 3D and channels are first and there are either 1 or 3 channels, 
+    # move them to last
+    if arr.ndim == 3 and arr.shape[0] in [1, 3] and arr.shape[0] < min(arr.shape[1:]):
+        arr = np.transpose(arr, (1, 2, 0))  # (C, H, W) -> (H, W, C)
+    
+    # If a bool mask, onvert to uint8 to e able to work with OpenCV and Albumentations
+    if arr.dtype == bool:
+        arr = arr.astype(np.uint8)
+    return arr
 
 def make_transform_from_config(config: CfgNode, 
                                augmentation_required: bool, 
