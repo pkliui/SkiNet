@@ -15,11 +15,11 @@ from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
 from torch.utils.data.dataset import Dataset
 
+from SkiNet.ML.transformations.transform_data import ensure_np_image
 from SkiNet.ML.utils.configs.dynamic_class_loader import DynamicClassLoader
 from SkiNet.Plotting.adjust_data.adjust_masks import adjust_mask_for_goimage
 from SkiNet.Plotting.get_data.get_images_and_masks import get_random_sample
 from SkiNet.Utils.loggers import stdout_logging
-
 
 def plot_images_masks_side_by_side_matplotlib(dataset, num_samples=5):
     """
@@ -39,8 +39,9 @@ def plot_images_masks_side_by_side_matplotlib(dataset, num_samples=5):
     for i in range(num_samples):
         # Get a sample from the dataset
         sample = dataset[i]
-        image = sample['image']
-        mask = sample['mask']
+
+        image = ensure_np_image(sample['image'])
+        mask = ensure_np_image(sample['mask'])
 
         # Plot the image
         im = axes[i][0].imshow(image)
