@@ -1,8 +1,4 @@
-import logging
-import random
-
 import numpy as np
-import PIL
 import pytest
 import torch
 import torchvision.transforms.v2 as T
@@ -11,10 +7,23 @@ from PIL import Image
 from SkiNet.ML.transformations.transform_data import (
     TransformData, make_transform_from_config)
 
-IMAGE_SIZE = (500, 500)
-RESIZE_SIZE = (400, 400)
+#seed value for albumentations
+SEED_VALUE = 42
+#image dimenstions for albumentations.CenterCrop
+CROP_HEIGHT = 400
+CROP_WIDTH = 400
+# as per  config_test_transform_data
+CROP_HEIGHT_PY_CONFIG = 500
+CROP_WIDTH_PY_CONFIG = 500
+# as per TRANSFORMATION_CONFIGS_YAML_PATH 
+CROP_HEIGHT_YAML_CONFIG = 400
+CROP_WIDTH_YAML_CONFIG = 400
+# Constants for input image dimensions
+IMG_HEIGHT = 600
+IMG_WIDTH = 600
+IMG_CHANNELS = 3
 
-"""------------------------------------------------------------------TESTS for ensure_tv_image---------------------------------------------------------------"""
+"""------------------------------------------------------------------TESTS for ensure_np_image---------------------------------------------------------------"""
 
 
 
@@ -39,33 +48,29 @@ def transform_data():
     """
     return TransformData(DummyTransform())
 
-def test_ensure_tv_image_tensor(transform_data):
+def test_ensure_np_image_tensor_input(transform_data):
     """
-    Test that ensure_tv_image converts a torch.Tensor to a TVImage"""
-    tensor = torch.rand(3, 32, 32)
-    out = transform_data.ensure_tv_image(tensor)
-    assert isinstance(out, TVImage)
-    assert out.shape == tensor.shape
+    Test that ensure_np_image converts a torch.Tensor to a numpy array"""
+    tensor = torch.rand(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
+    out = transform_data.ensure_np_image(tensor)
+    assert isinstance(out, np.ndarray)
 
-def test_ensure_tv_image_pil(transform_data):
+def test_ensure_np_image_pil_input(transform_data):
     """
-    Test that ensure_tv_image converts a PIL.Image.Image to a TVImage
-    """
-    arr = np.random.randint(0, 255, (32, 32, 3), dtype=np.uint8)
-    pil_img = Image.fromarray(arr)
-    out = transform_data.ensure_tv_image(pil_img)
-    assert isinstance(out, TVImage)
-    assert out.shape == (3, 32, 32)
+    Test that ensure_np_image converts a PIL image to a numpy array"""
+    image = np.random.randint(0, 256, (IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8) 
+    pil_img = Image.fromarray(image)
+    out = transform_data.ensure_np_image(pil_img)
+    assert isinstance(out, np.ndarray)
 
-def test_ensure_tv_image_tvimage(transform_data):
+def test_ensure_np_image_tensor_input_reshape(transform_data):
     """
-    Test that ensure_tv_image returns the same TVImage object if the input is already a TVImage.
-    """
-    tensor = torch.rand(3, 32, 32)
-    tv_img = T.ToImage()(tensor)
-    out = transform_data.ensure_tv_image(tv_img)
-    assert isinstance(out, TVImage)
-    assert out is tv_img  # Should return the same object, not a new one
+    Test that ensure_np_image converts a torch.Tensor to a numpy array
+    and reshapes it to (H, W, C) if it is in (C, H, W) format"""
+    tensor = torch.rand(IMG_CHANNELS, IMG_HEIGHT, IMG_WIDTH)
+    out = transform_data.ensure_np_image(tensor)
+    assert isinstance(out, np.ndarray)
+    assert out.shape == (IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
 
 
 """------------------------------------------------------------------TESTS for apply_transforms---------------------------------------------------------------"""
@@ -75,15 +80,17 @@ import numpy as np
 import pytest
 import torch
 import torchvision.transforms.v2 as T
+import albumentations as A
 from PIL import Image
 from torchvision.transforms import v2
 from torchvision.tv_tensors import Image as TVImage
 
 from SkiNet.ML.transformations.transform_data import TransformData
 
-transforms = v2.Compose([
-    v2.Resize(size=RESIZE_SIZE, antialias=True),
-    v2.ToDtype(torch.float32, scale=True)
+transforms = A.Compose([
+    A.CenterCrop(height=CROP_HEIGHT,
+                 width=CROP_WIDTH),
+    A.ToTensorV2()
 ])
 
 @pytest.fixture
@@ -93,63 +100,64 @@ def transform_data():
     """
     return TransformData(transforms)
 
-def test_apply_transforms_tensor(transform_data):
+def test_apply_transforms_numpy_array(transform_data):
     """
-    Test that apply_transforms a tensor input and returns a torch.Tensor
+    Test that apply_transforms a numpy array input and returns a torch.Tensor
     """
-    tensor = torch.zeros(3, 32, 32)
-    out = transform_data.apply_transforms(tensor)
-    assert isinstance(out, torch.Tensor) #By default, operations on TVTensor objects will return a pure Tensor
-    assert torch.allclose(out,  torch.zeros(3, *RESIZE_SIZE))  
+    image = np.random.randint(0, 256, (IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
+
+    out= transform_data.apply_transforms(image=image)
+    assert isinstance(out['image'], torch.Tensor) 
+
 
 def test_apply_transforms_pil(transform_data):
     """
     Test that apply_transforms a PIL image input and returns a torch.Tensor
     """
-    arr = np.zeros((32, 32, 3), dtype=np.uint8)
-    pil_img = Image.fromarray(arr)
+    image = np.random.randint(0, 256, (IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
+    pil_img = Image.fromarray(image)
+
     out = transform_data.apply_transforms(pil_img)
-    assert isinstance(out, torch.Tensor)
-    assert torch.allclose(out,  torch.zeros(3, *RESIZE_SIZE))  
+    assert isinstance(out['image'], torch.Tensor)
+
+def test_apply_transforms_image_mask_tensor_input(transform_data):
+    """
+    Test that apply_transforms transforms an image and a mask both of which are tensors  and returns transformed torch.Tensors
+    of the same dtype and expected value as per transform
+    """
+    image = np.ones((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
+    mask = np.ones((IMG_HEIGHT, IMG_WIDTH), dtype=np.uint8)
+    transformed = transform_data.apply_transforms(image=image, mask=mask)
+    image_transformed = transformed['image']
+    mask_transformed = transformed['mask']
+    assert isinstance(image_transformed, torch.Tensor)
+    assert isinstance(mask_transformed, torch.Tensor)
+    assert torch.allclose(image_transformed, torch.ones(IMG_CHANNELS, CROP_HEIGHT, CROP_WIDTH,  dtype=torch.uint8))
+    assert torch.allclose(mask_transformed, torch.ones(CROP_HEIGHT, CROP_WIDTH,  dtype=torch.uint8))
 
 
-def test_apply_transforms_tvimage(transform_data):
-    """
-    Test that apply_transforms a TVImage image input and returns a torch.Tensor
-    """
-    tensor = torch.zeros(3, 32, 32)
-    tv_img = T.ToImage()(tensor)
-    out = transform_data.apply_transforms(tv_img)
-    assert isinstance(out, torch.Tensor)
-    assert torch.allclose(out, torch.zeros(3, *RESIZE_SIZE))
 
+def test_apply_transforms_image_mask_PIL(transform_data):
+    """
+    Test that apply_transforms transforms an image and a mask both of which are PIL images  and returns transformed torch.Tensors
+    of the same dtype and expected value as per transform
+    """
+    image = np.ones((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
+    mask = np.ones((IMG_HEIGHT, IMG_WIDTH), dtype=np.uint8)
 
-def test_apply_transforms_tuple_tensor(transform_data):
-    """
-    Test that apply_transforms a tuple of tensor images input and returns a tuple of transformed torch.Tensors, 
-    That is because we ensure both of them as converted to TVImage before applying the transforms
-    """
-    tensor1 = torch.zeros(3, 32, 32)
-    tensor2 = torch.zeros(3, 32, 32)
-    out1, out2 = transform_data.apply_transforms((tensor1, tensor2))
-    assert isinstance(out1, torch.Tensor)
-    assert isinstance(out2, torch.Tensor)
-    assert torch.allclose(out1, torch.zeros(3, *RESIZE_SIZE))
-    assert torch.allclose(out2, torch.zeros(3, *RESIZE_SIZE))
+    # convert to PIL
+    image = Image.fromarray(image)
+    mask = Image.fromarray(mask)
 
-def test_apply_transforms_tuple_tvimage(transform_data):
-    """
-    Test that apply_transforms a tuple of TVImage images input and returns a tuple of transformed torch.Tensors
-    """
-    tensor1 = torch.zeros(3, 32, 32)
-    tensor2 = torch.zeros(3, 32, 32)
-    tv_img1 = T.ToImage()(tensor1)
-    tv_img2 = T.ToImage()(tensor2)
-    out1, out2 = transform_data.apply_transforms((tv_img1, tv_img2))
-    assert isinstance(out1, torch.Tensor)
-    assert isinstance(out2, torch.Tensor)
-    assert torch.allclose(out1, torch.zeros(3, *RESIZE_SIZE))
-    assert torch.allclose(out2, torch.zeros(3, *RESIZE_SIZE))
+    # transform
+    transformed = transform_data.apply_transforms(image=image, mask=mask)
+    image_transformed = transformed['image']
+    mask_transformed = transformed['mask']
+    assert isinstance(image_transformed, torch.Tensor)
+    assert isinstance(mask_transformed, torch.Tensor)
+    assert torch.allclose(image_transformed, torch.ones(IMG_CHANNELS, CROP_HEIGHT, CROP_WIDTH,  dtype=torch.uint8))
+    assert torch.allclose(mask_transformed, torch.ones(CROP_HEIGHT, CROP_WIDTH,  dtype=torch.uint8))
+
 
 
 
@@ -161,37 +169,45 @@ from SkiNet.ML.transformations.transform_data import TransformData
 
 def test_can_pass_pipeline_to_transformdata():
     """
-    Test that we can pass a^ torchvision.transforms.v2 pipeline to TransformData and it is stored correctly.
+    Test that we can pass a albumentations pipeline to TransformData and it is stored correctly.
     """
-    pipeline = T.Compose([T.ToImage(), T.ToDtype(torch.float32, scale=True)])
+    pipeline = A.Compose([A.ToTensorV2()])
     transform = TransformData(pipeline)
     assert hasattr(transform, "pipeline")
     assert transform.pipeline is pipeline
 
+
+
 def test_transformdata_pipeline_is_callable():
     """
     Test that the TransformData instance with a pipeline can be called and returns a transformed tensor."""
-    pipeline = T.Compose([T.ToImage(), T.ToDtype(torch.float32, scale=True)])
+    pipeline = A.Compose([A.ToTensorV2()])
     transform = TransformData(pipeline)
     
-    tensor = torch.zeros(3, 32, 32)
+    image = np.ones((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
     # Should not raise
-    out = transform(tensor)
+    out = transform(image=image)
     
-    assert isinstance(out, torch.Tensor)
+    assert isinstance(out['image'], torch.Tensor)
+
+
+
 
 def test_transformdata_pipeline_with_pil():
     """
     Test that the TransformData instance with a pipeline can be called with a PIL image and returns a transformed tensor.   
     """
-    pipeline = T.Compose([T.ToImage(), T.ToDtype(torch.float32, scale=True)])
+    pipeline = A.Compose([A.ToTensorV2()])
     transform = TransformData(pipeline)
 
-    arr = np.zeros((32, 32, 3), dtype=np.uint8)
-    pil_img = Image.fromarray(arr)
+    image = np.ones((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
+    pil_img = Image.fromarray(image)
 
     out = transform(pil_img)
-    assert isinstance(out, torch.Tensor)
+    assert isinstance(out['image'], torch.Tensor)
+
+
+
 
 
 """------------------------------------------------------------------TESTS for make_transform_from_config using default YACS config ---------------------------------------------------------------"""
@@ -207,24 +223,21 @@ from Tests.ML.configs.transformation_configs_paths_for_test import \
 
 @pytest.fixture
 def explicit_transforms():
-    explicit_transforms_from_config = [
-    T.RandomAffine(degrees=180, translate=(0.1, 0.1), shear=30),
-    T.RandomHorizontalFlip(p=0.5),
-    T.RandomVerticalFlip(p=0.5),
-    #T.ElasticTransform(sigma=5.0, alpha=5.0),
-    #T.RandomPerspective(distortion_scale = 0.01, p = 0.5),
-    #T.RandomEqualize(p=0.5),
-    #T.ColorJitter(saturation=0.5, brightness=0.5, contrast=0.5, hue = 0.5),
-    T.CenterCrop(size=(500, 500)),
-    T.ToDtype(torch.float32, scale=True)
-]
+    explicit_transforms_from_config = A.Compose([
+    A.HorizontalFlip(p=0.5),
+    A.VerticalFlip(p=0.5),
+    A.Affine(rotate=(-90, 90), translate_percent=(0.1, 0.1),  shear=(0, 30)),
+    A.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2,  p=0.5),
+    A.CenterCrop(height=CROP_HEIGHT_PY_CONFIG, width=CROP_WIDTH_PY_CONFIG),
+    A.ToTensorV2()], 
+    seed = SEED_VALUE)
     return explicit_transforms_from_config
 
 @pytest.fixture
 def explicit_transforms_augmentation_off():
     explicit_transforms_from_config = [
-    T.CenterCrop(size=(500, 500)),
-    T.ToDtype(torch.float32, scale=True)
+    A.CenterCrop(height=CROP_HEIGHT_PY_CONFIG, width=CROP_WIDTH_PY_CONFIG),
+    A.ToTensorV2()
 ]
     return explicit_transforms_from_config
 
@@ -234,295 +247,82 @@ def test_make_transform_from_config_PIL_image(explicit_transforms) -> None:
     that is a PIL image
     """
     #
-    # return the transformation pipeline by make_transform_from_config using the provided configuration
+    # return the transformation pipeline using the provided configuration
     transform_from_config = make_transform_from_config(
         config_test_transform_data,
-        augmentation_required=True
+        augmentation_required=True,
+        seed_value=SEED_VALUE
     )
-    
-    # list all transforms from config_test_transform_data
-    explicit_transforms_from_config = explicit_transforms
     # input as a PIL image
-    image_input = torch.randint(0, 256, size=(3, *IMAGE_SIZE), dtype=torch.uint8)
-    image_input = T.ToPILImage()(image_input)
+    image_input = np.ones((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
+    image_input = Image.fromarray(image_input)
 
-    # get the transformed image using transforms returned by make_transform_from_config
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # transformed_image will be of TVImage type
-    transformed_image = transform_from_config(image_input)
-    logging.getLogger(__name__).debug(type(transformed_image))
-    assert isinstance(transformed_image, TVImage)
-    assert isinstance(transformed_image, torch.Tensor) # TVImage is a subclass of torch.Tensor
+    # get the transformed image
+    transformed = transform_from_config(image=image_input)
+    transformed_image = transformed['image']
+    assert isinstance(transformed_image, torch.Tensor) # torch.Tensor
 
-    # get the transformed image using the pipeline above
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # convert to ToImage first, because this is done so in TransformData for all inputs that are not TVImage
-    expected_transformed_image = T.ToImage()(image_input) 
-    for transform in explicit_transforms_from_config:
-        expected_transformed_image = transform(expected_transformed_image)
+    # get the transformed image using the expected pipeline above
+    expected_transformed_image = explicit_transforms(image=np.array(image_input))['image']
 
+
+    assert expected_transformed_image.shape == transformed_image.shape
+    assert expected_transformed_image.dtype == transformed_image.dtype
+    assert isinstance(expected_transformed_image, torch.Tensor) # torch.Tensor
     # assert both results are the same
     assert torch.isclose(expected_transformed_image, transformed_image).all()
-
-
-
-
-def test_make_transform_from_config_torch_tensor(explicit_transforms) -> None:
-    """
-    Test that make_transform_from_config returns the correctly transformed input
-    that is a torch tensor
-    """
-    #
-    # return the transformation pipeline by make_transform_from_config using the provided configuration
-    transform_from_config = make_transform_from_config(
-        config_test_transform_data,
-        augmentation_required=True
-    )
-    
-    # list all transforms from config_test_transform_data
-    explicit_transforms_from_config = explicit_transforms
-    # input as a torch tensor
-    image_input = torch.randint(0, 256, size=(3, *IMAGE_SIZE), dtype=torch.uint8)
-
-    # get the transformed image using transforms returned by make_transform_from_config
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # transformed_image will be of TVImage type
-    transformed_image = transform_from_config(image_input)
-    logging.getLogger(__name__).debug(type(transformed_image))
-    assert isinstance(transformed_image, TVImage)
-    assert isinstance(transformed_image, torch.Tensor) # TVImage is a subclass of torch.Tensor
-
-    # get the transformed image using the pipeline above
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # convert to ToImage first, because this is done so in TransformData for all inputs that are not TVImage
-    expected_transformed_image = T.ToImage()(image_input) 
-    for transform in explicit_transforms_from_config:
-        expected_transformed_image = transform(expected_transformed_image)
-
-    # assert both results are the same
-    assert torch.isclose(expected_transformed_image, transformed_image).all()
-
-
-def test_make_transform_from_config_tvimage(explicit_transforms) -> None:
-    """
-    Test that make_transform_from_config returns the correctly transformed input
-    that is a TV Image
-    """
-    #
-    # return the transformation pipeline by make_transform_from_config using the provided configuration
-    transform_from_config = make_transform_from_config(
-        config_test_transform_data,
-        augmentation_required=True
-    )
-    
-    # list all transforms from config_test_transform_data
-    explicit_transforms_from_config = explicit_transforms
-    # input as a torch tensor
-    image_input = torch.randint(0, 256, size=(3, *IMAGE_SIZE), dtype=torch.uint8)
-    image_input = T.ToImage()(image_input)
-
-    # get the transformed image using transforms returned by make_transform_from_config
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # transformed_image will be of TVImage type
-    transformed_image = transform_from_config(image_input)
-    logging.getLogger(__name__).debug(type(transformed_image))
-    assert isinstance(transformed_image, TVImage)
-    assert isinstance(transformed_image, torch.Tensor) # TVImage is a subclass of torch.Tensor
-
-    # get the transformed image using the pipeline above
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # inputs is already a TVImage
-    expected_transformed_image = image_input
-    for transform in explicit_transforms_from_config:
-        expected_transformed_image = transform(expected_transformed_image)
-
-    # assert both results are the same
-    assert torch.isclose(expected_transformed_image, transformed_image).all()
-
-
-
-
-def test_make_transform_from_config_PIL_image_tuple(explicit_transforms) -> None:
-    """
-    Test that make_transform_from_config returns the correctly transformed input
-    that is a tuple of two PIL images - image and mask
-    """
-    #
-    # return the transformation pipeline by make_transform_from_config using the provided configuration
-    transform_from_config = make_transform_from_config(
-        config_test_transform_data,
-        augmentation_required=True
-    )
-    
-    # list all transforms from config_test_transform_data
-    explicit_transforms_from_config = explicit_transforms
-    # input as a PIL image
-    image_input = torch.randint(0, 256, size=(3, *IMAGE_SIZE), dtype=torch.uint8)
-    mask_input = torch.randint(0, 256, size=(3, *IMAGE_SIZE), dtype=torch.uint8)
-    mask_input[100:200, 100:200] = 0
-    image_input = T.ToPILImage()(image_input)
-    mask_input = T.ToPILImage()(mask_input)
-
-    # get the transformed image using transforms returned by make_transform_from_config
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # transformed_image will be of TVImage type
-    (transformed_image, transformed_mask) = transform_from_config((image_input, mask_input))
-    logging.getLogger(__name__).debug(type(transformed_image))
-    assert isinstance(transformed_image, TVImage)
-    assert isinstance(transformed_image, torch.Tensor) # TVImage is a subclass of torch.Tensor
-    assert isinstance(transformed_mask, TVImage)
-    assert isinstance(transformed_mask, torch.Tensor) # TVImage is a subclass of torch.Tensor
-
-    # get the transformed image using the pipeline above
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # convert to ToImage first, because this is done so in TransformData for all inputs that are not TVImage
-    expected_transformed_image = T.ToImage()(image_input) 
-    expected_transformed_mask = T.ToImage()(mask_input) 
-    for transform in explicit_transforms_from_config:
-        expected_transformed_image, expected_transformed_mask = transform((expected_transformed_image, expected_transformed_mask))
-
-    # assert both results are the same
-    assert torch.isclose(expected_transformed_image, transformed_image).all()
-    assert torch.isclose(expected_transformed_mask, transformed_mask).all()
-
-
-
-def test_make_transform_from_config_PIL_image_augmentations_off(explicit_transforms_augmentation_off) -> None:
-    """
-    Test that make_transform_from_config returns the correctly transformed input
-    that is a PIL image - augmentations off
-    """
-    #
-    # return the transformation pipeline by make_transform_from_config using the provided configuration
-    transform_from_config = make_transform_from_config(
-        config_test_transform_data,
-        augmentation_required=False
-    )
-    
-    # list all transforms from config_test_transform_data
-    explicit_transforms_from_config = explicit_transforms_augmentation_off
-    # input as a PIL image
-    image_input = torch.randint(0, 256, size=(3, *IMAGE_SIZE), dtype=torch.uint8)
-    image_input = T.ToPILImage()(image_input)
-
-    # get the transformed image using transforms returned by make_transform_from_config
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # transformed_image will be of TVImage type
-    transformed_image = transform_from_config(image_input)
-    logging.getLogger(__name__).debug(type(transformed_image))
-    assert isinstance(transformed_image, TVImage)
-    assert isinstance(transformed_image, torch.Tensor) # TVImage is a subclass of torch.Tensor
-
-    # get the transformed image using the pipeline above
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # convert to ToImage first, because this is done so in TransformData for all inputs that are not TVImage
-    expected_transformed_image = T.ToImage()(image_input) 
-    for transform in explicit_transforms_from_config:
-        expected_transformed_image = transform(expected_transformed_image)
-
-    # assert both results are the same
-    assert torch.isclose(expected_transformed_image, transformed_image).all()
-
-
-"""------------------------------------------------------------------TESTS for make_transform_from_config using YAML ---------------------------------------------------------------"""
-
-from SkiNet.ML.transformations.transform_data import (
-    TransformData, make_transform_from_config)
-from Tests.ML.configs.transformation_configs_paths_for_test import \
-    config_yaml_test_transform_data
-
-
-# Example YAML config file (here just for visual ciomparison with the explicit_transforms_YAML elow)
-# the actual YAML file is loaded in and its path is specified in config_yaml_test_transform_data
-"""
-augmentation:
-  random_affine_apply: True
-  random_affine:
-    degrees: 90
-    translate: (0.1, 0.1)
-
-  crop_apply: True
-  center_crop:
-    size: (400, 400)
-"""
 
 
 @pytest.fixture
 def explicit_transforms_YAML():
-    explicit_transforms_from_config = [
-    T.RandomAffine(degrees=180, translate=(0.1, 0.1),  shear=30), # changed as per YAML
-    T.RandomHorizontalFlip(p=0.5),
-    T.RandomVerticalFlip(p=0.5),
-    #T.ElasticTransform(sigma=5.0, alpha=5.0),
-    #T.RandomPerspective(distortion_scale = 0.5, p = 0.5),
-    #T.RandomEqualize(p=0.5),
-    #T.ColorJitter(saturation=0.5, brightness=0.5, contrast=0.5, hue = 0.5),
-    T.CenterCrop(size=(400, 400)), # changed as per YAML
-    T.ToDtype(torch.float32, scale=True)
-]
-    return explicit_transforms_from_config
+    return A.Compose([
+    A.HorizontalFlip(p=0.5),
+    A.VerticalFlip(p=0.5),
+    A.Affine(rotate=(-90, 90), translate_percent=(0.1, 0.1),  shear=(-20, 20)),
+    A.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1,  p=0.5),
+    A.CenterCrop(height=CROP_HEIGHT_YAML_CONFIG, width=CROP_WIDTH_YAML_CONFIG),
+    A.ToTensorV2()], 
+    seed = SEED_VALUE)
 
 
-def test_make_transform_from_config_PIL_image_YAML(explicit_transforms_YAML) -> None:
+def test_make_transform_from_configYAML_PIL_image(explicit_transforms_YAML):
     """
-    Test that make_transform_from_config returns the correctly transformed input 
-    that is a PIL image, 
-    using a YAML config file altering the default configuration
+    Test that a YAML configuration that overrides the default transdformations_config.py 
+    returns the correctly transformed input that is a PIL image
     """
-    #
-    # return the transformation pipeline by make_transform_from_config using the provided configuration + YAML file
-    transform_from_config_yaml = make_transform_from_config(
-        config_yaml_test_transform_data,
-        augmentation_required=True
-    )
-    
-    # list all transforms from config_yaml_test_transform_data  explicitly
-    explicit_transforms_from_config_YAML = explicit_transforms_YAML
+
+    # import default config
+    from SkiNet.ML.configs import transformations_config
+    config = transformations_config.get_default_config()
+
+    # import yaml settings
+    from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH 
+    config.merge_from_file(TRANSFORMATION_CONFIGS_YAML_PATH) # override from YAML
+    config.freeze() #  to prevent further modification
+
+    # obtain the transform
+    from SkiNet.ML.transformations.transform_data import make_transform_from_config
+    transform_from_YAMLconfig = make_transform_from_config(
+        config,
+        augmentation_required=True,
+        seed_value=SEED_VALUE)
+
+
     # input as a PIL image
-    image_input = torch.randint(0, 256, size=(3, *IMAGE_SIZE), dtype=torch.uint8)
-    image_input = T.ToPILImage()(image_input)
+    image_input = np.ones((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
+    image_input = Image.fromarray(image_input)
 
-    # get the transformed image using transforms returned by make_transform_from_config
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # transformed_image will be of TVImage type
-    # use transform_from_config_yaml
-    transformed_image = transform_from_config_yaml(image_input)
-    logging.getLogger(__name__).debug(type(transformed_image))
-    assert isinstance(transformed_image, TVImage)
-    assert isinstance(transformed_image, torch.Tensor) # TVImage is a subclass of torch.Tensor
+    # get the transformed image
+    transformed = transform_from_YAMLconfig(image=image_input)
+    transformed_image = transformed['image']
+    assert isinstance(transformed_image, torch.Tensor) # torch.Tensor
 
-    # get the transformed image using the pipeline above
-    np.random.seed(3)
-    torch.manual_seed(3)
-    random.seed(3)
-    # convert to ToImage first, because this is done so in TransformData for all inputs that are not TVImage
-    # use explicit_transforms_from_config_YAML
-    expected_transformed_image = T.ToImage()(image_input) 
-    for transform in explicit_transforms_from_config_YAML:
-        expected_transformed_image = transform(expected_transformed_image)
+    # get the transformed image using the expected pipeline above
+    expected_transformed_image = explicit_transforms_YAML(image=np.array(image_input))['image']
 
+
+    assert expected_transformed_image.shape == transformed_image.shape
+    assert expected_transformed_image.dtype == transformed_image.dtype
+    assert isinstance(expected_transformed_image, torch.Tensor) # torch.Tensor
     # assert both results are the same
     assert torch.isclose(expected_transformed_image, transformed_image).all()
-
