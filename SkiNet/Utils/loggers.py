@@ -108,6 +108,9 @@ def file_logging(log_file: Path = LOG_FILE, files_log_level: Optional[int] = log
         print(f"Setting logging level to {log_level} to log into {log_file}")
         file_logging_handler.setLevel(log_level)
         logger.setLevel(log_level)
+    
+    # turn off matplotlib logging as it is too excessive in DEBUG
+    logging.getLogger('matplotlib').setLevel(logging.WARNING)
 
 
 def _set_up_formatter(handler: logging.Handler, colour_coding: Optional[bool] = True) -> None:
