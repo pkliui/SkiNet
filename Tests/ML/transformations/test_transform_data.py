@@ -1,12 +1,3 @@
-import numpy as np
-import pytest
-import torch
-import torchvision.transforms.v2 as T
-from PIL import Image
-
-from SkiNet.ML.transformations.transform_data import (
-    TransformData, make_transform_from_config)
-
 #seed value for albumentations
 SEED_VALUE = 42
 #image dimenstions for albumentations.CenterCrop
@@ -23,67 +14,13 @@ IMG_HEIGHT = 600
 IMG_WIDTH = 600
 IMG_CHANNELS = 3
 
-"""------------------------------------------------------------------TESTS for ensure_np_image---------------------------------------------------------------"""
-
-
-
-import numpy as np
-import pytest
-import torch
-import torchvision.transforms.v2 as T
-from PIL import Image
-from torchvision.tv_tensors import Image as TVImage
-
-from SkiNet.ML.transformations.transform_data import TransformData
-
-
-class DummyTransform:
-    def __call__(self, x):
-        return x
-
-@pytest.fixture
-def transform_data():
-    """
-    Fixture for TransformData.
-    """
-    return TransformData(DummyTransform())
-
-def test_ensure_np_image_tensor_input(transform_data):
-    """
-    Test that ensure_np_image converts a torch.Tensor to a numpy array"""
-    tensor = torch.rand(IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
-    out = transform_data.ensure_np_image(tensor)
-    assert isinstance(out, np.ndarray)
-
-def test_ensure_np_image_pil_input(transform_data):
-    """
-    Test that ensure_np_image converts a PIL image to a numpy array"""
-    image = np.random.randint(0, 256, (IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8) 
-    pil_img = Image.fromarray(image)
-    out = transform_data.ensure_np_image(pil_img)
-    assert isinstance(out, np.ndarray)
-
-def test_ensure_np_image_tensor_input_reshape(transform_data):
-    """
-    Test that ensure_np_image converts a torch.Tensor to a numpy array
-    and reshapes it to (H, W, C) if it is in (C, H, W) format"""
-    tensor = torch.rand(IMG_CHANNELS, IMG_HEIGHT, IMG_WIDTH)
-    out = transform_data.ensure_np_image(tensor)
-    assert isinstance(out, np.ndarray)
-    assert out.shape == (IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS)
-
 
 """------------------------------------------------------------------TESTS for apply_transforms---------------------------------------------------------------"""
-
-
 import numpy as np
 import pytest
 import torch
-import torchvision.transforms.v2 as T
 import albumentations as A
 from PIL import Image
-from torchvision.transforms import v2
-from torchvision.tv_tensors import Image as TVImage
 
 from SkiNet.ML.transformations.transform_data import TransformData
 
@@ -135,8 +72,6 @@ def test_apply_transforms_image_mask_tensor_input(transform_data):
     assert torch.allclose(image_transformed, torch.ones(IMG_CHANNELS, CROP_HEIGHT, CROP_WIDTH,  dtype=torch.uint8))
     assert torch.allclose(mask_transformed, torch.ones(CROP_HEIGHT, CROP_WIDTH,  dtype=torch.uint8))
 
-
-
 def test_apply_transforms_image_mask_PIL(transform_data):
     """
     Test that apply_transforms transforms an image and a mask both of which are PIL images  and returns transformed torch.Tensors
@@ -159,13 +94,8 @@ def test_apply_transforms_image_mask_PIL(transform_data):
     assert torch.allclose(mask_transformed, torch.ones(CROP_HEIGHT, CROP_WIDTH,  dtype=torch.uint8))
 
 
-
-
 """------------------------------------------------------------------TESTS for TransformData---------------------------------------------------------------"""
-
-
 from SkiNet.ML.transformations.transform_data import TransformData
-
 
 def test_can_pass_pipeline_to_transformdata():
     """
@@ -175,8 +105,6 @@ def test_can_pass_pipeline_to_transformdata():
     transform = TransformData(pipeline)
     assert hasattr(transform, "pipeline")
     assert transform.pipeline is pipeline
-
-
 
 def test_transformdata_pipeline_is_callable():
     """
@@ -189,9 +117,6 @@ def test_transformdata_pipeline_is_callable():
     out = transform(image=image)
     
     assert isinstance(out['image'], torch.Tensor)
-
-
-
 
 def test_transformdata_pipeline_with_pil():
     """
@@ -207,11 +132,7 @@ def test_transformdata_pipeline_with_pil():
     assert isinstance(out['image'], torch.Tensor)
 
 
-
-
-
 """------------------------------------------------------------------TESTS for make_transform_from_config using default YACS config ---------------------------------------------------------------"""
-
 
 # the below uses default YACS transformations config  specified in Tests.ML.configs.transformation_configs_paths_for_test.config_test_transform_data
 
@@ -219,7 +140,6 @@ from SkiNet.ML.transformations.transform_data import (
     TransformData, make_transform_from_config)
 from Tests.ML.configs.transformation_configs_paths_for_test import \
     config_test_transform_data
-
 
 @pytest.fixture
 def explicit_transforms():
@@ -265,13 +185,13 @@ def test_make_transform_from_config_PIL_image(explicit_transforms) -> None:
     # get the transformed image using the expected pipeline above
     expected_transformed_image = explicit_transforms(image=np.array(image_input))['image']
 
-
     assert expected_transformed_image.shape == transformed_image.shape
     assert expected_transformed_image.dtype == transformed_image.dtype
     assert isinstance(expected_transformed_image, torch.Tensor) # torch.Tensor
     # assert both results are the same
     assert torch.isclose(expected_transformed_image, transformed_image).all()
 
+"""------------------------------------------------------------------TESTS for make_transform_from_config using YAML config ---------------------------------------------------------------"""
 
 @pytest.fixture
 def explicit_transforms_YAML():
@@ -283,7 +203,6 @@ def explicit_transforms_YAML():
     A.CenterCrop(height=CROP_HEIGHT_YAML_CONFIG, width=CROP_WIDTH_YAML_CONFIG),
     A.ToTensorV2()], 
     seed = SEED_VALUE)
-
 
 def test_make_transform_from_configYAML_PIL_image(explicit_transforms_YAML):
     """
@@ -307,7 +226,6 @@ def test_make_transform_from_configYAML_PIL_image(explicit_transforms_YAML):
         augmentation_required=True,
         seed_value=SEED_VALUE)
 
-
     # input as a PIL image
     image_input = np.ones((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS), dtype=np.uint8)
     image_input = Image.fromarray(image_input)
@@ -319,7 +237,6 @@ def test_make_transform_from_configYAML_PIL_image(explicit_transforms_YAML):
 
     # get the transformed image using the expected pipeline above
     expected_transformed_image = explicit_transforms_YAML(image=np.array(image_input))['image']
-
 
     assert expected_transformed_image.shape == transformed_image.shape
     assert expected_transformed_image.dtype == transformed_image.dtype
