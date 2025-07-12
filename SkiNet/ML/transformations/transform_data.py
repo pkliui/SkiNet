@@ -1,5 +1,3 @@
-import logging
-import random
 from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
@@ -10,7 +8,9 @@ import albumentations as A
 from torchvision.tv_tensors import Image as TVImage
 from yacs.config import CfgNode
 
-# possible input image data types that will be onverted to np.ndarray as per compatibility with albumentaions
+from SkiNet.Utils.image_utils import ensure_np_image
+
+# possible input image data types that will be converted to np.ndarray as per compatibility with albumentaions
 ImageData = Union[np.ndarray,
                   torch.Tensor, 
                   PIL.Image.Image]
@@ -58,26 +58,6 @@ class TransformData:
         else:
             transformed = self.apply_transforms(image=image)
             return {'image': transformed['image']}
-
-def ensure_np_image(x: ImageData) -> np.ndarray:
-    """
-    Ensure the input is a numpy array and that its shape is  (H, W, C) as required by Albumentations library.
-    :param x: The input image that can be a numpy array or a tensor or a PIL image
-    :return: A numpy array of (H, W, C)
-    """
-    if isinstance(x, np.ndarray):
-        arr = x
-    else:
-        arr = np.array(x)
-    # If array is 3D and channels are first and there are either 1 or 3 channels, 
-    # move them to last
-    if arr.ndim == 3 and arr.shape[0] in [1, 3] and arr.shape[0] < min(arr.shape[1:]):
-        arr = np.transpose(arr, (1, 2, 0))  # (C, H, W) -> (H, W, C)
-    
-    # If a bool mask, onvert to uint8 to e able to work with OpenCV and Albumentations
-    if arr.dtype == bool:
-        arr = arr.astype(np.uint8)
-    return arr
 
 def make_transform_from_config(config: CfgNode, 
                                augmentation_required: bool, 
