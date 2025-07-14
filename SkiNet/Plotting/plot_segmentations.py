@@ -2,15 +2,13 @@ from typing import List, Optional, Union
 
 import PIL
 import torch
-from PIL import Image
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
 from torchvision.transforms import ToPILImage
 
 from SkiNet.ML.dataloaders.dataloaders import RepeatDataLoader
 from SkiNet.ML.datasets.dataset_splitter import DatasetSplitter
-from SkiNet.ML.datasets.ph2dataset import PH2Dataset
 from SkiNet.ML.utils.configs.dynamic_class_loader import DynamicClassLoader
-from SkiNet.ML.utils.model_utils import MLWorkflowState, state_mapping
+from SkiNet.ML.utils.model_utils import state_mapping
 from SkiNet.Plotting.get_data.get_images_and_masks import \
     read_images_and_masks_from_directory
 from SkiNet.Plotting.plot_masks_over_images import plot_masks_over_images
@@ -34,18 +32,18 @@ class PlotSegmentations:
     Used in conjunction with the `plot_masks_over_images` function to visualize the results.
     """
     def __init__(self,
-                 images: List[Union[PIL.Image.Image, torch.Tensor]],
-                 masks: List[Union[PIL.Image.Image, torch.Tensor]],
+                 images: List[PIL.Image.Image],
+                 masks: List[PIL.Image.Image],
                  alpha: float,
                  colors: str,
                  max_cols: int):
         """
         :param images:
-            A batched tensor or a list of PIL images of shape (3, H, W) where 3 is the number of channels, 
-            and H, W are the height and width of the images, and of dtype uint8.
+            A list of PIL images, each of shape (3, H, W) where 3 is the number of channels, 
+            and H, W are the height and width of the images
         :param masks:
-            A batched tensor or a list of PIL image of shape (H, W) or (num_masks, H, W) where num_masks is the number of masks,
-            and H, W are the height and width of the masks, and of dtype bool.
+            A list of PIL images, each of shape (H, W) or (num_masks, H, W) where num_masks is the number of masks,
+            and H, W are the height and width of the masks
         :param alpha:
             Transparency level of the masks. A value between 0 (fully transparent) and 1 (fully opaque). 
             Default is 0.3.
@@ -81,7 +79,6 @@ class PlotSegmentations:
         all_masks = []
 
         for batch_idx, dataitem in enumerate(dataloader):
-            print(dataitem["image"].shape)
             all_images.append(dataitem["image"])
             all_masks.append(dataitem["mask"])
 
@@ -91,8 +88,11 @@ class PlotSegmentations:
 
         # Concatenate all batches into a single tensor
         all_images = torch.cat(all_images, dim=0)
-        print(all_images.shape)
         all_masks = torch.cat(all_masks, dim=0)
+        
+        # convert to PIL as required by plot_masks_over_images
+        all_images = [ToPILImage()(img) for img in all_images]
+        all_masks = [ToPILImage()(mask) for mask in all_masks]
 
         return cls(all_images, all_masks, **kwargs)
     
@@ -108,7 +108,6 @@ class PlotSegmentations:
 
 
 def plot_segmentations(mode: str,
-                       config: Optional[dict] = None,
                        data_root: str = None,
                        dataset_class_name: str = None,
                        max_cols: int = None,
@@ -121,17 +120,16 @@ def plot_segmentations(mode: str,
                        seed: Optional[int] = 42,
                        split_type_to_plot: Optional[str] = "train",
                        alpha: Optional[float] = 0.3,
-                       colors: Optional[Union[str, List[str]]] = "white"):
+                       colors: Optional[Union[str, List[str]]] = "white",
+                       **dataset_kwargs):
     """
-    The main function to plot images and their corresponding segmentations (masks) over each other
-    It is based on the PlotSegmentations class and can be used either with a configuration file or with direct arguments to plot in the following modes:
-    
+    The main function to plot images and their corresponding segmentations (masks) over each other using PlotSegmentations class
+    Two modes of operation are supported:
     1. From a DataLoader, where it will extract images and masks from the batches.
     2. From a directory, where it will read images and masks from the specified paths.
 
     
     :param mode: The mode of operation. Can be "dataloader" or "folder".
-    :param config: Optional configuration dictionary. Parameters in this dictionary will be overridden by direct arguments.
     :param data_root: Root directory for the data (required for "dataloader"  and for "folder" mode).
 
     :param dataset_class_name: Name of the dataset class (required for "dataloader" mode).
@@ -149,93 +147,37 @@ def plot_segmentations(mode: str,
     :param alpha: Transparency level of the masks. A value between 0 (fully transparent) and 1 (fully opaque). Default is 0.3.
     :param colors: Colors for the masks. Can be a single color (e.g., "red" or (255, 0, 0)) or a list of colors for multiple masks. Default is "white".
 
-
-    Example config  JSON file:
-    --------------------------------
-    {
-        "dataloader": {
-        "dataset_class_name": "PH2Dataset",
-        "max_batches_to_plot": 2,
-        "split": [0.8, 0.1, 0.1],
-        "seed": 42,
-        "batch_size": 5,
-        "num_workers": 1,
-        "shuffle": false,
-        "split_type_to_plot": "train"
-        },
-        "folder": {
-        "search_pattern_images": "*_Dermoscopic_Image/*.bmp",
-        "search_pattern_masks": "*_lesion/*.bmp",
-        "max_images_to_plot": 10
-        },
-        "data_root": "/workplace/SkiNet/PH2_Dataset_images",
-        "alpha": 0.3,
-        "colors": "white",
-        "max_cols": 5
-    }
-
-    Example plotting from a dataloader:
-    --------------------------------
-    from SkiNet.Plotting.plot_segmentations import plot_segmentations
-    from SkiNet.Utils.get_configs import get_config_from_yaml
-    config_path = "/workplace/SkiNet/SkiNet/ML/configs/ph2dataset_plotting_config.json"
-    plot_segmentations(mode = "dataloader",
-                    config=get_config_from_yaml(config_path))
-
-    Example plotting from a folder:
-    --------------------------------
-    from SkiNet.Plotting.plot_segmentations import plot_segmentations
-    from SkiNet.Utils.get_configs import get_config_from_yaml
-    plot_segmentations(mode = "folder",
-                    config=get_config_from_yaml(config_path))
-
-
-
                         
-    Example using direct arguments
-    --------------------------------
-    When plotting from a DataLoader (mode="dataloader") using direct arguments, the following ones are required
-    
-    to plot from a dataloader:
+    Example to plot from a dataloader:
     --------------------------------
 
-    from SkiNet.Plotting.plot_segmentations import plot_segmentations
-    plot_segmentations(mode = "dataloader",
-                    data_root = "/workplace/SkiNet/PH2_Dataset_images",
-                    dataset_class_name = "PH2Dataset",
-                    max_cols = 5,
-                    batch_size = 10,
-                    max_batches_to_plot  = 2)
-    
-    to plot from a folder:
-    --------------------------------
-    # given arguments
+    ```
     from SkiNet.Plotting.plot_segmentations import plot_segmentations
     plot_segmentations(mode = "folder",
                     data_root = "/workplace/SkiNet/PH2_Dataset_images",
                     search_pattern_images = "*_Dermoscopic_Image/*.bmp",
                     search_pattern_masks = "*_lesion/*.bmp",
                     max_cols = 5,
-                    max_images_to_plot = 10)            
+                    max_images_to_plot = 10)
+    ```
+    
+    Example to plot from a folder:
+    --------------------------------
+    ```
+    from SkiNet.Plotting.plot_segmentations import plot_segmentations
 
+    plot_segmentations(mode = "dataloader",
+                    data_root = "/workplace/SkiNet/PH2_Dataset_images",
+                    dataset_class_name = "PH2Dataset",
+                    max_cols = 2,
+                    batch_size = 2,
+                    max_batches_to_plot  = 1,
+                    default_transform_visualisation=True,
+                    alpha=0.5)
+    ```
     """
 
-    # Merge config with direct arguments (direct arguments take precedence)
-    config = config or {}
-    data_root = data_root or config.get("data_root")
-    alpha = alpha or config.get("alpha")
-    colors = colors or config.get("colors")
-    max_cols = max_cols or config.get("max_cols")
-
     if mode == "dataloader":
-        dataloader_config = config.get("dataloader", {})
-        dataset_class_name = dataset_class_name or dataloader_config.get("dataset_class_name")
-        split = split or dataloader_config.get("split")
-        seed = seed or dataloader_config.get("seed")
-        split_type_to_plot = split_type_to_plot or dataloader_config.get("split_type_to_plot")
-        batch_size = batch_size or dataloader_config.get("batch_size")
-        max_batches_to_plot = max_batches_to_plot or dataloader_config.get("max_batches_to_plot")
-
         # Validate required parameters for dataloader mode
         if not all([dataset_class_name, split, seed, split_type_to_plot, batch_size]):
             raise ValueError("Missing required parameters for 'dataloader' mode.")
@@ -248,7 +190,8 @@ def plot_segmentations(mode: str,
             raise ValueError(f"Failed to load dataset class: {dataset_class_name}")
 
         # Initialize the dataset
-        dataset = DatasetClass(data_root=data_root)
+        # dataset_kwargs can be e.g. default_transform_visualisation=True
+        dataset = DatasetClass(data_root=data_root, **dataset_kwargs)
 
         # Split the dataset
         datasets = DatasetSplitter.get_split_datasets(
@@ -273,24 +216,19 @@ def plot_segmentations(mode: str,
         plotter()
 
     elif mode == "folder":
-        folder_config = config.get("folder", {})
-        search_pattern_images = search_pattern_images or folder_config.get("search_pattern_images")
-        search_pattern_masks = search_pattern_masks or folder_config.get("search_pattern_masks")
-        max_images_to_plot = max_images_to_plot or folder_config.get("max_images_to_plot")
-
         # Validate required parameters for folder mode
         if not all([search_pattern_images, search_pattern_masks]):
             raise ValueError("Missing required parameters for 'folder' mode.")
 
-        # read both images and masks
+        # read both images and masks - only those that have a pair and are of the same size
         images, masks = read_images_and_masks_from_directory(
             directory_path=data_root,
             search_pattern_images=search_pattern_images,
             search_pattern_masks=search_pattern_masks,
             max_num_images_to_return=max_images_to_plot
-        )
+        ) # -> Tuple[List[Image.Image], List[Image.Image]]
         plotter = PlotSegmentations.from_paths(
-            images,
+            images, # -> List[Image.Image]
             masks,
             alpha=alpha,
             colors=colors,
