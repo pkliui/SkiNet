@@ -6,20 +6,83 @@ Notebook: (docker_plotting_examples.ipynb)[../SkiNet/Plotting/docker_plotting_ex
 
 # Plot images and masks side-by-side
 
-## From a local directory and a specified dataset
+## Logging
+
+Logging may be useful to track skipped images
+
+```
+import logging
+from SkiNet.Utils.loggers import file_logging, stdout_logging
+stdout_logging(logging.DEBUG)
+file_logging()
+```
+
+
+## From a local directory and a specified dataset, as raw data
 ### When can be used: 
 - Images and masks sitting in a local directory that can be used with a specific dataset
 
-Example:
 ```
 from SkiNet.Plotting.plot_images_masks_side_by_side import plot_images_masks_side_by_side_matplotlib
 from SkiNet.ML.datasets.ph2dataset import PH2Dataset
 
 dataset = PH2Dataset(data_root="/workplace/SkiNet/PH2_Dataset_images")
-plot_images_masks_side_by_side_matplotlib(dataset, num_samples=1)
+plot_images_masks_side_by_side_matplotlib(dataset, num_samples=3)
 ```
 
 
+## From a local directory and a specified dataset + manually specified transformations
+### When can be used: 
+- Images and masks sitting in a local directory that can be used with a specific dataset
+- Transformations provided as an albumentations.Compose object
+
+Example:
+```python
+from SkiNet.Plotting.plot_images_masks_side_by_side import plot_images_masks_side_by_side_matplotlib
+from SkiNet.ML.datasets.ph2dataset import PH2Dataset
+import albumentations as A
+from SkiNet.ML.transformations.transform_data import TransformData
+import torch
+
+# specify transforms
+transform = A.Compose([A.CenterCrop(height=500, width=500),
+                      A.ToTensorV2()])
+
+dataset = PH2Dataset(data_root="/workplace/SkiNet/PH2_Dataset_images",
+                     transform=transform)
+plot_images_masks_side_by_side_matplotlib(dataset, num_samples=3)
+```
+
+
+
+## From a local directory and a specified dataset +  transformations using a YAML config
+- Images and masks sitting in a local directory that can be used with a specific dataset
+- Transformations provided in a YAML file and as a default configuration
+
+
+```python
+# import default config
+from SkiNet.ML.configs import transformations_config
+config = transformations_config.get_default_config()
+
+
+# import yaml settings
+from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH 
+config.merge_from_file(TRANSFORMATION_CONFIGS_YAML_PATH) # override from YAML
+config.freeze() #  to prevent further modification
+
+# obtain the transform
+from SkiNet.ML.transformations.transform_data import make_transform_from_config
+transform = make_transform_from_config(
+    config,
+    augmentation_required=True)
+
+from SkiNet.ML.datasets.ph2dataset import PH2Dataset
+from SkiNet.Plotting.plot_images_masks_side_by_side import plot_images_masks_side_by_side_matplotlib
+dataset = PH2Dataset(data_root="/workplace/SkiNet/PH2_Dataset_images",
+                     transform=transform)
+plot_images_masks_side_by_side_matplotlib(dataset, num_samples=5)
+```
 
 # Plot images overlayed with masks
 
@@ -27,9 +90,11 @@ plot_images_masks_side_by_side_matplotlib(dataset, num_samples=1)
 ### When can be used: 
 - Images and masks sitting in a local directory
 - Known file format and file structure
+- ```plot_segmentations``` ensures only masks and images of the same size and having a pair are plotted
 
 Example given arguments:
 ```
+# given arguments
 from SkiNet.Plotting.plot_segmentations import plot_segmentations
 plot_segmentations(mode = "folder",
                    data_root = "/workplace/SkiNet/PH2_Dataset_images",
@@ -40,82 +105,23 @@ plot_segmentations(mode = "folder",
 ```
 
 
-Example given config file:
-```
-{
-    "dataloader": {
-      "dataset_class_name": "PH2Dataset",
-      "split": [0.8, 0.1, 0.1],
-      "seed": 42,
-      "split_type_to_plot": "train",
-      "batch_size": 5,
-      "max_batches_to_plot": 2
-
-    },
-    "data_root": "/workplace/SkiNet/PH2_Dataset_images",
-    "alpha": 0.3,
-    "colors": "white",
-    "max_cols": 5
-  }
-```
-```
-from SkiNet.Plotting.plot_segmentations import plot_segmentations
-from SkiNet.Utils.get_configs import get_config_from_yaml
-
-        
-config_path = "/workplace/SkiNet/SkiNet/ML/configs/ph2dataset_plotting_config.json"
-plot_segmentations(mode = "folder",
-                   config=get_config_from_yaml(config_path))
-```
-
-
-
 ## From a dataloader and a specified dataset
 ### When can be used: 
 - Images and masks yielded by a dataloader and a specific dataset
+- The dataset ensures it has only masks and images of the same size and they have a pair
+
  
 Example given arguments:
 ```
+# given arguments
 from SkiNet.Plotting.plot_segmentations import plot_segmentations
+
 plot_segmentations(mode = "dataloader",
                    data_root = "/workplace/SkiNet/PH2_Dataset_images",
                    dataset_class_name = "PH2Dataset",
-                   max_cols = 5,
-                   batch_size = 10,
-                   max_batches_to_plot  = 2)
-```
-
-Example given config file:
-```
-
-{
-    "dataloader": {
-      "dataset_class_name": "PH2Dataset",
-      "split": [0.8, 0.1, 0.1],
-      "seed": 42,
-      "split_type_to_plot": "train",
-      "batch_size": 5,
-      "max_batches_to_plot": 2
-
-    },
-    "folder": {
-      "search_pattern_images": "*_Dermoscopic_Image/*.bmp",
-      "search_pattern_masks": "*_lesion/*.bmp",
-      "max_images_to_plot": 10
-    },
-    "data_root": "/workplace/SkiNet/PH2_Dataset_images",
-    "alpha": 0.3,
-    "colors": "white",
-    "max_cols": 5
-  }
-```
-```
-# given config file
-from SkiNet.Plotting.plot_segmentations import plot_segmentations
-from SkiNet.Utils.get_configs import get_config_from_yaml
-
-        
-config_path = "/workplace/SkiNet/SkiNet/ML/configs/ph2dataset_plotting_config.json"
-plot_segmentations(mode = "dataloader",
-                   config=get_config_from_yaml(config_path))
+                   max_cols = 2,
+                   batch_size = 2,
+                   max_batches_to_plot  = 1,
+                   default_transform_visualisation=True,
+                   alpha=0.5)
 ```

@@ -17,6 +17,7 @@ from torchvision import transforms
 from torchvision.utils import draw_segmentation_masks
 
 from SkiNet.Utils.dev_utils import is_running_in_docker
+from SkiNet.Utils.image_utils import ensure_np_image
 
 # Set matplotlib backend based on environment
 if is_running_in_docker():
@@ -25,20 +26,20 @@ if is_running_in_docker():
     matplotlib.use("Agg")
 
 
-def plot_masks_over_images(images: Union[torch.Tensor, List[Image.Image]], 
-                           masks: Union[torch.Tensor, List[Image.Image]], 
+def plot_masks_over_images(images: List[Image.Image], 
+                           masks: List[Image.Image], 
                            alpha: Optional[float] = 0.3,
                            colors: Optional[Union[List[Union[str, Tuple[int, int, int]]], str, Tuple[int, int, int]]] = "white",
                            max_cols: Optional[int] = 2):
     """
-    Plot masks over images with transparency, given they are provided in a batched tensor or a list
+    Plot masks over images with transparency
     
     :param images:
-        A batched tensor or a list of PIL images of shape (3, H, W) where 3 is the number of channels, 
-        and H, W are the height and width of the images, and of dtype uint8.
+        A list of PIL images, each of shape (3, H, W) where 3 is the number of channels, 
+        and H, W are the height and width of the images
     :param masks:
-        A batched tensor or a list of PIL image of shape (H, W) or (num_masks, H, W) where num_masks is the number of masks,
-        and H, W are the height and width of the masks, and of dtype bool.
+        A list of PIL images, each of shape (H, W) or (num_masks, H, W) where num_masks is the number of masks,
+        and H, W are the height and width of the masks
     :param alpha:
         Transparency level of the masks. A value between 0 (fully transparent) and 1 (fully opaque). 
         Default is 0.3.
@@ -56,11 +57,10 @@ def plot_masks_over_images(images: Union[torch.Tensor, List[Image.Image]],
       https://pytorch.org/vision/stable/utils.html#torchvision.utils.draw_segmentation_masks
     - Images and masks are transformed to uint8 tensors internally if needed.
 
-    Example of using batched tensors:
-    --------
-    >>> images = torch.randint(0, 256, (4, 3, 128, 128), dtype=torch.uint8)
-    >>> masks = torch.randint(0, 2, (4, 128, 128), dtype=torch.bool)
-    >>> plot_masks_over_images(images, masks, alpha=0.5, colors="white", max_cols=2)
+    Example:
+    images = [Image.open("path/to/image1.jpg"), Image.open("path/to/image2.jpg")]
+    masks = [Image.open("path/to/mask1.png"), Image.open("path/to/mask2.png")]
+    plot_masks_over_images(images, masks, alpha=0.5, colors="white", max_cols=2)
     """
     
 
@@ -71,15 +71,10 @@ def plot_masks_over_images(images: Union[torch.Tensor, List[Image.Image]],
                 transforms.ToTensor(),  # Converts to torch.Tensor of float32 (0-1)
                 transforms.Lambda(lambda x: (x * 255).byte())  # Scale & convert to uint8
             ])
-        elif isinstance(input_image, torch.Tensor):
-            transform = transforms.Compose([
-                transforms.Lambda(lambda x: (x * 255).byte())  # Scale & convert to uint8
-            ])
         else:
-            raise TypeError(f"Unsupported input type: {type(input_image)}. Expected PIL.Image.Image or torch.Tensor.")
+            raise TypeError(f"Unsupported input type: {type(input_image)}. Expected PIL.Image.Image")
         return transform(input_image)
     
-
     images = [_to_tensor_uint8(img) for img in images]
     masks = [_to_tensor_uint8(mask) for mask in masks]
     # Convert masks to bool tensors
@@ -115,7 +110,7 @@ def show(input_images: List[torch.Tensor],
 
     for i, img in enumerate(input_images):
         img = F.to_pil_image(img)
-        
+
         # Calculate row and column index
         row = i // ncols
         col = i % ncols
