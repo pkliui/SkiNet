@@ -4,7 +4,7 @@
   
 ## Modifications to the default Dataset class
 
-The following describes a few modifications to PyTorch's default Dataset class used in SkiNet in order to prevent the so-called "Memory-on_copy" prolem that was observed
+The following describes a few modifications to PyTorch's default Dataset class used in SkiNet in order to prevent the so-called "Memory-on_copy" problem that was observed
 - in https://github.com/pytorch/pytorch/issues/13246#issuecomment-905703662
 
 
@@ -42,58 +42,90 @@ Example jupyter notebook showing this problem (from the authors on Github) https
 
 ## Augmentation of data
 
-Data are augmented using ```TransformData``` class in ```SkiNet/ML/transformations/transform_data.py```. In practice one can make a transformation pipeline using ```make_transform_from_config``` function and a respective configuration object ```config```. 
+Data augmentation is performed using the ```TransformData``` class in ```transform_data.py```. The transformation pipeline is constructed by the ```make_transform_from_config``` function, which adds transformations from Albumentations library, based on conditional checks of a provided configuration object (```config```). The resulting pipeline can then be passed to the "transform" argument of a dataset.
 
 ### Configuration for transformation
 - The configuration options for transformations are defined using (YASC library)[https://github.com/rbgirshick/yacs].
-- ```SkiNet/ML/configs/transformations_config.py```is a project config file for performing transformations in SkiNet that holds the default settings.
-- For each experiment one typically creates a dedicated YAML configuration file where the options that are different from the default options are listed. Example:
+- ```SkiNet/ML/configs/transformations_config.py``` is the project’s default configuration file for transformations in SkiNet.
+- For each experiment, a dedicated YAML configuration file is typically created, specifying only the options that differ from the defaults. For example:
 
 ```yaml
 augmentation:
-  random_affine_apply: True
-  random_affine:
-    degrees: 90
-    translate: (0.1, 0.1)
-
-  random_rotation_apply: False
-
-  crop_apply: True
+  horizontal_flip_apply: True
+  horizontal_flip:
+    p: 0.5
+  vertical_flip_apply: True
+  vertical_flip:
+    p: 0.5
+  affine_apply: True
+  affine:
+    rotate: (-90, 90)
+    translate_percent: (0.1, 0.1)
+    shear: (-20, 20)
+  colorjitter_apply: True
+  colorjitter:
+    brightness: 0.1
+    contrast: 0.1
+    saturation: 0.1
+    p: 0.5
+  center_crop_apply: True
   center_crop:
-    size: (400, 400)
+    height: 400
+    width: 400
 ```
 
-- The imported config settings are overriden by the YAML file's content and then frozen to prevent any further modifications:
+- A config object is created by overriding the defaults from an experiment-specific YAML and freezing the modified config.
+- The configuration object can now be used to make a transformation pipeline using ```make_transform_from_config```:
 
 ```python
 # import default config
 from SkiNet.ML.configs import transformations_config
 config = transformations_config.get_default_config()
 
+
 # import yaml settings
 from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH 
 config.merge_from_file(TRANSFORMATION_CONFIGS_YAML_PATH) # override from YAML
 config.freeze() #  to prevent further modification
-```
 
-
-### Making transformations
-
-- This configuration object ```config``` can now be used to make a transformation pipeline using ```make_transform_from_config```:
-
-```python
+# obtain the transform
 from SkiNet.ML.transformations.transform_data import make_transform_from_config
-
-transform_from_config = make_transform_from_config(
+transform = make_transform_from_config(
     config,
     augmentation_required=True)
-transformed_image = transform_from_config(input_image)
 ```
 
-- Since class ```TransformData```uses```v2.transforms```under the hood, the input image can be a torch.Tensor, TVImage, or PIL.Image.Image or a tuple of these types.  According to the torch documentation, v2.transforms support arbitrary input structures, such as single image, a tuple or a dictionary. The same structure will be returned as output. Pure torch.Tensor objects are treated as images. However, if the input is an Image, Video, or PIL.Image.Image instance, all other pure tensors are passed-through (not transformed). If there is no Image or Video instance, only the first pure torch.Tensor will be transformed as image or video, while all others will be passed-through. Here “first” means “first in a depth-wise traversal”.
- https://docs.pytorch.org/vision/main/auto_examples/transforms/plot_transforms_getting_started.html#sphx-glr-auto-examples-transforms-plot-transforms-getting-started-py
+- The pipeline can now be queried to display the transformations using .pipeline argument:
+```
+transform.pipeline,
+```
+which prints out the following:
+
+```
+Compose([
+  HorizontalFlip(p=0.5),
+  VerticalFlip(p=0.5),
+  Affine(p=0.5, balanced_scale=False, border_mode=0, fill=0.0, fill_mask=0.0, fit_output=False, interpolation=1, keep_ratio=False, mask_interpolation=0, rotate=(-90.0, 90.0), rotate_method='largest_box', scale={'x': (1.0, 1.0), 'y': (1.0, 1.0)}, shear={'x': (-20.0, 20.0), 'y': (-20.0, 20.0)}, translate_percent={'x': (0.1, 0.1), 'y': (0.1, 0.1)}, translate_px=None),
+  ColorJitter(p=0.5, brightness=(0.9, 1.1), contrast=(0.9, 1.1), hue=(-0.5, 0.5), saturation=(0.9, 1.1)),
+  CenterCrop(p=1.0, border_mode=0, fill=0.0, fill_mask=0.0, height=400, pad_if_needed=False, pad_position='center', width=400),
+  ToTensorV2(p=1.0, transpose_mask=False),
+], p=1.0, bbox_params=None, keypoint_params=None, additional_targets={}, is_check_shapes=True)
+```
+
+Note, "ToTensorV2(p=1.0, transpose_mask=False)" at the end.
 
 
+
+### Transforming data in datasets
+
+Datasets accept this transformation pipeline via "transform" argument:
+
+```
+from SkiNet.ML.datasets.ph2dataset import PH2Dataset
+dataset = PH2Dataset(
+  data_root="/workplace/SkiNet/PH2_Dataset_images",
+  transform=transform)
+```
 
 
 
