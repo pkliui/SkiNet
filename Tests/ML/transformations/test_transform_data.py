@@ -134,12 +134,8 @@ def test_transformdata_pipeline_with_pil():
 
 """------------------------------------------------------------------TESTS for make_transform_from_config using default YACS config ---------------------------------------------------------------"""
 
-# the below uses default YACS transformations config  specified in Tests.ML.configs.transformation_configs_paths_for_test.config_test_transform_data
-
-from SkiNet.ML.transformations.transform_data import (
-    TransformData, make_transform_from_config)
-from Tests.ML.configs.transformation_configs_paths_for_test import \
-    config_test_transform_data
+from SkiNet.ML.transformations.transform_data import TransformData, make_transform_from_config
+from Tests.ML.configs.transformation_configs_paths_for_test import config_test_transform_data
 
 @pytest.fixture
 def explicit_transforms():
@@ -184,14 +180,24 @@ def test_make_transform_from_config_PIL_image(explicit_transforms) -> None:
 
     # get the transformed image using the expected pipeline above
     expected_transformed_image = explicit_transforms(image=np.array(image_input))['image']
+    import logging
+    logging.getLogger(__name__).debug(f"Expected transformed image: {expected_transformed_image.shape}")
 
     assert expected_transformed_image.shape == transformed_image.shape
+    assert expected_transformed_image.shape == (IMG_CHANNELS, CROP_HEIGHT_PY_CONFIG, CROP_WIDTH_PY_CONFIG)
     assert expected_transformed_image.dtype == transformed_image.dtype
     assert isinstance(expected_transformed_image, torch.Tensor) # torch.Tensor
     # assert both results are the same
     assert torch.isclose(expected_transformed_image, transformed_image).all()
 
 """------------------------------------------------------------------TESTS for make_transform_from_config using YAML config ---------------------------------------------------------------"""
+
+
+# obtain the transform
+from SkiNet.ML.transformations.transform_data import make_transform_from_config
+# import YAML config
+from Tests.ML.configs.transformation_configs_paths_for_test import config_yaml_test_transform_data
+
 
 @pytest.fixture
 def explicit_transforms_YAML():
@@ -210,19 +216,8 @@ def test_make_transform_from_configYAML_PIL_image(explicit_transforms_YAML):
     returns the correctly transformed input that is a PIL image
     """
 
-    # import default config
-    from SkiNet.ML.configs import transformations_config
-    config = transformations_config.get_default_config()
-
-    # import yaml settings
-    from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH 
-    config.merge_from_file(TRANSFORMATION_CONFIGS_YAML_PATH) # override from YAML
-    config.freeze() #  to prevent further modification
-
-    # obtain the transform
-    from SkiNet.ML.transformations.transform_data import make_transform_from_config
     transform_from_YAMLconfig = make_transform_from_config(
-        config,
+        config_yaml_test_transform_data,
         augmentation_required=True,
         seed_value=SEED_VALUE)
 
