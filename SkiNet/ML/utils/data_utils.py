@@ -4,20 +4,23 @@ Contains various functions to handle data
 import logging
 import re
 from pathlib import Path
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from PIL import Image
 
 
-def extract_sample_number(file_path: Path) -> int:
+def extract_sample_number(file_path: Union[Path, str]) -> int:
     """
     Extracts a numeric sample identifier from a file name given its full path
     
     For example, if the file path is "path_to_image/image_03.bmp", it will return 3.
     Otherwise, if no digits found, it will return 0.
 
-    :param file_path: full path to file, e.g. path_to_file/in_a_folder/the_file.bmp
+    :param file_path: full path to file, e.g. path_to_file/in_a_folder/the_file.bmp provided as a string or Path
     """
+    if isinstance(file_path, str):
+        file_path = Path(file_path)#needed for Azure as the path is a str
+    
     # Get the filename without the extension
     file_stem = file_path.stem
     # Find the first group of digits in the filename (we assume they are the only one)

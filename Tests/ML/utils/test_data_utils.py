@@ -30,6 +30,8 @@ def test_extract_sample_number(filename, expected):
     """
     Test that extract_sample_number correctly extracts numbers from filenames given assertions above
     """
+    file_path = filename
+    assert extract_sample_number(file_path) == expected
     file_path = Path(filename)
     assert extract_sample_number(file_path) == expected
 
