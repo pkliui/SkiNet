@@ -30,11 +30,13 @@ class TransformData:
         """
         Apply the transformation pipeline to the input, assuming the use of Albumentations library
 
-        :param image: Input image, must be of shape (H, W, C) or (H, W) if C==1.
-        :param mask: Optional input mask, must be of shape (H, W, C) or (H, W) if C==1
+        :param image: Input image, that must be of shape (H, W, C) or (H, W) if C==1 and a numpy array 
+            prior to use in the transformations pipeline. If not, the shape is enfored by ensure_np_image.
+        :param mask: Optional input mask, must be of shape (H, W, C) or (H, W) if C==1 and a numpy array 
+            prior to use in the transformations pipeline. If not, the shape is enforced by ensure_np_image.
 
         :return: The transformed input returned as a dictionary with leys according to the inputs.
-            For example, If mask is provided, the dit will have key 'mask'.
+            For example, If mask is provided, the dict will have key 'mask'.
             Otherwise, it will have only key 'image'
             As per augmentations library internals, the output dimensions are (C, H, W) unless C==1, then (H, W)
         """
