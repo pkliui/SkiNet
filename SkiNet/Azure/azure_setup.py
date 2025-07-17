@@ -4,11 +4,10 @@ import os
 import logging
 
 from azure.identity import InteractiveBrowserCredential
+from azureml.fsspec import AzureMachineLearningFileSystem
 
 from SkiNet.Utils.get_configs import get_config_from_yaml
 from SkiNet.Utils import project_paths
-
-
 
 
 class AzureSetup(param.Parameterized):
@@ -24,7 +23,7 @@ class AzureSetup(param.Parameterized):
     RESOURCE_GROUP: str = param.String(doc="Resource group that contains the current workspace")
     WORKSPACE_NAME: str = param.String(doc="Name of the workspace")
     DATASTORE_NAME: str = param.String(doc="Name of the datastore containing data")
-    PATH_ON_DATASTORE: str = param.String(doc="Path to a folder with data on the datastore")
+    PATH_ON_DATASTORE = param.Dict(doc="Dict mapping dataset names to paths on the datastore")
 
     def __init__(self, **params):
         super().__init__(**params)
@@ -39,6 +38,34 @@ class AzureSetup(param.Parameterized):
         """
         azure_config = AzureSetup(**get_config_from_yaml(path_to_yaml))
         return azure_config
+
+    @staticmethod
+    def get_azureml_filesystem(dataset_name: str):
+        """
+        Get AzureMachineLearningFileSystem 
+
+        :param dataset_name: Relative path to data on the datastore, w.r.t. to the datastore's root
+        :return fs: AzureMachineLearningFileSystem object
+
+        Example if data are under azure_uri:
+            azure_uri = f"azureml://subscriptions/{azure_config.SUBSCRIPTION_ID}/resourcegroups/{azure_config.RESOURCE_GROUP}/workspaces/{azure_config.WORKSPACE_NAME}/datastores/{azure_config.DATASTORE_NAME}/paths/{path}/"
+            In this case, "dataset_name" corresponds to "path"
+        """
+        # get Azure configuration from YAML settings file
+        azure_config = AzureSetup.get_azure_config_from_yaml(project_paths.AZURE_SETTINGS_YAML)
+        
+        # get path to data on the datastore
+        if dataset_name not in azure_config.PATH_ON_DATASTORE:
+            raise ValueError(f"Dataset name '{dataset_name}' not found in azure_config.PATH_ON_DATASTORE! "
+                            f"Available options: {list(azure_config.PATH_ON_DATASTORE.keys())}")
+        path = azure_config.PATH_ON_DATASTORE[dataset_name]
+
+        # get Azure URI pointing to data
+        azure_uri = f"azureml://subscriptions/{azure_config.SUBSCRIPTION_ID}/resourcegroups/{azure_config.RESOURCE_GROUP}/workspaces/{azure_config.WORKSPACE_NAME}/datastores/{azure_config.DATASTORE_NAME}/paths/{path}/"
+        
+        # get Azure file system
+        fs = AzureMachineLearningFileSystem(azure_uri)
+        return fs
 
     @staticmethod
     def service_principal_authentication():

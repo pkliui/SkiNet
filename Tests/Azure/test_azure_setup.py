@@ -26,7 +26,9 @@ def azure_settings_yaml(tmp_path):
         "RESOURCE_GROUP": "resource_group_value",
         "WORKSPACE_NAME": "workspace_name_value",
         "DATASTORE_NAME": "datastore_name_value",
-        "PATH_ON_DATASTORE": "path_on_datastore_value"
+        "PATH_ON_DATASTORE": {
+            "PH22": "path_on_datastore_value"
+        }
     }
     file_path = tmp_path / "azure_settings.yaml"
     with file_path.open("w") as f:
@@ -83,7 +85,7 @@ def test_get_azure_config_from_yaml_file_not_found(tmp_path):
         AzureSetup.get_azure_config_from_yaml(non_existent_file)
 
 
-"""------------------------------------------------------------------TESTS for perform_azure_authenticatio---------------------------------------------------------------"""
+"""------------------------------------------------------------------TESTS for perform_azure_authentication---------------------------------------------------------------"""
 
 def test_service_principal_authentication_missing_key(monkeypatch, azure_settings_yaml, private_azure_secrets_yaml_missing_key):
     """
@@ -130,3 +132,43 @@ def test_service_principal_authentication_success(monkeypatch, azure_settings_ya
     assert os.environ["AZURE_TENANT_ID"] == azure_config_dict["AZURE_TENANT_ID"]
     assert os.environ["AZURE_CLIENT_ID"] == azure_config_dict["AZURE_CLIENT_ID"]
     assert os.environ["AZURE_CLIENT_SECRET"] == secrets_config_dict["AZURE_CLIENT_SECRET"]
+
+"""------------------------------------------------------------------TESTS for get_azureml_filesystem---------------------------------------------------------------"""
+
+
+import pytest
+from azureml.fsspec import AzureMachineLearningFileSystem
+from SkiNet.Azure.azure_setup import get_azureml_filesystem
+
+def test_get_azureml_filesystem_success(monkeypatch, azure_settings_yaml):
+    file_path, config = azure_settings_yaml
+
+    # monkeypatch the settings path
+    monkeypatch.setattr(project_paths, "AZURE_SETTINGS_YAML", file_path)
+
+    # monkeypatch PATH_ON_DATASTORE to be a dict
+    config["PATH_ON_DATASTORE"] = {"PH22": "PH22_folder_path"}
+
+    # rewrite the config file with updated PATH_ON_DATASTORE
+    with file_path.open("w") as f:
+        yaml.dump(config, f)
+
+    fs = get_azureml_filesystem("PH22")
+    assert isinstance(fs, AzureMachineLearningFileSystem)
+
+
+def test_get_azureml_filesystem_dataset_not_found(monkeypatch, azure_settings_yaml):
+    file_path, config = azure_settings_yaml
+
+    # monkeypatch the settings path
+    monkeypatch.setattr(project_paths, "AZURE_SETTINGS_YAML", file_path)
+
+    # set an empty dict to simulate missing datasets
+    config["PATH_ON_DATASTORE"] = {"not_ph22": "lol_nope"}
+
+    # rewrite the config file with updated PATH_ON_DATASTORE
+    with file_path.open("w") as f:
+        yaml.dump(config, f)
+
+    with pytest.raises(ValueError, match="Dataset name 'PH22' not found"):
+        get_azureml_filesystem("PH22")
