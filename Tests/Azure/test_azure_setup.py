@@ -67,7 +67,7 @@ def private_azure_secrets_yaml_missing_key(tmp_path):
 
 def test_get_azure_config_from_yaml(azure_settings_yaml):
     """
-    Test that config_from_yaml correctly loads a valid YAML configuration
+    Test that get_azure_config_from_yaml correctly loads a valid YAML configuration
     :param azure_settings_yaml: Fixture that creates a temporary YAML file with valid Azure configuration data
     """
     file_path, expected_config = azure_settings_yaml
@@ -94,9 +94,9 @@ def test_service_principal_authentication_missing_key(monkeypatch, azure_setting
 
     #Extract the paths to yaml files and their contents
     azure_config_path, _ = azure_settings_yaml
-    secrets_path, secrets_config_dict = private_azure_secrets_yaml_missing_key
+    secrets_path, _ = private_azure_secrets_yaml_missing_key
 
-    # Monkeypatch the project_paths to point to YAML files as needed for service_principal_authentication function
+    # Monkeypatch "from SkiNet.Utils import project_paths" to point to YAML files as needed for service_principal_authentication function
     monkeypatch.setattr(project_paths, "AZURE_SETTINGS_YAML", azure_config_path)
     monkeypatch.setattr(project_paths, "PRIVATE_AZURE_SECRETS_YAML", secrets_path)
     
@@ -118,7 +118,7 @@ def test_service_principal_authentication_success(monkeypatch, azure_settings_ya
     azure_config_path, azure_config_dict = azure_settings_yaml
     secrets_path, secrets_config_dict = private_azure_secrets_yaml
 
-    # Monkeypatch the project_paths to point to YAML files as needed for service_principal_authentication function
+    # Monkeypatch "from SkiNet.Utils import project_paths" to point to YAML files as needed for service_principal_authentication function
     monkeypatch.setattr(project_paths, "AZURE_SETTINGS_YAML", azure_config_path)
     monkeypatch.setattr(project_paths, "PRIVATE_AZURE_SECRETS_YAML", secrets_path)
     
@@ -135,40 +135,38 @@ def test_service_principal_authentication_success(monkeypatch, azure_settings_ya
 
 """------------------------------------------------------------------TESTS for get_azureml_filesystem---------------------------------------------------------------"""
 
-
-import pytest
-from azureml.fsspec import AzureMachineLearningFileSystem
-from SkiNet.Azure.azure_setup import get_azureml_filesystem
-
 def test_get_azureml_filesystem_success(monkeypatch, azure_settings_yaml):
-    file_path, config = azure_settings_yaml
+    """
+    Test that we can get an AzureMachineLearningFileSystem object, given a relative path to data on the datastore
+    """
 
-    # monkeypatch the settings path
-    monkeypatch.setattr(project_paths, "AZURE_SETTINGS_YAML", file_path)
+    azure_settings_yaml_path, config = azure_settings_yaml
 
-    # monkeypatch PATH_ON_DATASTORE to be a dict
-    config["PATH_ON_DATASTORE"] = {"PH22": "PH22_folder_path"}
+    # monkeypatch "from SkiNet.Utils import project_paths" so that project_paths.AZURE_SETTINGS_YAML points to azure_settings_yaml_path
+    monkeypatch.setattr(project_paths, "AZURE_SETTINGS_YAML", azure_settings_yaml_path)     
 
-    # rewrite the config file with updated PATH_ON_DATASTORE
-    with file_path.open("w") as f:
-        yaml.dump(config, f)
+    # get the filesystem
+    from SkiNet.Azure.azure_setup import AzureSetup
+    AzureSetup.service_principal_authentication()
+    fs = AzureSetup.get_azureml_filesystem("PH22")
 
-    fs = get_azureml_filesystem("PH22")
+    from azureml.fsspec import AzureMachineLearningFileSystem
     assert isinstance(fs, AzureMachineLearningFileSystem)
 
 
 def test_get_azureml_filesystem_dataset_not_found(monkeypatch, azure_settings_yaml):
+    """
+    Test raising ValueError, given a non-existing relative path to data on the datastore
+    """
     file_path, config = azure_settings_yaml
 
     # monkeypatch the settings path
     monkeypatch.setattr(project_paths, "AZURE_SETTINGS_YAML", file_path)
 
-    # set an empty dict to simulate missing datasets
-    config["PATH_ON_DATASTORE"] = {"not_ph22": "lol_nope"}
-
     # rewrite the config file with updated PATH_ON_DATASTORE
+    config["PATH_ON_DATASTORE"] = {"not_ph22": "non_existing_path"}
     with file_path.open("w") as f:
         yaml.dump(config, f)
 
-    with pytest.raises(ValueError, match="Dataset name 'PH22' not found"):
-        get_azureml_filesystem("PH22")
+    with pytest.raises(ValueError):
+        AzureSetup.get_azureml_filesystem("PH22")

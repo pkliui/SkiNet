@@ -1,6 +1,6 @@
-# Azure setup
+# Azure
 
-## Set up data storage
+## Azure storage setup
 
 In order to keep the images in and access them from Azure Blob Storage, we need to do the following. 
 
@@ -52,5 +52,21 @@ Now we need to make a new storage account to keep our images.
 - Go to your Azure Machine Learning Workspace (not studio but the workspace in Azure portal) and under ```Access control (IAM) / Role assignments``` choose "New role assignment"
 - Select ```AzureML Data Scientist```, pick the newly created service principal and finish by clicking ```Save```. You should be able to access the data in your data storage account programmatically using the service principal and AzureMachineLearningFileSystem tools
 
+
+##  Retrieve data from Azure
+
 ### Authentication from the code
-To access data stored in the blob container from within the code, one must do an authentication with the SP created above. This is done by calling [```service_principal_authentication()```](https://github.com/pkliui/SkiNet/blob/main/SkiNet/Azure/azure_setup.py) method
+- To access data stored in the blob container from within the code, one must do an authentication with the SP created above. This is done by calling [```service_principal_authentication()```](https://github.com/pkliui/SkiNet/blob/main/SkiNet/Azure/azure_setup.py) method:
+
+```python
+    from SkiNet.Azure.azure_setup import AzureSetup
+    AzureSetup.service_principal_authentication()
+```
+
+- Next, one need to specify the dataset name as an argument to ```get_azureml_filesystem``` and then pass the returned Azure filesystem
+  object to the ```data_root```argument in the relevant dataset class. For example, for PH2 dataset:
+```python
+    fs = AzureSetup.get_azureml_filesystem("PH2")
+    dataset = PH2Dataset(data_root=fs)
+```
+- In case, the specified dataset does not exist, a Value Error will be risen and provide information on available datasets.

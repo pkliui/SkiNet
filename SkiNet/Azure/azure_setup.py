@@ -56,7 +56,7 @@ class AzureSetup(param.Parameterized):
         
         # get path to data on the datastore
         if dataset_name not in azure_config.PATH_ON_DATASTORE:
-            raise ValueError(f"Dataset name '{dataset_name}' not found in azure_config.PATH_ON_DATASTORE! "
+            raise ValueError(f"Dataset name '{dataset_name}' not found in azure_config.PATH_ON_DATASTORE!"
                             f"Available options: {list(azure_config.PATH_ON_DATASTORE.keys())}")
         path = azure_config.PATH_ON_DATASTORE[dataset_name]
 
