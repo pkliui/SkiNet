@@ -1,6 +1,5 @@
 from enum import Enum, unique
 
-
 @unique
 class MLWorkflowState(Enum):
     """
@@ -29,7 +28,7 @@ def state_mapping(input_state_name: str) -> MLWorkflowState:
         "testing": MLWorkflowState.TEST,
     }
 
-    if input_state_name.lower() in state_mapping_dict.keys():
+    if input_state_name is not None and (input_state_name.lower() in state_mapping_dict.keys()):
         state = state_mapping_dict[input_state_name.lower()]
     else:
         raise ValueError(f"Invalid ML workflow state name: '{input_state_name}'. Must be one of {list(state_mapping_dict.keys())}.")
