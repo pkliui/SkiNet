@@ -51,6 +51,11 @@ class BaseConv2D(torch.nn.Module):
         """Padding value calculated based on padding mode, kernel size, and dilation"""
         
         self.apply_batchnorm = apply_batchnorm
+        if self.apply_batchnorm:
+            self.bias = False
+        else:
+            self.bias = bias
+
         self.conv2d = torch.nn.Conv2d(
             in_channels=in_channels,
             out_channels=out_channels,
@@ -58,7 +63,7 @@ class BaseConv2D(torch.nn.Module):
             stride=self.stride,
             padding=self.padding,
             dilation=dilation,
-            bias=not self.apply_batchnorm)  # Set bias based on apply_batchnorm
+            bias=self.bias)
         """Conv 2d layer"""
 
         self.batchnorm2d = torch.nn.BatchNorm2d(out_channels) if self.apply_batchnorm else None
