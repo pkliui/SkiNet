@@ -69,6 +69,10 @@ class TestBaseEncoder2D:
         (6, 3, 7, 16, 3, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
         (20, 3, 7, 16, 3, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
         # Vary input size
+        (1, 3, 7, 4, 2, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # 2x2 output
+        (1, 3, 7, 4, 3, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # 2x2 output
+        (1, 3, 7, 4, 3, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 2, True), # 2x2 output
+        (1, 3, 7, 6, 3, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 2, True), # 3x3 output
         (1, 3, 7, 8, 3, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
         (1, 3, 7, 128, 3, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
         (1, 3, 7, 512, 3, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
