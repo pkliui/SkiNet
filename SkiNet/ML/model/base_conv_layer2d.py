@@ -13,18 +13,18 @@ class BaseConv2D(torch.nn.Module):
     :param stride: Stride of the convolution operation. Required if padding_mode is 'VALID'. Otherwise is set based on padding_mode.
         Default is 1
     :param padding_mode: Padding mode applied to input. Should be of type PaddingMode.
-        Possible values are 'VALID' (no padding applied), 'SAME' (padding applied to keep same spatial dimensions), 
-        and 'DOWNSAMPLING_FACTOR_2' (downsample the output by factor 2). 
+        Possible values are 'VALID' (no padding applied), 'SAME' (padding applied to keep same spatial dimensions),
+        and 'DOWNSAMPLING_FACTOR_2' (downsample the output by factor 2).
         Default is 'SAME'.
     :param dilation: Dilation factor of the convolution operation.
         Default is 1
-    :param bias: If True, adds a learnable bias to the output. Note that this parameter is ignored and set to False
+    :param apply_bias: If True, adds a learnable bias to the output. Note that this parameter is ignored and set to False
         when `apply_batchnorm=True` because batch normalization includes its own learnable parameters.
         Default is False
     :param apply_batchnorm: If True, applies batch normalization after convolution. When enabled, the `bias` parameter
         is ignored and set to False.
     :param activation: Non-linear activation function applied after batch normalization. If None, no activation is applied.
-    
+
     :return: Output tensor after applying convolution, optional batch normalization, and optional activation.
     """
     def __init__(self,
@@ -34,14 +34,14 @@ class BaseConv2D(torch.nn.Module):
                  stride: Union[int, Iterable[int]] = 1,
                  padding_mode:  PaddingMode = PaddingMode.SAME,
                  dilation: Union[int, Iterable[int]] = 1,
-                 bias: bool = False,
+                 apply_bias: bool = False,
                  apply_batchnorm: bool = True,
                  activation: Optional[Callable] = torch.nn.ReLU):
         super().__init__()
 
         if not isinstance(padding_mode, PaddingMode):
             raise ValueError(f"Invalid padding mode: {padding_mode}. Must be one of {list(PaddingMode)}.")
-        
+
         pad_and_stride = get_padding_and_stride(kernel=kernel,
                                                 dilation=dilation,
                                                 padding_mode=padding_mode,
@@ -49,12 +49,12 @@ class BaseConv2D(torch.nn.Module):
                                                 stride=stride)
         self.padding, self.stride = pad_and_stride.padding, pad_and_stride.stride
         """Padding value calculated based on padding mode, kernel size, and dilation"""
-        
+
         self.apply_batchnorm = apply_batchnorm
         if self.apply_batchnorm:
-            self.bias = False
+            self.apply_bias = False
         else:
-            self.bias = bias
+            self.apply_bias = apply_bias
 
         self.conv2d = torch.nn.Conv2d(
             in_channels=in_channels,
@@ -63,7 +63,7 @@ class BaseConv2D(torch.nn.Module):
             stride=self.stride,
             padding=self.padding,
             dilation=dilation,
-            bias=self.bias)
+            bias=self.apply_bias)
         """Conv 2d layer"""
 
         self.batchnorm2d = torch.nn.BatchNorm2d(out_channels) if self.apply_batchnorm else None

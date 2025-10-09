@@ -5,13 +5,12 @@ from torch.nn import Conv2d, BatchNorm2d, MSELoss
 
 from SkiNet.ML.model.base_conv_layer2d import BaseConv2D
 from SkiNet.ML.utils.sampling.encoder_sampling import PaddingMode
-from SkiNet.ML.utils.model_utils import set_random_seed
 
 
-@pytest.mark.parametrize("in_channels, out_channels, kernel, stride, dilation, bias, apply_batchnorm, activation", [
+@pytest.mark.parametrize("in_channels, out_channels, kernel, stride, dilation, apply_bias, apply_batchnorm, activation", [
     (3, 8, 5, 1, 1, False, True, torch.nn.ReLU),
 ])
-def test_baseconv2d_structure(in_channels, out_channels, kernel, stride, dilation, bias, apply_batchnorm, activation) -> None:
+def test_baseconv2d_structure(in_channels, out_channels, kernel, stride, dilation, apply_bias, apply_batchnorm, activation) -> None:
     """
     Test that BaseConv2D module is composed of a conv2d layer, batchnorm2d, and an activation function
     """
@@ -21,10 +20,10 @@ def test_baseconv2d_structure(in_channels, out_channels, kernel, stride, dilatio
                        stride=stride,
                        padding_mode=PaddingMode.VALID,
                        dilation=dilation,
-                       bias=bias,
+                       apply_bias=apply_bias,
                        apply_batchnorm=apply_batchnorm,
                        activation=activation)
-    
+
     assert any([isinstance(ll, Conv2d) for ll in layer.children()])
     if apply_batchnorm:
         assert any([isinstance(ll, BatchNorm2d) for ll in layer.children()])
@@ -32,10 +31,10 @@ def test_baseconv2d_structure(in_channels, out_channels, kernel, stride, dilatio
     if hasattr(layer.activation, "inplace"):
         assert layer.activation.inplace is True
 
-@pytest.mark.parametrize("batch_size, in_channels, out_channels, kernel, stride, dilation, bias, apply_batchnorm, activation", [
+@pytest.mark.parametrize("batch_size, in_channels, out_channels, kernel, stride, dilation, apply_bias, apply_batchnorm, activation", [
     (2, 3, 8, 5, 1, 1, False, True, torch.nn.ReLU),
 ])
-def test_basic_layer_forward_and_backward_pass(batch_size, in_channels, out_channels, kernel, stride, dilation, bias, apply_batchnorm, activation) -> None:
+def test_basic_layer_forward_and_backward_pass(batch_size, in_channels, out_channels, kernel, stride, dilation, apply_bias, apply_batchnorm, activation) -> None:
     """
     Test forward and backward passes in BaseConv2D layer with 'SAME' padding
     """
@@ -49,7 +48,7 @@ def test_basic_layer_forward_and_backward_pass(batch_size, in_channels, out_chan
                        stride=stride,
                        padding_mode=PaddingMode.SAME,
                        dilation=dilation,
-                       bias=bias,
+                       apply_bias=apply_bias,
                        apply_batchnorm=apply_batchnorm,
                        activation=activation)
 
