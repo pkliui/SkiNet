@@ -1,7 +1,35 @@
+from __future__ import annotations
 from enum import Enum, unique
-from typing import List, Optional, Tuple, Union, Iterable
+from typing import List, Optional, Tuple, Union, Iterable, Any
 from dataclasses import dataclass
 from typing import Tuple
+
+# Design note: This module adopts a strict, enum-first API for padding modes.
+# Public functions expect a `PaddingMode` enum member (e.g. `PaddingMode.SAME`) and
+# will raise ValueError for strings or other types. If you need lenient parsing
+# (e.g. from CLI/config), add a thin adapter that converts strings to enum
+# members at the boundary.
+
+
+@dataclass(frozen=True)
+class PaddingModeSpec:
+    """
+    Metadata for a padding mode used by the sampling utilities.
+
+    :param value_str: Canonical string identifier for the mode (e.g. "valid", "same",
+               "downsampling_factor_2").
+    :param factor: Integer downsampling factor implied by the mode (1 = no downsample,
+                2 = downsample by 2, ...). Used to compute upsampling kernel sizes.
+    :param stride: Default stride to use for convolutions in this mode.
+
+    Note:
+        The `value_str` field is metadata only. This module's public API requires
+        that callers pass a `PaddingMode` enum member rather than the raw
+        `value` string; `from_value` will not accept the `value` string.
+    """
+    value_str: str
+    factor: int
+    stride: int
 
 
 @unique
@@ -9,24 +37,71 @@ class PaddingMode(Enum):
     """
     Keeps possible padding modes to be used in e.g. BaseConvLayer2D's torch tensors
 
-    :param VALID: No padding applied to input. The resulting output size is determined by the kernel size, dilation and stride.
-    :param SAME: Apply padding such that input and output have the same shape. This is only supported for stride=1 convolutions.
-    :param DOWNSAMPLING_FACTOR_2: Apply padding such that the input is downsampled by a factor of 2. This is only supported for stride=2 convolutions.
+    Members hold a small PaddingModeSpec payload with a human-readable value string, the downsampling
+    factor and a default stride (None for VALID which requires an explicit stride).
     """
-    VALID = "valid"
-    SAME = "same"
-    DOWNSAMPLING_FACTOR_2 = "downsampling_factor_2"
+    VALID = PaddingModeSpec(value_str="valid", factor=1, stride=None)
+    SAME = PaddingModeSpec(value_str="same", factor=1, stride=1)
+    DOWNSAMPLING_FACTOR_2 = PaddingModeSpec(value_str="downsampling_factor_2", factor=2, stride=2)
+
+    @property
+    def downsampling_factor(self) -> int:
+        return int(self.value.factor)
+
+    @property
+    def stride(self) -> int:
+        return self.value.stride
+
+    @classmethod
+    def from_value(cls, value) -> PaddingMode:
+        """
+        Verify that input is a PaddingMode instance and return it.
+
+        This strict helper accepts only a `PaddingMode` enum member and will
+        raise ValueError for any other input (strings, ints, None, etc.).
+
+        Examples:
+            PaddingMode.from_value(PaddingMode.SAME)  # returns PaddingMode.SAME
+            PaddingMode.from_value("SAME")          # raises ValueError
+
+        Raises:
+            ValueError: if `value` is not a PaddingMode member.
+        """
+        if isinstance(value, cls):
+            return value
+        raise ValueError(f"{value!r} is not a valid {cls.__name__}.")
 
 
-@dataclass
-class ConvParams:
+def ensure_padding_mode(value: Any) -> PaddingMode:
     """
-    Holds the parameters to be returned by get_padding_and_stride
-    :param padding: Padding value as a tuple of integers
-    :param stride: Stride value as an integer, specific to the padding mode passed to get_padding_and_stride
+    Validate and return a `PaddingMode` enum member.
+
+    Behavior:
+        - If `value` is already a `PaddingMode` member it is returned unchanged.
+        - Otherwise, a ValueError is raised. This function enforces a strict policy:
+        only PaddingMode enum members are accepted. If you want to allow strings
+        (e.g., from user input or config files), convert them to enum members before calling
+
+    # Example: User or config provides a string
+    padding_mode_str = "same"  # could come from a config file, CLI, etc.
+
+    # Convert string to enum at the boundary (I/O/config layer)
+    try:
+        padding_mode = PaddingMode[padding_mode_str.upper()]
+    except KeyError:
+        raise ValueError(f"Invalid padding mode: {padding_mode_str}")
+
+    # Now use the strict API internally
+    padding = get_padding(
+        kernel=(3, 3),
+        dilation=(1, 1),
+        padding=padding_mode
+    )
+
+    Raises:
+        ValueError: if `value` is not a `PaddingMode` member.
     """
-    padding: Tuple[int, ...]
-    stride: int
+    return PaddingMode.from_value(value)
 
 
 def handle_mixed_inputs(kernel: Union[Iterable[int], int],
@@ -62,13 +137,10 @@ def handle_mixed_inputs(kernel: Union[Iterable[int], int],
             if value <= 0:
                 raise ValueError(f"{name} must be positive, got {value}")
 
-    # Validate inputs
     validate_value(kernel, "kernel")
     validate_value(dilation, "dilation")
-
-    # Check which inputs are iterables
-    kernel_is_iterable = isinstance(kernel, Iterable)
-    dilation_is_iterable = isinstance(dilation, Iterable)
+    kernel_is_iterable = isinstance(kernel, Iterable) and not isinstance(kernel, str)
+    dilation_is_iterable = isinstance(dilation, Iterable) and not isinstance(dilation, str)
 
     # Case 1: All scalars - use num_dims
     if not kernel_is_iterable and not dilation_is_iterable:
@@ -91,12 +163,15 @@ def handle_mixed_inputs(kernel: Union[Iterable[int], int],
     else:
         kernel_list = list(kernel)
         dilation_list = list(dilation)
+
         if len(kernel_list) != len(dilation_list):
             raise ValueError(f"All iterable inputs must have the same size. "
                            f"Got kernel with size {len(kernel_list)} and dilation with size {len(dilation_list)}")
         return (kernel_list, dilation_list)
 
-def get_padding_stride_2(kernel: Union[Iterable[int], int], dilation: Union[Iterable[int], int]) -> Tuple[int, ...]:
+
+def get_padding_stride_2(kernel: Union[Iterable[int], int],
+                         dilation: Union[Iterable[int], int]) -> Tuple[int, ...]:
     """
     Calculate padding for stride=2 convolutions. Output will be downsampled by factor 2.
     Sampling mode is 'DOWNSAMPLING_FACTOR_2'.
@@ -112,31 +187,38 @@ def get_padding_stride_2(kernel: Union[Iterable[int], int], dilation: Union[Iter
     :return: Padding value as a tuple of integers
     """
     kernel, dilation = handle_mixed_inputs(kernel, dilation, num_dims=2)
+
+    for k in kernel:
+            if k % 2 != 0:
+                raise ValueError(f"Kernel size {k} is odd; for stride=2, even kernel sizes are required to avoid uneven overlap and artifacts.")
+
+
     padding = [((k - 1) * d) // 2 for k, d in zip(kernel, dilation)]
     return tuple(p for p in padding)
 
-def get_padding_and_stride(
-    kernel: Union[Iterable[int], int],
-    dilation: Union[Iterable[int], int],
-    padding_mode: PaddingMode,
-    num_dims: int = 2,
-    stride: Optional[int] = None
-) -> ConvParams:
+
+def get_padding(kernel: Union[Iterable[int], int],
+                           dilation: Union[Iterable[int], int],
+                           padding_mode: PaddingMode,
+                           num_dims: int = 2,
+                           stride: Optional[int] = None) -> Union[Tuple[int, ...], str]:
     """
-    Calculate padding value for convolution layers based on kernel size, stride, dilation,
-    and sampling mode.
+    Calculate padding value for convolution layers.
+
+    Note: This function requires `padding_mode` to be a `PaddingMode` enum member. It
+    will not accept free-form strings. Use `PaddingMode.SAME`, `PaddingMode.VALID`, etc.
 
     :param kernel: Kernel size of the convolution operation (int or iterable of int)
     :param dilation: Dilation factor of the convolution operation (int or iterable of int)
-    :param padding_mode: Sampling strategy is VALID (no padding applied), SAME (output has same size as input, using pytorch's'same'),
-        or DOWNSAMPLING_FACTOR_2 (output is downsampled by factor 2 using stride=2 and calculated padding)
+    :param padding_mode: A `PaddingMode` enum member (e.g. `PaddingMode.SAME`)
     :param num_dims: Number of dimensions to convert to when all inputs are scalars
     :param stride: Stride of the convolution operation for padding mode VALID.
         If None, its value will be set based on padding_mode: 1 for SAME, 2 for DOWNSAMPLING_FACTOR_2.
 
-    :return: Padding value as integers tuple and stride as integer
-    :raises ValueError: If invalid padding mode is provided or no stride specified
+    :return: Padding value as integers tuple or string
+    :raises ValueError: If invalid padding mode is provided or no stride specified for VALID
     """
+    padding_mode = ensure_padding_mode(padding_mode)
     kernel, dilation = handle_mixed_inputs(kernel, dilation, num_dims=2)
 
     if padding_mode == PaddingMode.VALID:
@@ -145,12 +227,9 @@ def get_padding_and_stride(
         padding=tuple([0] * num_dims)
 
     elif padding_mode == PaddingMode.SAME:
-        stride = 1
         padding = 'same'
 
     elif padding_mode == PaddingMode.DOWNSAMPLING_FACTOR_2:
-        stride = 2
         padding=get_padding_stride_2(kernel=kernel, dilation=dilation)
-    else:
-        raise ValueError(f"Invalid sampling mode: {padding_mode}")
-    return ConvParams(padding=padding, stride=stride)
+
+    return padding
