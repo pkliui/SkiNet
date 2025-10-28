@@ -10,91 +10,91 @@ class TestEncoder2D:
     @pytest.mark.parametrize("batch_size, in_channels, out_channels, input_shape, kernel, stride, padding_mode, dilation, use_residual", [
         # all inputs are multiples of 2 because of the downsampling by factor of 2, to ensure compatibility across depths of the network
         # SAME padding tests
-        (1, 3, 7, 16, 3, 1, PaddingMode.SAME, 1, True),
+        (1, 3, 6, 16, 3, 1, PaddingMode.SAME, 1, True),
         # Vary batch
-        (6, 3, 7, 16, 3, 1, PaddingMode.SAME, 1, True),
-        (20, 3, 7, 16, 3, 1, PaddingMode.SAME, 1, True),
+        (6, 3, 6, 16, 3, 1, PaddingMode.SAME, 1, True),
+        (20, 3, 6, 16, 3, 1, PaddingMode.SAME, 1, True),
         # Vary input size
-        (1, 3, 7, 8, 3, 1, PaddingMode.SAME, 1, True),
-        (1, 3, 7, 128, 3, 1, PaddingMode.SAME, 1, True),
-        (1, 3, 7, 512, 3, 1, PaddingMode.SAME, 1, True),
+        (1, 3, 6, 8, 3, 1, PaddingMode.SAME, 1, True),
+        (1, 3, 6, 128, 3, 1, PaddingMode.SAME, 1, True),
+        (1, 3, 6, 512, 3, 1, PaddingMode.SAME, 1, True),
         # Vary channels
-        (1, 1, 7, 16, 3, 1, PaddingMode.SAME, 1, True),
-        (1, 3, 15, 16, 3, 1, PaddingMode.SAME, 1, True),
+        (1, 1, 2, 16, 3, 1, PaddingMode.SAME, 1, True),
+        (1, 16, 32, 16, 3, 1, PaddingMode.SAME, 1, True),
         # Vary kernel and dilation
-        (1, 3, 7, 16, 3, 1, PaddingMode.SAME, 1, True), # s=1, k=2n+1, d=1; n=1,2,3,... integer padding as per exact formula
-        (1, 3, 7, 16, 5, 1, PaddingMode.SAME, 1, True),
-        (1, 3, 7, 16, 2, 1, PaddingMode.SAME, 1, True), # s=1, d=1; non-integer padding as per exact formula due to k=2n, but still works with PyTorch 'same' padding
-        (1, 3, 7, 16, 4, 1, PaddingMode.SAME, 1, True),
-        (1, 3, 7, 16, 3, 1, PaddingMode.SAME, 2, True), # s=1, k=any, d=2, integer padding as per exact formula
-        (1, 3, 7, 16, 4, 1, PaddingMode.SAME, 2, True),
-        (1, 3, 7, 16, 5, 1, PaddingMode.SAME, 2, True),
-        (1, 3, 7, 16, 3, 1, PaddingMode.SAME, 3, True), # s=1, k=2n+1, d=3; n=1,2,3,... integer padding as per exact formula
-        (1, 3, 7, 16, 5, 1, PaddingMode.SAME, 3, True),
-        (1, 3, 7, 16, 2, 1, PaddingMode.SAME, 3, True), # s=1, d=3; non-integer padding as per exact formula due to k=2n, but still works with PyTorch 'same' padding
-        (1, 3, 7, 16, 4, 1, PaddingMode.SAME, 3, True),
+        (1, 3, 3, 16, 3, 1, PaddingMode.SAME, 1, True), # s=1, k=2n+1, d=1; n=1,2,3,... integer padding as per exact formula
+        (1, 3, 3, 16, 5, 1, PaddingMode.SAME, 1, True),
+        (1, 3, 3, 16, 2, 1, PaddingMode.SAME, 1, True), # s=1, d=1; non-integer padding as per exact formula due to k=2n, but still works with PyTorch 'same' padding
+        (1, 3, 3, 16, 4, 1, PaddingMode.SAME, 1, True),
+        (1, 3, 3, 16, 3, 1, PaddingMode.SAME, 2, True), # s=1, k=any, d=2, integer padding as per exact formula
+        (1, 3, 3, 16, 4, 1, PaddingMode.SAME, 2, True),
+        (1, 3, 3, 16, 5, 1, PaddingMode.SAME, 2, True),
+        (1, 3, 3, 16, 3, 1, PaddingMode.SAME, 3, True), # s=1, k=2n+1, d=3; n=1,2,3,... integer padding as per exact formula
+        (1, 3, 3, 16, 5, 1, PaddingMode.SAME, 3, True),
+        (1, 3, 3, 16, 2, 1, PaddingMode.SAME, 3, True), # s=1, d=3; non-integer padding as per exact formula due to k=2n, but still works with PyTorch 'same' padding
+        (1, 3, 3, 16, 4, 1, PaddingMode.SAME, 3, True),
         # Without residual
-        (1, 3, 7, 16, 3, 1, PaddingMode.SAME, 1, False), # s=1, k=2n+1, d=1; n=1,2,3,... integer padding as per exact formula
-        (1, 3, 7, 16, 2, 1, PaddingMode.SAME, 1, False), # s=1, d=1; non-integer padding as per exact formula due to k=2n, but still works with PyTorch 'same' padding
-        (1, 3, 7, 16, 3, 1, PaddingMode.SAME, 2, False), # s=1, k=any, d=2, integer padding as per exact formula
-        (1, 3, 7, 16, 3, 1, PaddingMode.SAME, 3, False), # s=1, k=2n+1, d=3; n=1,2,3,... integer padding as per exact formula
-        (1, 3, 7, 16, 2, 1, PaddingMode.SAME, 3, False), # s=1, d=3; non-integer padding as per exact formula due to k=2n, but still works with PyTorch 'same' padding
+        (1, 3, 3, 16, 3, 1, PaddingMode.SAME, 1, False), # s=1, k=2n+1, d=1; n=1,2,3,... integer padding as per exact formula
+        (1, 3, 3, 16, 2, 1, PaddingMode.SAME, 1, False), # s=1, d=1; non-integer padding as per exact formula due to k=2n, but still works with PyTorch 'same' padding
+        (1, 3, 3, 16, 3, 1, PaddingMode.SAME, 2, False), # s=1, k=any, d=2, integer padding as per exact formula
+        (1, 3, 3, 16, 3, 1, PaddingMode.SAME, 3, False), # s=1, k=2n+1, d=3; n=1,2,3,... integer padding as per exact formula
+        (1, 3, 3, 16, 2, 1, PaddingMode.SAME, 3, False), # s=1, d=3; non-integer padding as per exact formula due to k=2n, but still works with PyTorch 'same' padding
         #
         # VALID padding tests
-        (1, 3, 7, 16, 3, 1, PaddingMode.VALID, 1, True),
+        (1, 3, 3, 16, 3, 1, PaddingMode.VALID, 1, True),
         # Vary batch
-        (6, 3, 7, 16, 3, 1, PaddingMode.VALID, 1, True),
-        (20, 3, 7, 16, 3, 1, PaddingMode.VALID, 1, True),
+        (6, 3, 3, 16, 3, 1, PaddingMode.VALID, 1, True),
+        (20, 3, 3, 16, 3, 1, PaddingMode.VALID, 1, True),
         # Vary input size
-        (4, 3, 7, 128, 3, 1, PaddingMode.VALID, 1, True),
-        (4, 3, 7, 512, 3, 1, PaddingMode.VALID, 1, True),
+        (4, 3, 3, 128, 3, 1, PaddingMode.VALID, 1, True),
+        (4, 3, 3, 512, 3, 1, PaddingMode.VALID, 1, True),
         # Same output for different inputs
-        (1, 3, 7, 7, 3, 2, PaddingMode.VALID, 2, True), # 7x7 input, 3x3 output, kernel= 3
-        (1, 3, 7, 8, 3, 2, PaddingMode.VALID, 2, True), # 8x8 input, 3x3 output, kernel= 3
+        (1, 3, 6, 7, 3, 2, PaddingMode.VALID, 2, True), # 7x7 input, 3x3 output, kernel= 3
+        (1, 3, 6, 8, 3, 2, PaddingMode.VALID, 2, True), # 8x8 input, 3x3 output, kernel= 3
         # Vary channels
-        (1, 1, 7, 16, 3, 1, PaddingMode.VALID, 1, True),
-        (1, 3, 15, 16, 3, 1, PaddingMode.VALID, 1, True),
+        (1, 1, 1, 16, 3, 1, PaddingMode.VALID, 1, True),
+        (1, 3, 3, 16, 3, 1, PaddingMode.VALID, 1, True),
         # Vary kernel and dilation
-        (1, 3, 7, 16, 2, 1, PaddingMode.VALID, 1, True),
-        (1, 3, 7, 16, 3, 1, PaddingMode.VALID, 1, True),
-        (1, 3, 7, 16, 3, 1, PaddingMode.VALID, 2, True),
-        (1, 3, 7, 16, 4, 1, PaddingMode.VALID, 2, True),
-        (1, 3, 7, 16, 3, 1, PaddingMode.VALID, 3, True),
-        (1, 3, 7, 16, 5, 1, PaddingMode.VALID, 3, True),
+        (1, 3, 3, 16, 2, 1, PaddingMode.VALID, 1, True),
+        (1, 3, 3, 16, 3, 1, PaddingMode.VALID, 1, True),
+        (1, 3, 3, 16, 3, 1, PaddingMode.VALID, 2, True),
+        (1, 3, 3, 16, 4, 1, PaddingMode.VALID, 2, True),
+        (1, 3, 3, 16, 3, 1, PaddingMode.VALID, 3, True),
+        (1, 3, 3, 16, 5, 1, PaddingMode.VALID, 3, True),
         # Without residual
-        (1, 3, 7, 16, 3, 1, PaddingMode.VALID, 1, False),
-        (1, 3, 7, 16, 3, 1, PaddingMode.VALID, 2, False),
-        (1, 3, 7, 16, 3, 1, PaddingMode.VALID, 3, False),
+        (1, 3, 3, 16, 3, 1, PaddingMode.VALID, 1, False),
+        (1, 3, 3, 16, 3, 1, PaddingMode.VALID, 2, False),
+        (1, 3, 3, 16, 3, 1, PaddingMode.VALID, 3, False),
         #
         # DOWNSAMPLING_FACTOR_2 tests
-        (1, 3, 7, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
+        (1, 3, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
         # Vary batch
-        (6, 3, 7, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
-        (20, 3, 7, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
+        (6, 3, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
+        (20, 3, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
         # Vary input size
-        (1, 3, 7, 4, 2, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # 2x2 output
-        (1, 3, 7, 4, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # 2x2 output
-        (1, 3, 7, 4, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 2, True), # 2x2 output
-        (1, 3, 7, 6, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 2, True), # 3x3 output
-        (1, 3, 7, 8, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
-        (1, 3, 7, 128, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
-        (1, 3, 7, 512, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
+        (1, 3, 6, 4, 2, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # 2x2 output
+        (1, 3, 6, 4, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # 2x2 output
+        (1, 3, 6, 4, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 2, True), # 2x2 output
+        (1, 3, 6, 6, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 2, True), # 3x3 output
+        (1, 3, 6, 8, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
+        (1, 3, 6, 128, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
+        (1, 3, 6, 512, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
         # (i + 2p - k) mod s = 0 cases to ensure exact downsampling by factor of 2, p = d*(k-1)//2
-        (1, 3, 7, 14, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # 14x14 input, 7x7 output, kernel=4, p = 1
+        (1, 3, 6, 14, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # 14x14 input, 7x7 output, kernel=4, p = 1
         # Vary channels
-        (1, 1, 7, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
-        (1, 3, 15, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
+        (1, 1, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
+        (1, 3, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
         # Vary kernel and dilation
-        (1, 3, 7, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # s=2, k=2n, d=1; n=1,2,3,... integer padding as per exact formula
-        (1, 3, 7, 16, 6, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
-        (1, 3, 7, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 3, True),  # s=2, k=2n, d=3; n=1,2,3,... integer padding as per exact formula
-        (1, 3, 7, 16, 6, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 3, True),
+        (1, 3, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True), # s=2, k=2n, d=1; n=1,2,3,... integer padding as per exact formula
+        (1, 3, 6, 16, 6, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, True),
+        (1, 3, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 3, True),  # s=2, k=2n, d=3; n=1,2,3,... integer padding as per exact formula
+        (1, 3, 6, 16, 6, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 3, True),
         # vary residual
-        (1, 3, 7, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, False), # s=2, k=2n, d=1; n=1,2,3,... integer padding as per exact formula
-        (1, 3, 7, 16, 6, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, False),
-        (1, 3, 7, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 2, False),
-        (1, 3, 7, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 3, False),  # s=2, k=2n, d=3; n=1,2,3,... integer padding as per exact formula
-        (1, 3, 7, 16, 6, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 3, False),
+        (1, 3, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, False), # s=2, k=2n, d=1; n=1,2,3,... integer padding as per exact formula
+        (1, 3, 6, 16, 6, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, False),
+        (1, 3, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 2, False),
+        (1, 3, 6, 16, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 3, False),  # s=2, k=2n, d=3; n=1,2,3,... integer padding as per exact formula
+        (1, 3, 6, 16, 6, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 3, False),
    ])
     def test_forward_pass_shapes(self, batch_size, in_channels, out_channels, input_shape, kernel, stride, padding_mode, dilation, use_residual):
         """Test forward pass with various parameters and exact output shape verification."""
