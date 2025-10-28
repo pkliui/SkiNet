@@ -8,7 +8,7 @@ from SkiNet.ML.utils.sampling.encoder_sampling import PaddingMode
 
 
 @pytest.mark.parametrize("in_channels, out_channels, kernel, stride, dilation, apply_bias, apply_batchnorm, activation", [
-    (3, 8, 5, 1, 1, False, True, torch.nn.ReLU),
+    (3, 6, 5, 1, 1, False, True, torch.nn.ReLU),
 ])
 def test_valid_construction(in_channels, out_channels, kernel, stride, dilation, apply_bias, apply_batchnorm, activation):
     """
@@ -32,8 +32,8 @@ def test_valid_construction(in_channels, out_channels, kernel, stride, dilation,
         assert layer.activation.inplace is True
 
 @pytest.mark.parametrize("batch_size, in_channels, out_channels, kernel, stride, padding_mode, dilation, apply_bias, apply_batchnorm, activation, input_size, expected_size", [
-    (2, 3, 8, 5, 1, PaddingMode.SAME, 1, False, True, torch.nn.ReLU, 10, 10),
-    (2, 3, 8, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, False, True, torch.nn.ReLU, 10, 5),
+    (2, 3, 6, 5, 1, PaddingMode.SAME, 1, False, True, torch.nn.ReLU, 10, 10),
+    (2, 6, 12, 4, 2, PaddingMode.DOWNSAMPLING_FACTOR_2, 1, False, True, torch.nn.ReLU, 10, 5),
 ])
 def test_basic_layer_forward_and_backward_pass(batch_size, in_channels, out_channels, kernel, stride, padding_mode, dilation, apply_bias, apply_batchnorm, activation, input_size, expected_size) -> None:
     """

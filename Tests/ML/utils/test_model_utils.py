@@ -46,9 +46,7 @@ def test_invalid_state_inputs():
         "123",        # Numbers
         None,         # None value
     ]
-    
+
     for invalid_state in invalid_states:
         with pytest.raises(ValueError, match="Invalid ML workflow state name"):
             state_mapping(invalid_state)
-
-
