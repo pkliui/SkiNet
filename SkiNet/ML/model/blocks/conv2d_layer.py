@@ -9,10 +9,8 @@ class Conv2dLayer(torch.nn.Module):
     :param in_channels: Number of input channels.
     :param out_channels: Number of output channels.
     :param kernel: Kernel size of the convolution operation.
-    :param stride: Stride of the convolution operation. Required if padding_mode is 'VALID'. Otherwise is set based on the padding_mode.
-        Default is 1
     :param padding_mode: Padding mode applied to input. Should be of type PaddingMode.
-        Possible values are 'VALID' (no padding applied), 'SAME' (padding applied to keep same spatial dimensions),
+        Possible values are 'SAME' (padding applied to keep same spatial dimensions),
         and 'DOWNSAMPLING_FACTOR_2' (downsample the output by factor 2).
         Default is 'SAME'.
     :param dilation: Dilation factor of the convolution operation.
@@ -30,7 +28,6 @@ class Conv2dLayer(torch.nn.Module):
                  in_channels: int,
                  out_channels:  int,
                  kernel: Union[int, Iterable[int]],
-                 stride: Union[int, Iterable[int]] = 1,
                  padding_mode:  PaddingMode = PaddingMode.SAME,
                  dilation: Union[int, Iterable[int]] = 1,
                  apply_bias: bool = False,
@@ -44,8 +41,7 @@ class Conv2dLayer(torch.nn.Module):
         self.padding = get_padding(kernel=kernel,
                                    dilation=dilation,
                                    padding_mode=padding_mode,
-                                   num_dims=2,
-                                   stride=stride)
+                                   num_dims=2)
         """Padding value calculated based on padding mode, kernel size, and dilation"""
 
         self.apply_batchnorm = apply_batchnorm
@@ -57,7 +53,7 @@ class Conv2dLayer(torch.nn.Module):
         self.conv2d = torch.nn.Conv2d(in_channels=in_channels,
                                       out_channels=out_channels,
                                       kernel_size=kernel,
-                                      stride=stride,
+                                      stride=padding_mode.stride,
                                       padding=self.padding,
                                       dilation=dilation,
                                       bias=self.apply_bias)
