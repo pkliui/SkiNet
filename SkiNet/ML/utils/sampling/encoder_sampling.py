@@ -1,6 +1,6 @@
 from __future__ import annotations
 from enum import Enum, unique
-from typing import List, Optional, Tuple, Union, Iterable, Any
+from typing import List, Tuple, Union, Iterable, Any
 from dataclasses import dataclass
 from typing import Tuple
 
@@ -16,7 +16,7 @@ class PaddingModeSpec:
     """
     Metadata for a padding mode used by the sampling utilities.
 
-    :param value_str: Canonical string identifier for the mode (e.g. "valid", "same",
+    :param value_str: Canonical string identifier for the mode (e.g. "same",
                "downsampling_factor_2").
     :param factor: Integer downsampling factor implied by the mode (1 = no downsample,
                 2 = downsample by 2, ...). Used to compute upsampling kernel sizes.
@@ -38,9 +38,8 @@ class PaddingMode(Enum):
     Keeps possible padding modes to be used in e.g. BaseConvLayer2D's torch tensors
 
     Members hold a small PaddingModeSpec payload with a human-readable value string, the downsampling
-    factor and a default stride (None for VALID which requires an explicit stride).
+    factor and a default stride.
     """
-    VALID = PaddingModeSpec(value_str="valid", factor=1, stride=None)
     SAME = PaddingModeSpec(value_str="same", factor=1, stride=1)
     DOWNSAMPLING_FACTOR_2 = PaddingModeSpec(value_str="downsampling_factor_2", factor=2, stride=2)
 
@@ -177,8 +176,11 @@ def get_padding_stride_2(kernel: Union[Iterable[int], int],
     Sampling mode is 'DOWNSAMPLING_FACTOR_2'.
 
     In general, stride, dilation and kernel sizes are constrained to have the following values,
-    ensuring that the resulting padding is an integer for even and odd inputs: s=2, k=2n, d=2n+1; n=1,2,3,...
-    Here, the formula for padding achieves exact downsampling by factor of 2 in torch.nn.conv2d for even inputs.
+    ensuring that the resulting padding, p=((k - 1) * d - 1) // 2,
+    is an integer for even and odd inputs: s=2, k=2n, d=2n+1; n=1,2,3,...
+
+    Here, the formula for padding, p=(k - 1) * d // 2,
+    achieves exact downsampling by factor of 2 in torch.nn.conv2d for even inputs.
     It differs from the exact formula, p=((k - 1) * d - 1) // 2, due to floor division.
 
     :param kernel: Kernel size of the convolution operation
@@ -200,36 +202,26 @@ def get_padding_stride_2(kernel: Union[Iterable[int], int],
 def get_padding(kernel: Union[Iterable[int], int],
                            dilation: Union[Iterable[int], int],
                            padding_mode: PaddingMode,
-                           num_dims: int = 2,
-                           stride: Optional[int] = None) -> Union[Tuple[int, ...], str]:
+                           num_dims: int = 2) -> Union[Tuple[int, ...], str]:
     """
     Calculate padding value for convolution layers.
 
     Note: This function requires `padding_mode` to be a `PaddingMode` enum member. It
-    will not accept free-form strings. Use `PaddingMode.SAME`, `PaddingMode.VALID`, etc.
+    will not accept free-form strings. Use `PaddingMode.SAME`,  etc.
 
     :param kernel: Kernel size of the convolution operation (int or iterable of int)
     :param dilation: Dilation factor of the convolution operation (int or iterable of int)
     :param padding_mode: A `PaddingMode` enum member (e.g. `PaddingMode.SAME`)
     :param num_dims: Number of dimensions to convert to when all inputs are scalars
-    :param stride: Stride of the convolution operation for padding mode VALID.
-        If None, its value will be set based on padding_mode: 1 for SAME, 2 for DOWNSAMPLING_FACTOR_2.
 
     :return: Padding value as integers tuple or string
-    :raises ValueError: If invalid padding mode is provided or no stride specified for VALID
+    :raises ValueError: If invalid padding mode is provided
     """
     padding_mode = ensure_padding_mode(padding_mode)
-    kernel, dilation = handle_mixed_inputs(kernel, dilation, num_dims=2)
+    kernel, dilation = handle_mixed_inputs(kernel, dilation, num_dims=num_dims)
 
-    if padding_mode == PaddingMode.VALID:
-        if stride is None:
-            raise ValueError("Stride must be specified for VALID padding mode.")
-        padding=tuple([0] * num_dims)
+    if padding_mode == PaddingMode.SAME:
+        return 'same'
 
-    elif padding_mode == PaddingMode.SAME:
-        padding = 'same'
-
-    elif padding_mode == PaddingMode.DOWNSAMPLING_FACTOR_2:
-        padding=get_padding_stride_2(kernel=kernel, dilation=dilation)
-
-    return padding
+    if padding_mode == PaddingMode.DOWNSAMPLING_FACTOR_2:
+        return get_padding_stride_2(kernel=kernel, dilation=dilation)

@@ -10,10 +10,6 @@ class TestPaddingModeEnum:
     def test_padding_mode_properties_and_spec_payload(self):
         """Test that PaddingMode enum members have correct properties and payload."""
 
-        assert PaddingMode.VALID.value.value_str == "valid"
-        assert PaddingMode.VALID.downsampling_factor == 1
-        assert PaddingMode.VALID.stride is None
-
         assert PaddingMode.SAME.value.value_str == "same"
         assert PaddingMode.SAME.downsampling_factor == 1
         assert PaddingMode.SAME.stride == 1
@@ -37,7 +33,7 @@ class TestPaddingModeEnum:
         with pytest.raises(ValueError, match="is not a valid"):
             PaddingMode.from_value("same")
         with pytest.raises(ValueError, match="is not a valid"):
-            PaddingMode.from_value("VALID")
+            PaddingMode.from_value("SAME")
 
 
 ######################################## Tests for ensure_padding_mode  ########################################
@@ -56,7 +52,7 @@ class TestEnsurePaddingMode:
         with pytest.raises(ValueError, match = "is not a valid"):
             ensure_padding_mode("same")
         with pytest.raises(ValueError, match = "is not a valid"):
-            ensure_padding_mode("VALID")
+            ensure_padding_mode("SAME")
         with pytest.raises(ValueError, match = "is not a valid"):
             ensure_padding_mode(None)
 
@@ -180,6 +176,7 @@ class TestHandleMixedInputs:
         with pytest.raises(TypeError, match=error_msg):
             handle_mixed_inputs(kernel, dilation)
 
+
     ######################################## Tests for DOWNSAMPLING_FACTOR_2 sampling mode with stride=2 ########################################
 
 class TestGetPaddingStride2:
@@ -251,16 +248,12 @@ class TestGetPaddingAndStride:
 
     @pytest.mark.parametrize("kernel, dilation, padding_mode", [
         ([3, 3], [1, 1, 1], PaddingMode.SAME),  # a ValueError is raised when kernel and dilation are iterables of different sizes
-        ([3,], [1, 1], PaddingMode.VALID),
         ([3, 3], [3,], PaddingMode.DOWNSAMPLING_FACTOR_2),
     ])
     def test_get_padding_integration_with_handle_mixed_inputs_diff_sizes(self, kernel, dilation, padding_mode):
         """Integration with handle_mixed_inputs for error cases - different sizes"""
         with pytest.raises(ValueError, match="All iterable inputs must have the same size"):
-            if padding_mode == PaddingMode.VALID:
-                get_padding(kernel, dilation, padding_mode, stride=1)
-            else:
-                get_padding(kernel, dilation, padding_mode)
+            get_padding(kernel, dilation, padding_mode)
 
 
     @pytest.mark.parametrize("kernel, dilation, padding_mode, error_msg", [
@@ -268,10 +261,6 @@ class TestGetPaddingAndStride:
         ([3, "5"], [1, 1], PaddingMode.SAME, "kernel must contain only integers"),
         ([3, 5], [1, 1.5], PaddingMode.SAME, "dilation must contain only integers"),
         ([3, 5], [1, "1"], PaddingMode.SAME, "dilation must contain only integers"),
-        ([3, 2.5], [1, 1], PaddingMode.VALID, "kernel must contain only integers"),
-        ([3, "5"], [1, 1], PaddingMode.VALID, "kernel must contain only integers"),
-        ([3, 5], [1, 1.5], PaddingMode.VALID, "dilation must contain only integers"),
-        ([3, 5], [1, "1"], PaddingMode.VALID, "dilation must contain only integers"),
         ([3, 2.5], [1, 1], PaddingMode.DOWNSAMPLING_FACTOR_2, "kernel must contain only integers"),
         ([3, "5"], [1, 1], PaddingMode.DOWNSAMPLING_FACTOR_2, "kernel must contain only integers"),
         ([3, 5], [1, 1.5], PaddingMode.DOWNSAMPLING_FACTOR_2, "dilation must contain only integers"),
@@ -280,10 +269,7 @@ class TestGetPaddingAndStride:
     def test_get_padding_integration_with_handle_mixed_inputs_invalid_types(self, kernel, dilation, padding_mode, error_msg):
         """Integration with handle_mixed_inputs for error cases - invalid types"""
         with pytest.raises(TypeError, match=error_msg):
-            if padding_mode == PaddingMode.VALID:
-                get_padding(kernel, dilation, padding_mode, stride=1)
-            else:
-                get_padding(kernel, dilation, padding_mode)
+            get_padding(kernel, dilation, padding_mode)
 
 
     @pytest.mark.parametrize("sampling_mode", [
@@ -296,37 +282,24 @@ class TestGetPaddingAndStride:
             _ = get_padding(1, 3, sampling_mode)
 
 
-    @pytest.mark.parametrize("stride, kernel, dilation", [
-        (None, 3, 1),
-        (None, 5, 1),
-    ])
-    def test_stride_none_valid_padding(self, stride, kernel, dilation):
-        """Test get_padding, when stride is None and padding mode is VALID"""
-        with pytest.raises(ValueError, match="Stride must be specified for VALID padding mode."):
-            get_padding(kernel, dilation, PaddingMode.VALID, num_dims=2, stride=stride)
-
-
     @pytest.mark.parametrize(
-        "padding_mode,kernel,dilation,stride_arg,expected_stride,expected_padding", [
-            # VALID mode cases (stride preserved, zero padding)
-            (PaddingMode.VALID, [3, 5], [1, 1], 1, 1, (0, 0)),
+        "padding_mode,kernel,dilation,expected_padding", [
             # SAME mode cases (stride forced to 1)
             #odd kernels, odd dilation result in integer padding
-            (PaddingMode.SAME, 3, 1, 2, 1, 'same'),  # kernel=3, dilation=1 -> padding=1
+            (PaddingMode.SAME, 3, 1, 'same'),  # kernel=3, dilation=1 -> padding=1
             # even kernels, even dilation result in integer padding
-            (PaddingMode.SAME, 4, 2, 3, 1, 'same'),  # kernel=4, dilation=2 -> padding=3
+            (PaddingMode.SAME, 4, 2,'same'),  # kernel=4, dilation=2 -> padding=3
             # odd kernels, even dilation result in integer padding
-            (PaddingMode.SAME, 5, 2, 4, 1, 'same'),  # kernel=5, dilation=2 -> padding=4
+            (PaddingMode.SAME, 5, 2, 'same'),  # kernel=5, dilation=2 -> padding=4
             # DOWNSAMPLING_FACTOR_2 mode cases (stride forced to 2)
             # even kernels, odd dilations result in integer padding
-            (PaddingMode.DOWNSAMPLING_FACTOR_2, 2, 1, 5, 2, (0, 0)),   # kernel=2, dilation=1 -> padding=0
+            (PaddingMode.DOWNSAMPLING_FACTOR_2, 2, 1, (0, 0)),   # kernel=2, dilation=1 -> padding=0
         ])
-    def test_padding_modes_unified(self, padding_mode, kernel, dilation, stride_arg, expected_stride, expected_padding):
+    def test_padding_modes_unified(self, padding_mode, kernel, dilation, expected_padding):
         """
-        Unified test covering VALID, SAME, and DOWNSAMPLING_FACTOR_2 modes for the default value of num_dims=2.
+        Unified test covering SAME, and DOWNSAMPLING_FACTOR_2 modes for the default value of num_dims=2.
         """
-        # For VALID mode stride is mandatory; for others we still pass it intentionally to ensure overriding logic.
-        padding = get_padding(kernel=kernel, dilation=dilation, padding_mode=padding_mode, stride=stride_arg if padding_mode == PaddingMode.VALID else stride_arg)
+        padding = get_padding(kernel=kernel, dilation=dilation, padding_mode=padding_mode)
         assert padding == expected_padding
 
 
