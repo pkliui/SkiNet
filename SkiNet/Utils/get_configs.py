@@ -1,9 +1,10 @@
-import yaml 
-from typing import Any, Dict, Optional, cast, List, Union
 from pathlib import Path
+from typing import Dict
+
+import yaml
 
 
-def get_config_from_yaml(path_to_yaml: Path)-> Dict:
+def get_config_from_yaml(path_to_yaml: Path) -> Dict:
     """
     Read a YAML configuration file and return its contents as a dictionary.
 
