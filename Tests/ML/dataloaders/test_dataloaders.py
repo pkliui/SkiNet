@@ -1,9 +1,9 @@
 """Unit tests for SkiNet.ML.dataloaders.dataloaders"""
 
 import pytest
-from torch.utils.data import SequentialSampler, BatchSampler, RandomSampler
-from SkiNet.ML.dataloaders.dataloaders import _RepeatSampler
+from torch.utils.data import BatchSampler, RandomSampler, SequentialSampler
 
+from SkiNet.ML.dataloaders.dataloaders import _RepeatSampler
 
 """------PARAMS ---------------------------------------------------------------"""
 # A simple dataset of 10 elements.
@@ -51,27 +51,28 @@ def random_repeat_sampler_fixture():
         return repeat_sampler
     return _create_sampler
 
+
 """------TESTS for _RepeatSampler - SequentialSampler - finite repeat  ---------------------------------------------------------------"""
 
 @pytest.mark.parametrize("batch_size, max_num_to_repeat, drop_last, expected_batches", [
     # Tests with drop_last=False.
     (1, 1, False, [[i] for i in range(10)]),
     (1, 3, False, ([[i] for i in range(10)]) * 3),
-    (2, 1, False, [[0,1], [2,3], [4,5], [6,7], [8,9]]),
-    (2, 3, False, ([[0,1], [2,3], [4,5], [6,7], [8,9]]) * 3),
-    (3, 1, False, [[0,1,2], [3,4,5], [6,7,8], [9]]),
-    (3, 2, False, ([[0,1,2], [3,4,5], [6,7,8], [9]]) * 2),
-    (4, 1, False, [[0,1,2,3], [4,5,6,7], [8,9]]),
-    (4, 2, False, ([[0,1,2,3], [4,5,6,7], [8,9]]) * 2),
+    (2, 1, False, [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]),
+    (2, 3, False, ([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]) * 3),
+    (3, 1, False, [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]),
+    (3, 2, False, ([[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]) * 2),
+    (4, 1, False, [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]]),
+    (4, 2, False, ([[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]]) * 2),
     # Tests with drop_last=True.
     (1, 1, True, [[i] for i in range(10)]),
     (1, 3, True, ([[i] for i in range(10)]) * 3),
-    (2, 1, True, [[0,1], [2,3], [4,5], [6,7], [8,9]]),
-    (2, 3, True, ([[0,1], [2,3], [4,5], [6,7], [8,9]]) * 3),
-    (3, 1, True, [[0,1,2], [3,4,5], [6,7,8]]),
-    (3, 2, True, ([[0,1,2], [3,4,5], [6,7,8]]) * 2),
-    (4, 1, True, [[0,1,2,3], [4,5,6,7]]),
-    (4, 2, True, ([[0,1,2,3], [4,5,6,7]]) * 2),
+    (2, 1, True, [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]),
+    (2, 3, True, ([[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]) * 3),
+    (3, 1, True, [[0, 1, 2], [3, 4, 5], [6, 7, 8]]),
+    (3, 2, True, ([[0, 1, 2], [3, 4, 5], [6, 7, 8]]) * 2),
+    (4, 1, True, [[0, 1, 2, 3], [4, 5, 6, 7]]),
+    (4, 2, True, ([[0, 1, 2, 3], [4, 5, 6, 7]]) * 2),
 ])
 def test_repeat_sampler(repeat_sampler_fixture, batch_size, max_num_to_repeat, drop_last, expected_batches):
     """Test that the _RepeatSampler correctly repeats the batches with and without dropping the last batch."""
@@ -83,20 +84,19 @@ def test_repeat_sampler(repeat_sampler_fixture, batch_size, max_num_to_repeat, d
     assert sampled_batches == expected_batches, f"Expected {expected_batches}, but got {sampled_batches}"
 
 
-
 """------TESTS for _RepeatSampler - SequentialSampler - infinite repeat ---------------------------------------------------------------"""
 
 @pytest.mark.parametrize("batch_size, drop_last, expected_batches", [
     # Tests with drop_last=False.
     (1, False, [[i] for i in range(10)]),
-    (2, False, [[0,1], [2,3], [4,5], [6,7], [8,9]]),
-    (3, False, [[0,1,2], [3,4,5], [6,7,8], [9]]),
-    (4, False, [[0,1,2,3], [4,5,6,7], [8,9]]),
+    (2, False, [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]),
+    (3, False, [[0, 1, 2], [3, 4, 5], [6, 7, 8], [9]]),
+    (4, False, [[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]]),
     # Tests with drop_last=True.
     (1, True, [[i] for i in range(10)]),
-    (2, True, [[0,1], [2,3], [4,5], [6,7], [8,9]]),
-    (3, True, [[0,1,2], [3,4,5], [6,7,8]]),
-    (4, True, [[0,1,2,3], [4,5,6,7]]),
+    (2, True, [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9]]),
+    (3, True, [[0, 1, 2], [3, 4, 5], [6, 7, 8]]),
+    (4, True, [[0, 1, 2, 3], [4, 5, 6, 7]]),
 ])
 def test_infinite_repeat_sampler(repeat_sampler_fixture, batch_size, drop_last, expected_batches):
     """
@@ -147,7 +147,7 @@ def test_random_repeat_sampler(random_repeat_sampler_fixture, batch_size, max_nu
     else:
         num_expected_total_elements = max_num_to_repeat * len(DATASET)
 
-    # Get the actual items delivered 
+    # Get the actual items delivered
     repeat_sampler_items = [item for batch in repeat_sampler_batches for item in batch]
 
     # Compare the length of the items delivered with the expected number of items
@@ -157,6 +157,7 @@ def test_random_repeat_sampler(random_repeat_sampler_fixture, batch_size, max_nu
     assert set(repeat_sampler_items).issubset(set(DATASET)), (
         f"Expected elements from {DATASET} to appear in random order, but got {repeat_sampler_items}"
     )
+
 
 """------TESTS for _RepeatSampler - RandomSampler - infinite repeat ---------------------------------------------------------------"""
 
