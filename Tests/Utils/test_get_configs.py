@@ -1,6 +1,5 @@
 import pytest
 import yaml
-from pathlib import Path
 
 from SkiNet.Utils.get_configs import get_config_from_yaml
 
@@ -31,7 +30,8 @@ def mimicked_yaml_file_empty(tmp_path):
     file_path.write_text("")
     return file_path
 
-"""------------------------------------------------------------------TESTS for get_config_from_yaml---------------------------------------------------------------"""
+
+"""------------------------------------------------------------------TESTS for get_config_from_yaml-------------------------------------------------"""
 
 def test_get_config_from_yaml_valid_content(mimicked_yaml_file):
     """
