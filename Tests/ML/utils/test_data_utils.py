@@ -2,7 +2,7 @@ import logging
 import random
 import tempfile
 from pathlib import Path
-from typing import List, Any, Tuple
+from typing import Any, List, Tuple
 
 import numpy as np
 import pytest
@@ -14,7 +14,7 @@ from SkiNet.ML.utils.data_utils import (extract_sample_number, filter_images_and
 IMG_SIZE = 128
 NUM_SAMPLES = 7
 
-"""---------------------------------------------------------------------Testing extract_sample_number---------------------------------------------------------------------"""
+"""---------------------------------------------------------------------Testing extract_sample_number---------------------------------------------------"""
 
 @pytest.mark.parametrize("filename, expected", [
     ("IMD001.bmp", 1),  # should return 1, not 001
@@ -33,7 +33,7 @@ def test_extract_sample_number(filename: str, expected: int) -> None:
     assert extract_sample_number(file_path) == expected
 
 
-"""---------------------------------------------------------------------Testing filter_missing_images_and_masks - local ph2 dataset---------------------------------------------------------------------"""
+"""------------------------------Testing filter_missing_images_and_masks - local ph2 dataset-----------------------------"""
 
 
 @pytest.fixture
@@ -84,20 +84,20 @@ def test_pair_image_mask_paths_one_sample_missing(local_ph2dataset_one_sample_ea
     # given the root folder, create expected paths to images and masks
     # image 2 missing
     expected_images = [
-        dataset_root / f"IMD0" / f"IMD0_Dermoscopic_Image" / f"IMD0.bmp",
-        dataset_root / f"IMD1" / f"IMD1_Dermoscopic_Image" / f"IMD1.bmp",
-        dataset_root / f"IMD4" / f"IMD4_Dermoscopic_Image" / f"IMD4.bmp",
-        dataset_root / f"IMD5" / f"IMD5_Dermoscopic_Image" / f"IMD5.bmp",
-        dataset_root / f"IMD6" / f"IMD6_Dermoscopic_Image" / f"IMD6.bmp"
+        dataset_root / "IMD0" / "IMD0_Dermoscopic_Image" / "IMD0.bmp",
+        dataset_root / "IMD1" / "IMD1_Dermoscopic_Image" / "IMD1.bmp",
+        dataset_root / "IMD4" / "IMD4_Dermoscopic_Image" / "IMD4.bmp",
+        dataset_root / "IMD5" / "IMD5_Dermoscopic_Image" / "IMD5.bmp",
+        dataset_root / "IMD6" / "IMD6_Dermoscopic_Image" / "IMD6.bmp"
     ]
 
     #  mask 3 missing
     expected_masks = [
-        dataset_root / f"IMD0" / f"IMD0_lesion" / f"IMD0_lesion.bmp",
-        dataset_root / f"IMD1" / f"IMD1_lesion" / f"IMD1_lesion.bmp",
-        dataset_root / f"IMD4" / f"IMD4_lesion" / f"IMD4_lesion.bmp",
-        dataset_root / f"IMD5" / f"IMD5_lesion" / f"IMD5_lesion.bmp",
-        dataset_root / f"IMD6" / f"IMD6_lesion" / f"IMD6_lesion.bmp"
+        dataset_root / "IMD0" / "IMD0_lesion" / "IMD0_lesion.bmp",
+        dataset_root / "IMD1" / "IMD1_lesion" / "IMD1_lesion.bmp",
+        dataset_root / "IMD4" / "IMD4_lesion" / "IMD4_lesion.bmp",
+        dataset_root / "IMD5" / "IMD5_lesion" / "IMD5_lesion.bmp",
+        dataset_root / "IMD6" / "IMD6_lesion" / "IMD6_lesion.bmp"
     ]
 
     # get the actual paths to images and masks located in the root folder
@@ -172,20 +172,20 @@ def test_pair_image_mask_paths_one_sample_missing_unsorted(local_ph2dataset_one_
     # given the root folder, create expected paths to images and masks
     # image 2 missing
     expected_images = [
-        dataset_root / f"IMD0" / f"IMD0_Dermoscopic_Image" / f"IMD0.bmp",
-        dataset_root / f"IMD1" / f"IMD1_Dermoscopic_Image" / f"IMD1.bmp",
-        dataset_root / f"IMD4" / f"IMD4_Dermoscopic_Image" / f"IMD4.bmp",
-        dataset_root / f"IMD5" / f"IMD5_Dermoscopic_Image" / f"IMD5.bmp",
-        dataset_root / f"IMD6" / f"IMD6_Dermoscopic_Image" / f"IMD6.bmp"
+        dataset_root / "IMD0" / "IMD0_Dermoscopic_Image" / "IMD0.bmp",
+        dataset_root / "IMD1" / "IMD1_Dermoscopic_Image" / "IMD1.bmp",
+        dataset_root / "IMD4" / "IMD4_Dermoscopic_Image" / "IMD4.bmp",
+        dataset_root / "IMD5" / "IMD5_Dermoscopic_Image" / "IMD5.bmp",
+        dataset_root / "IMD6" / "IMD6_Dermoscopic_Image" / "IMD6.bmp"
     ]
 
     #  mask 3 missing - we expect the list of paths to masks to be ordered after applying filter_missing_images_and_masks
     expected_masks = [
-        dataset_root / f"IMD0" / f"IMD0_lesion" / f"IMD0_lesion.bmp",
-        dataset_root / f"IMD1" / f"IMD1_lesion" / f"IMD1_lesion.bmp",
-        dataset_root / f"IMD4" / f"IMD4_lesion" / f"IMD4_lesion.bmp",
-        dataset_root / f"IMD5" / f"IMD5_lesion" / f"IMD5_lesion.bmp",
-        dataset_root / f"IMD6" / f"IMD6_lesion" / f"IMD6_lesion.bmp"
+        dataset_root / "IMD0" / "IMD0_lesion" / "IMD0_lesion.bmp",
+        dataset_root / "IMD1" / "IMD1_lesion" / "IMD1_lesion.bmp",
+        dataset_root / "IMD4" / "IMD4_lesion" / "IMD4_lesion.bmp",
+        dataset_root / "IMD5" / "IMD5_lesion" / "IMD5_lesion.bmp",
+        dataset_root / "IMD6" / "IMD6_lesion" / "IMD6_lesion.bmp"
     ]
 
     # get the actual paths to images and masks located in the root folder
@@ -198,7 +198,7 @@ def test_pair_image_mask_paths_one_sample_missing_unsorted(local_ph2dataset_one_
     assert masks == expected_masks, f"Paired masks do not match expected paths: {masks} vs {expected_masks}"
 
 
-"""---------------------------------------------------------------------Testing filter_images_and_masks_of_different_sizes - arbitrary dataset---------------------------------------------------------------------"""
+"""------------------------------Testing filter_images_and_masks_of_different_sizes - arbitrary dataset------------------------------"""
 
 def create_image(path: Path, size: Tuple[int, int] = (32, 32), color: int = 128) -> None:
     img = Image.new("L", size, color)
@@ -245,7 +245,7 @@ def test_filter_images_and_masks_of_different_sizes() -> None:
         assert filtered_msks == [msk1, msk3]
 
 
-"""---------------------------------------------------------------------Testing filter_and_pair_valid_pathss - arbitrary dataset - filter_if_size_different=True---------------------------------------------------------------------"""
+"""-----------------------------------------Testing filter_and_pair_valid_pathss - arbitrary dataset - filter_if_size_different=True------------------------"""
 
 from SkiNet.ML.utils.data_utils import filter_and_pair_valid_paths
 
@@ -297,7 +297,7 @@ def test_filter_and_pair_valid_paths_with_size_check() -> None:
         assert filtered_msks == [msk1, msk5]
 
 
-"""---------------------------------------------------------------------Testing filter_and_pair_valid_pathss - arbitrary dataset - filter_if_size_different=False---------------------------------------------------------------------"""
+"""-------------------------------Testing filter_and_pair_valid_pathss - arbitrary dataset - filter_if_size_different=False----------------"""
 
 
 def test_filter_and_pair_valid_paths_without_size_check() -> None:

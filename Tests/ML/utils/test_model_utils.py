@@ -11,7 +11,7 @@ from SkiNet.ML.utils.model_utils import MLWorkflowState, state_mapping
     ("test", MLWorkflowState.TEST),
     ("testing", MLWorkflowState.TEST),
 ])
-def test_state_mapping_valid_states(input_state, expected_state):
+def test_state_mapping_valid_states(input_state: str, expected_state: MLWorkflowState) -> None:
     """
     Test that valid state names are correctly mapped to MLWorkflowState in state_mapping
     """
@@ -26,14 +26,14 @@ def test_state_mapping_valid_states(input_state, expected_state):
     ("TEST", MLWorkflowState.TEST),
     ("Testing", MLWorkflowState.TEST),
 ])
-def test_state_mapping_case_insensitivity(input_state, expected_state):
+def test_state_mapping_case_insensitivity(input_state: str, expected_state: MLWorkflowState) -> None:
     """
     Test that state names are case-insensitive in state_mapping
     """
     assert state_mapping(input_state) == expected_state
 
 
-def test_invalid_state_inputs():
+def test_invalid_state_inputs() -> None:
     """
     Test that invalid state names raise appropriate errors in state_mapping
     """
