@@ -3,12 +3,12 @@ Test DynamicClassLoader class
 """
 
 import sys
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from SkiNet.ML.utils.configs.dynamic_class_loader import DynamicClassLoader
 
 
-
-def test_load_successful_default_mapping():
+def test_load_successful_default_mapping() -> None:
     """
     Test successful dynamic loading of a class by its name using DynamicClassLoader and default class-module mapping
     """
@@ -17,17 +17,16 @@ def test_load_successful_default_mapping():
     class_name = "MockedDataset"
     module_name = "mocked.module"
 
-
     # Mock the module in sys.modules
     with patch("SkiNet.ML.utils.configs.dynamic_class_loader.default_class_module_mapping") as mock_default_mapping, \
-         patch.dict("sys.modules", {module_name: MagicMock()}):
+            patch.dict("sys.modules", {module_name: MagicMock()}):
 
         mapping_dict = {class_name: module_name}
         mock_default_mapping.return_value = mapping_dict
 
         # Create a new class with the name "class_name"
         class MockedDataset:
-            def __len__(self):
+            def __len__(self) -> int:
                 return 0
 
         # Explicitly set the __module__ attribute mimicking the location of the class in that module (for inspect.getmodule to work)
@@ -44,7 +43,7 @@ def test_load_successful_default_mapping():
         assert loaded_class == MockedDataset
 
 
-def test_load_successful_custom_mapping():
+def test_load_successful_custom_mapping() -> None:
     """
     Test successful dynamic loading of a class by its name using DynamicClassLoader with a custom class-to-module mapping
     """
@@ -56,10 +55,10 @@ def test_load_successful_custom_mapping():
 
     # Mock the module in sys.modules
     with patch.dict("sys.modules", {module_name: MagicMock()}):
-        
+
         # Create a new class with the name "class_name"
         class CustomMockedDataset:
-            def __len__(self):
+            def __len__(self) -> int:
                 return 0
 
         # Explicitly set the __module__ attribute mimicking the location of the class in that module (for inspect.getmodule to work)
