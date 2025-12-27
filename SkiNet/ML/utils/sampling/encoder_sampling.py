@@ -1,8 +1,10 @@
 from __future__ import annotations
-from enum import Enum, unique
-from typing import List, Tuple, Union, Iterable, Any
+
 from dataclasses import dataclass
-from typing import Tuple
+from enum import Enum, unique
+from typing import NamedTuple, Optional, Union, cast
+
+from SkiNet.ML.utils.typing_utils import IntOrTuple2d3d, TupleOfInt2d3d, expand_to_tuple
 
 # Design note: This module adopts a strict, enum-first API for padding modes.
 # Public functions expect a `PaddingMode` enum member (e.g. `PaddingMode.SAME`) and
@@ -16,10 +18,9 @@ class PaddingModeSpec:
     """
     Metadata for a padding mode used by the sampling utilities.
 
-    :param value_str: Canonical string identifier for the mode (e.g. "same",
-               "downsampling_factor_2").
+    :param value_str: Canonical string identifier for the mode (e.g. "same", "downsampling_factor_2").
     :param factor: Integer downsampling factor implied by the mode (1 = no downsample,
-                2 = downsample by 2, ...). Used to compute upsampling kernel sizes.
+        2 = downsample by 2, ...). Used to compute upsampling kernel sizes.
     :param stride: Default stride to use for convolutions in this mode.
 
     Note:
@@ -52,7 +53,7 @@ class PaddingMode(Enum):
         return self.value.stride
 
     @classmethod
-    def from_value(cls, value) -> PaddingMode:
+    def from_value(cls, value: PaddingMode) -> PaddingMode:
         """
         Verify that input is a PaddingMode instance and return it.
 
@@ -71,107 +72,165 @@ class PaddingMode(Enum):
         raise ValueError(f"{value!r} is not a valid {cls.__name__}.")
 
 
-def ensure_padding_mode(value: Any) -> PaddingMode:
+def _validate_param(value: IntOrTuple2d3d,
+                    name: str) -> IntOrTuple2d3d:
     """
-    Validate and return a `PaddingMode` enum member.
+    Validate a convolution parameter that may be an int or a 2D/3D tuple.
 
-    Behavior:
-        - If `value` is already a `PaddingMode` member it is returned unchanged.
-        - Otherwise, a ValueError is raised. This function enforces a strict policy:
-        only PaddingMode enum members are accepted. If you want to allow strings
-        (e.g., from user input or config files), convert them to enum members before calling
+    This helper enforces the following rules:
+    - Scalars must be positive integers
+    - Tuples must have length 2 or 3
+    - All tuple elements must be positive integers
 
-    # Example: User or config provides a string
-    padding_mode_str = "same"  # could come from a config file, CLI, etc.
+    The validated value is returned unchanged, but invalid inputs raise
+    descriptive exceptions.
 
-    # Convert string to enum at the boundary (I/O/config layer)
-    try:
-        padding_mode = PaddingMode[padding_mode_str.upper()]
-    except KeyError:
-        raise ValueError(f"Invalid padding mode: {padding_mode_str}")
-
-    # Now use the strict API internally
-    padding = get_padding(
-        kernel=(3, 3),
-        dilation=(1, 1),
-        padding=padding_mode
-    )
-
-    Raises:
-        ValueError: if `value` is not a `PaddingMode` member.
+    :param value: Parameter value to validate (int, 2-tuple, or 3-tuple)
+    :param name: Parameter name used for error messages
+    :raises ValueError: If values are non-positive or tuple length is invalid
+    :raises TypeError: If values are not integers
+    :return: The validated input value
     """
-    return PaddingMode.from_value(value)
+    if isinstance(value, int):
+        if value <= 0:
+            raise ValueError(f"{name} must be positive, got {value}")
+        return value
+
+    elif isinstance(value, tuple):
+        if len(value) not in (2, 3):
+            raise ValueError(f"{name} must have length 2 or 3, got {len(value)}")
+
+        for i, v in enumerate(value):
+            if not isinstance(v, int):
+                raise TypeError(f"Input must contain only integers: {name}[{i}] must be int, got {type(v).__name__}")
+            if v <= 0:
+                raise ValueError(f"Input must contain only positive values: {name}[{i}] must be positive, got {v}")
+
+        return value
+
+    else:
+        raise TypeError(f"{name} must contain only integers or tuples of integers")
 
 
-def handle_mixed_inputs(kernel: Union[Iterable[int], int],
-                        dilation: Union[Iterable[int], int],
-                        num_dims: int = 2) -> Tuple[List[int], List[int]]:
+class ConvParams(NamedTuple):
+    """
+    Validated convolution parameters.
+
+    This value object represents convolution geometry after all inputs
+    (scalars or tuples) have been normalized and validated.
+
+    Invariants:
+        - `kernel` and `dilation` are tuples of equal length
+        - Length is either 2 (2D convolution) or 3 (3D convolution)
+        - All values are positive integers
+
+    Typical usage:
+        params = ConvParams.from_inputs(kernel=3, dilation=1, num_dims=2)
+        padding = params.padding(PaddingMode.DOWNSAMPLING_FACTOR_2)
+
+    Design notes:
+        - Instances of this class are assumed to be valid by construction.
+        - All validation and shape normalization happens *before* creation,
+          via `from_inputs()` (which delegates to `_normalize_conv_inputs`).
+        - Methods on this class may rely on the invariants above and therefore
+          do not repeat validation checks.
+
+    Fields:
+        kernel:
+            Kernel size per spatial dimension (2D or 3D).
+        dilation:
+            Dilation factor per spatial dimension (2D or 3D).
+    """
+    kernel: TupleOfInt2d3d
+    dilation: TupleOfInt2d3d
+
+    @classmethod
+    def from_inputs(cls,
+                    kernel: IntOrTuple2d3d,
+                    dilation: IntOrTuple2d3d,
+                    num_dims: Optional[int] = None) -> "ConvParams":
+        """
+        Normalize and validate convolution parameters.
+
+        This is a thin wrapper around `_normalize_conv_inputs` that makes
+        ConvParams a self-contained value object.
+        """
+        return _normalize_conv_inputs(kernel, dilation, num_dims)
+
+    def padding(self, mode: PaddingMode) -> Union[TupleOfInt2d3d, str]:
+        """
+        Compute the padding implied by these convolution parameters
+        and the given padding mode.
+        """
+        mode = PaddingMode.from_value(mode)
+
+        if mode == PaddingMode.SAME:
+            return "same"
+
+        elif mode == PaddingMode.DOWNSAMPLING_FACTOR_2:
+            return _compute_stride2_padding(
+                kernel=self.kernel,
+                dilation=self.dilation,
+            )
+        else:
+            raise ValueError(f"Unsupported padding mode: {mode}")
+
+
+def _normalize_conv_inputs(kernel: IntOrTuple2d3d,
+                           dilation: IntOrTuple2d3d,
+                           num_dims: Optional[int] = None) -> ConvParams:
     """
     Handle mixed inputs of different dimensions with strict validation:
 
-    - If all inputs are scalars: use num_dims to determine the number of dimensions
-    - If only ONE input is iterable: expand all scalars to match that iterable's size
-    - If ALL inputs are iterables: they must all have the same size
+    - If all inputs are scalars: use num_dims to determine the number of dimensions, can be 2 or 3
+    - If only ONE input is tuple: expand all scalars to match that iterable's size
+    - If ALL inputs are tuples: they must all have the same size
 
-    :param kernel: Kernel size of the convolution operation, can be an integer, a tuple or a list
-    :param dilation: Dilation factor of the convolution operation, can be an integer, a tuple or a list
-    :param num_dims: Number of dimensions to convert to when all inputs are scalars
+    :param kernel: Kernel size of the convolution operation, can be an int or a 2d or 3d tuple of int
+    :param dilation: Dilation factor of the convolution operation, can be an int or a 2d or 3d tuple of int
+    :param num_dims: Number of dimensions to convert to when all inputs are scalars, can be 2 or 3
     :raises ValueError: If inputs are invalid combinations of iterables and scalars, or contain zero/negative/empty values
 
-    :return: Tuple of two lists containing the expanded kernel and dilation values
+    :return: Named tuple of expanded kernel and dilation values
     """
-    # Helper function to validate values
-    def validate_value(value, name):
-        if isinstance(value, Iterable) and not isinstance(value, str):
-            if len(value) == 0:
-                raise ValueError(f"Empty {name} is not allowed")
-            for i, v in enumerate(value):
-                if not isinstance(v, int):
-                    raise TypeError(f"{name} must contain only integers, got {type(v).__name__} at index {i}")
-                if v <= 0:
-                    raise ValueError(f"{name} must contain only positive values, got {v} at index {i}")
-        else:
-            if not isinstance(value, int):
-                raise TypeError(f"{name} must be an integer, got {type(value).__name__}")
-            if value <= 0:
-                raise ValueError(f"{name} must be positive, got {value}")
 
-    validate_value(kernel, "kernel")
-    validate_value(dilation, "dilation")
-    kernel_is_iterable = isinstance(kernel, Iterable) and not isinstance(kernel, str)
-    dilation_is_iterable = isinstance(dilation, Iterable) and not isinstance(dilation, str)
+    if num_dims is not None and num_dims not in {2, 3}:
+        raise ValueError("Invalid number of dimensions, only 2d and 3d datasets are supported")
 
-    # Case 1: All scalars - use num_dims
-    if not kernel_is_iterable and not dilation_is_iterable:
-        target_size = num_dims
-        return ([kernel] * target_size, [dilation] * target_size)
+    kernel = _validate_param(kernel, "kernel")
+    dilation = _validate_param(dilation, "dilation")
 
-    # Case 2: Only kernel is iterable - expand dilation to match kernel size
-    elif kernel_is_iterable and not dilation_is_iterable:
-        kernel_list = list(kernel)
-        target_size = len(kernel_list)
-        return (kernel_list, [dilation] * target_size)
+    if isinstance(kernel, int) and isinstance(dilation, int):
+        if num_dims is None:
+            raise ValueError("Both inputs are scalars, number of dimensions argument num_dims must be specified")
+        kernel_value = expand_to_tuple(kernel, num_dims)
+        dilation_value = expand_to_tuple(dilation, num_dims)
 
-    # Case 3: Only dilation is iterable - expand kernel to match dilation size
-    elif not kernel_is_iterable and dilation_is_iterable:
-        dilation_list = list(dilation)
-        target_size = len(dilation_list)
-        return ([kernel] * target_size, dilation_list)
+    elif isinstance(kernel, int) and not isinstance(dilation, int):
+        kernel_value = expand_to_tuple(kernel, len(dilation))
+        dilation_value = dilation
 
-    # Case 4: Both are iterables - they must have the same size
+    elif isinstance(dilation, int) and not isinstance(kernel, int):
+        dilation_value = expand_to_tuple(dilation, len(kernel))
+        kernel_value = kernel
+
+    elif isinstance(dilation, tuple) and isinstance(kernel, tuple):
+        kernel_value = kernel
+        dilation_value = dilation
+
+        if len(kernel_value) != len(dilation_value):
+            raise ValueError("All inputs must have the same length")
     else:
-        kernel_list = list(kernel)
-        dilation_list = list(dilation)
+        raise RuntimeError("Unreachable state in _normalize_conv_inputs. Input kernel and dilation must be int or tuples of int")
 
-        if len(kernel_list) != len(dilation_list):
-            raise ValueError(f"All iterable inputs must have the same size. "
-                           f"Got kernel with size {len(kernel_list)} and dilation with size {len(dilation_list)}")
-        return (kernel_list, dilation_list)
+    return ConvParams(kernel=kernel_value, dilation=dilation_value)
 
 
-def get_padding_stride_2(kernel: Union[Iterable[int], int],
-                         dilation: Union[Iterable[int], int]) -> Tuple[int, ...]:
+def _compute_stride2_padding(kernel: TupleOfInt2d3d,
+                             dilation: TupleOfInt2d3d) -> TupleOfInt2d3d:
     """
+    Expected to be called via e.g. get_padding.
+
     Calculate padding for stride=2 convolutions. Output will be downsampled by factor 2.
     Sampling mode is 'DOWNSAMPLING_FACTOR_2'.
 
@@ -186,28 +245,23 @@ def get_padding_stride_2(kernel: Union[Iterable[int], int],
     :param kernel: Kernel size of the convolution operation
     :param dilation: Dilation factor of the convolution operation
 
-    :return: Padding value as a tuple of integers
+    :return: Padding values
     """
-    kernel, dilation = handle_mixed_inputs(kernel, dilation, num_dims=2)
 
-    for k in kernel:
-            if k % 2 != 0:
-                raise ValueError(f"Kernel size {k} is odd; for stride=2, even kernel sizes are required to avoid uneven overlap and artifacts.")
+    for i, k in enumerate(kernel):
+        if k % 2 != 0:
+            raise ValueError(f"Kernel size {k} is odd; for stride=2, even kernel sizes are required to avoid uneven overlap and artifacts.")
 
-
-    padding = [((k - 1) * d) // 2 for k, d in zip(kernel, dilation)]
-    return tuple(p for p in padding)
+    padding = tuple((k - 1) * d // 2 for k, d in zip(kernel, dilation))
+    return cast(TupleOfInt2d3d, padding)
 
 
-def get_padding(kernel: Union[Iterable[int], int],
-                           dilation: Union[Iterable[int], int],
-                           padding_mode: PaddingMode,
-                           num_dims: int = 2) -> Union[Tuple[int, ...], str]:
+def get_padding(kernel: IntOrTuple2d3d,
+                dilation: IntOrTuple2d3d,
+                padding_mode: PaddingMode,
+                num_dims: int = 2) -> Union[TupleOfInt2d3d, str]:
     """
     Calculate padding value for convolution layers.
-
-    Note: This function requires `padding_mode` to be a `PaddingMode` enum member. It
-    will not accept free-form strings. Use `PaddingMode.SAME`,  etc.
 
     :param kernel: Kernel size of the convolution operation (int or iterable of int)
     :param dilation: Dilation factor of the convolution operation (int or iterable of int)
@@ -215,13 +269,6 @@ def get_padding(kernel: Union[Iterable[int], int],
     :param num_dims: Number of dimensions to convert to when all inputs are scalars
 
     :return: Padding value as integers tuple or string
-    :raises ValueError: If invalid padding mode is provided
     """
-    padding_mode = ensure_padding_mode(padding_mode)
-    kernel, dilation = handle_mixed_inputs(kernel, dilation, num_dims=num_dims)
-
-    if padding_mode == PaddingMode.SAME:
-        return 'same'
-
-    if padding_mode == PaddingMode.DOWNSAMPLING_FACTOR_2:
-        return get_padding_stride_2(kernel=kernel, dilation=dilation)
+    params = ConvParams.from_inputs(kernel, dilation, num_dims)
+    return params.padding(padding_mode)
