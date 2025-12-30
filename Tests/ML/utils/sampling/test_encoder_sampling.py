@@ -1,42 +1,8 @@
-from typing import Union, cast
-
 import pytest
 
-from SkiNet.ML.utils.sampling.encoder_sampling import (PaddingMode, _compute_stride2_padding, _normalize_conv_inputs,
-                                                       get_padding)
+from SkiNet.ML.utils.sampling.encoder_sampling import (ConvParams, ConvParamSpec, _normalize_kernel_dilation,
+                                                       _validate_param, get_padding)
 from SkiNet.ML.utils.typing_utils import IntOrTuple2d3d, TupleOfInt2d3d
-
-
-# ---------------------------------- Tests for PaddingMode --------------------------------------#
-class TestPaddingModeEnum:
-
-    def test_padding_mode_properties_and_spec_payload(self) -> None:
-        """Test that PaddingMode enum members have correct properties and payload."""
-
-        assert PaddingMode.SAME.value.value_str == "same"
-        assert PaddingMode.SAME.downsampling_factor == 1
-        assert PaddingMode.SAME.stride == 1
-
-        assert PaddingMode.DOWNSAMPLING_FACTOR_2.value.value_str == "downsampling_factor_2"
-        assert PaddingMode.DOWNSAMPLING_FACTOR_2.downsampling_factor == 2
-        assert PaddingMode.DOWNSAMPLING_FACTOR_2.stride == 2
-
-    def test_padding_mode_from_value(self) -> None:
-        """Test that from_value returns the same enum member when given a valid PaddingMode."""
-        assert PaddingMode.from_value(PaddingMode.DOWNSAMPLING_FACTOR_2) is PaddingMode.DOWNSAMPLING_FACTOR_2
-
-    def test_padding_mode_from_value_invalid_raises(self) -> None:
-        """Test that from_value raises an error for non-enum inputs (strict API)."""
-        with pytest.raises(ValueError, match="is not a valid"):
-            PaddingMode.from_value(cast(PaddingMode, "not_a_mode"))  # cast for mypy
-        with pytest.raises(ValueError, match="is not a valid"):
-            PaddingMode.from_value(cast(PaddingMode, 123))
-        with pytest.raises(ValueError, match="is not a valid"):
-            PaddingMode.from_value(cast(PaddingMode, None))
-        with pytest.raises(ValueError, match="is not a valid"):
-            PaddingMode.from_value(cast(PaddingMode, "same"))
-        with pytest.raises(ValueError, match="is not a valid"):
-            PaddingMode.from_value(cast(PaddingMode, "SAME"))
 
 # ---------------------------- Tests for _normalize_conv_inputs----------------------------
 
@@ -44,224 +10,196 @@ class TestHandleMixedInputs:
     """Test cases for _normalize_conv_inputs function"""
 
     def test_all_scalars_uses_num_dims(self) -> None:
-        """Test that when all inputs are scalars, num_dims is used"""
-        params = _normalize_conv_inputs(3, 1, 3)
+        """Test that when all inputs are scalars, num_dims=3 is used"""
+        kernel, dilation = _normalize_kernel_dilation(3, 1, 3)
 
-        assert params.kernel == (3, 3, 3)
-        assert params.dilation == (1, 1, 1)
+        assert kernel == (3, 3, 3)
+        assert dilation == (1, 1, 1)
 
     def test_all_scalars_default_num_dims(self) -> None:
-        """Test that when all inputs are scalars and num_dims = 2 is used"""
-        params = _normalize_conv_inputs(5, 2, 2)
+        """Test that when all inputs are scalars, num_dims = 2 is used"""
+        kernel, dilation = _normalize_kernel_dilation(5, 2, 2)
 
-        assert params.kernel == (5, 5)
-        assert params.dilation == (2, 2)
-
-    def test_mixed_inputs_uses_max_length(self) -> None:
-        """Test that when inputs are mixed, max length is used"""
-        params = _normalize_conv_inputs((3, 5, 7), 1)
-
-        assert params.kernel == (3, 5, 7)
-        assert params.dilation == (1, 1, 1)
+        assert kernel == (5, 5)
+        assert dilation == (2, 2)
 
     def test_scalar_with_iterable(self) -> None:
         """Test scalar with iterable input"""
-        params = _normalize_conv_inputs(3, (1, 2, 3))
+        kernel, dilation = _normalize_kernel_dilation(3, (1, 2, 3))
 
-        assert params.kernel == (3, 3, 3)
-        assert params.dilation == (1, 2, 3)
+        assert kernel == (3, 3, 3)
+        assert dilation == (1, 2, 3)
 
     def test_iterable_with_scalar(self) -> None:
         """Test iterable with scalar input"""
-        params = _normalize_conv_inputs((3, 5, 7), 2)
+        kernel, dilation = _normalize_kernel_dilation((3, 5, 7), 2)
 
-        assert params.kernel == (3, 5, 7)
-        assert params.dilation == (2, 2, 2)
-
-    def test_zero_values(self) -> None:
-        """Test with zero values - should raise ValueError"""
-        with pytest.raises(ValueError, match="kernel must be positive, got 0"):
-            _normalize_conv_inputs(0, (1, 1))
+        assert kernel == (3, 5, 7)
+        assert dilation == (2, 2, 2)
 
     def test_num_dims_ignored_when_iterables_present(self) -> None:
         """Test that num_dims is ignored when iterables are present"""
-        params = _normalize_conv_inputs((3, 5), 1, 3)
+        kernel, dilation = _normalize_kernel_dilation((3, 5), 1, 3)
 
         # Should use max length (2) from the iterable, not num_dims (3)!
-        assert params.kernel == (3, 5)
-        assert params.dilation == (1, 1)
-        assert len(params.kernel) == 2
-        assert len(params.dilation) == 2
+        assert kernel == (3, 5)
+        assert dilation == (1, 1)
+        assert len(kernel) == 2
+        assert len(dilation) == 2
 
-    @pytest.mark.parametrize(
-        "kernel, dilation, error_msg",
-        [
-            ((3, 5, 7), (1, 2), "All inputs must have the same length"),
-            ((3, 5), (1, 1, 1), "All inputs must have the same length"),
-        ]
+# --------------------------- Tests for _ensure_integer_padding --------------------
+
+@pytest.mark.parametrize(
+    "kernel,dilation,stride",
+    [
+        # invalid cases (should raise)
+        ((4, 4), (1, 1), 1),  # even kernel , odd dilation
+        ((3, 4), (1, 1), 1),
+        ((4, 4), (1, 1), 2),
+        ((3, 4), (1, 1), 2),
+
+    ]
+)
+def test_ensure_integer_padding_error(kernel: IntOrTuple2d3d, dilation: IntOrTuple2d3d, stride: IntOrTuple2d3d) -> None:
+    with pytest.raises(ValueError):
+        params = ConvParams.from_inputs(kernel=kernel, dilation=dilation, stride=stride)
+        params._ensure_integer_padding()
+
+# --------------------------- Tests for _validate_param --------------------------
+
+@pytest.mark.parametrize(
+    "value,name",
+    [
+        (1, ConvParamSpec.KERNEL),
+        ((2, 2), ConvParamSpec.KERNEL),
+        ((3, 3), ConvParamSpec.KERNEL),
+        ((1, 2), ConvParamSpec.KERNEL),
+        ((1, 2, 2), ConvParamSpec.KERNEL),
+        ((1, 2, 3), ConvParamSpec.KERNEL),
+        (1, ConvParamSpec.DILATION),
+        ((1, 1), ConvParamSpec.DILATION),
+        ((2, 2), ConvParamSpec.DILATION),
+        ((1, 2, 2), ConvParamSpec.DILATION),
+        ((1, 2, 3), ConvParamSpec.DILATION),
+        (1, ConvParamSpec.STRIDE),
+        ((1, 1), ConvParamSpec.STRIDE),
+        ((2, 2), ConvParamSpec.STRIDE),
+        ((1, 2, 2), ConvParamSpec.STRIDE)
+    ]
+)
+def test_validate_param_valid(value: IntOrTuple2d3d, name: ConvParamSpec) -> None:
+    assert _validate_param(value, name) == value
+
+
+@pytest.mark.parametrize(
+    "value,name,exc_msg",
+    [
+        (-1, ConvParamSpec.KERNEL, "must be positive"),       # negative int
+        (0, ConvParamSpec.DILATION, "must be positive"),      # zero int
+        ((1,), ConvParamSpec.KERNEL, "must have length 2 or 3"),  # tuple too short
+        ((1, 2, 3, 4), ConvParamSpec.DILATION, "must have length 2 or 3"),  # tuple too long
+        ((1, "a"), ConvParamSpec.STRIDE, "must be int"),       # non-int element
+        ((1, -2), ConvParamSpec.KERNEL, "must be positive"),  # negative element in 2d
+        ((1, 0), ConvParamSpec.KERNEL, "must be positive"),  # zero element in 2d
+        ((-1, 2, 2), ConvParamSpec.KERNEL, "must be positive"),  # negative element in 3d
+    ]
+)
+def test_validate_param_invalid(value: IntOrTuple2d3d, name: ConvParamSpec, exc_msg: str) -> None:
+    with pytest.raises(ValueError, match=exc_msg):
+        _validate_param(value, name)
+
+
+# --------------------------- Tests for ConvParams --------------------------------
+def test_from_inputs_scalar_2d() -> None:
+    params = ConvParams.from_inputs(
+        kernel=3,
+        dilation=1,
+        stride=1,
+        num_dims=2,
     )
-    def test_tuple_inputs(self, kernel: IntOrTuple2d3d, dilation: IntOrTuple2d3d, error_msg: str) -> None:
-        """Test with inputs of different size - should raise ValueError for different sizes"""
-        with pytest.raises(ValueError, match=error_msg):
-            _normalize_conv_inputs(kernel, dilation)
 
-    @pytest.mark.parametrize(
-        "kernel, dilation, error_msg",
-        [
-            (3.5, 1, "must contain only integers or tuples of integers"),
-            (3, 1.5, "must contain only integers or tuples of integers"),
-            ((3, 2.5), (1, 1), "must contain only integers"),
-            ((3, 5), (1, 1.5), "must contain only integers"),
-        ]
+    assert params.kernel == (3, 3)
+    assert params.dilation == (1, 1)
+    assert params.stride == 1
+
+def test_from_inputs_tuples_2d_1() -> None:
+    params = ConvParams.from_inputs(
+        kernel=(3, 3),
+        dilation=(1, 1),
+        stride=1,
+        num_dims=2,
     )
-    def test_float_type_errors(self, kernel: IntOrTuple2d3d, dilation: IntOrTuple2d3d, error_msg: str) -> None:
-        """Test that float values in kernel/dilation raise TypeError"""
-        with pytest.raises(TypeError, match=error_msg):
-            _normalize_conv_inputs(kernel, dilation)
 
-    @pytest.mark.parametrize(
-        "kernel, dilation, error_msg",
-        [
-            ("3", 1, "must contain only integers or tuples of integers"),
-            (3, "1", "must contain only integers or tuples of integers"),
-            ((3, "5"), (1, 1), "must contain only integers"),
-            ((3, 5), (1, "1"), "must contain only integers"),
-        ]
+    assert params.kernel == (3, 3)
+    assert params.dilation == (1, 1)
+    assert params.stride == 1
+
+def test_from_inputs_tuples_2d_2() -> None:
+    params = ConvParams.from_inputs(
+        kernel=(3, 3),
+        dilation=(1, 1),
+        stride=(1, 1),
+        num_dims=2,
     )
-    def test_string_type_errors(self, kernel: IntOrTuple2d3d, dilation: IntOrTuple2d3d, error_msg: str) -> None:
-        """Test that string values in kernel/dilation raise TypeError"""
-        with pytest.raises(TypeError, match=error_msg):
-            _normalize_conv_inputs(kernel, dilation)
 
-# ----------------------------  Tests for DOWNSAMPLING_FACTOR_2 sampling mode with stride=2 ----------------------------
+    assert params.kernel == (3, 3)
+    assert params.dilation == (1, 1)
+    assert params.stride == (1, 1)
 
-class TestGetPaddingStride2:
-    """Test cases for _compute_stride2_padding function"""
+def test_from_inputs_scalar_3d() -> None:
+    params = ConvParams.from_inputs(
+        kernel=3,
+        dilation=1,
+        stride=2,
+        num_dims=3,
+    )
 
-    @pytest.mark.parametrize("kernel, dilation, expected_padding", [
-        # even kernels, odd dilations result in integer padding
-        ((2, 2), (1, 1), 0),   # kernel=2, dilation=1 -> padding=0
-        ((4, 4), (1, 1), 1),   # kernel=4, dilation=1 -> padding=1
-        ((2, 2), (3, 3), 1),   # kernel=2, dilation=3 -> padding=2
-        ((4, 4), (3, 3), 4),   # kernel=4, dilation=3 -> padding=4
-    ])
-    def test_compute_stride2_padding_success(self,
-                                             kernel: TupleOfInt2d3d,
-                                             dilation: TupleOfInt2d3d,
-                                             expected_padding: Union[TupleOfInt2d3d, str]) -> None:
-        """Test get_padding_stride_2, where input parameters result in integer padding
-        """
-        padding = _compute_stride2_padding(kernel, dilation)
-        assert len(padding) == 2  # default
-        assert padding[0] == expected_padding
-        assert padding[1] == expected_padding
+    assert params.kernel == (3, 3, 3)
+    assert params.dilation == (1, 1, 1)
+    assert params.stride == 2
 
-    @pytest.mark.parametrize("kernel, dilation, expected_padding", [
-        # even kernels, odd dilations result in integer padding
-        ((2, 2, 2), (1, 1, 1), 0),   # kernel=2, dilation=1 -> padding=0
-        ((4, 4, 4), (3, 3, 3), 4),   # kernel=4, dilation=3 -> padding=4
-    ])
-    def test_compute_stride2_padding_success_3d(self,
-                                                kernel: TupleOfInt2d3d,
-                                                dilation: TupleOfInt2d3d,
-                                                expected_padding: Union[TupleOfInt2d3d, str]) -> None:
-        """Test get_padding_stride_2, where input parameters result in integer padding, 3d case
-        """
-        padding = _compute_stride2_padding(kernel, dilation)
-        assert len(padding) == 3  # default
-        assert padding[0] == expected_padding
-        assert padding[1] == expected_padding
-        assert padding[2] == expected_padding
 
-# ---------------------------- Tests for  get_padding function ----------------------------
+def test_from_inputs_tuples_3d() -> None:
+    params = ConvParams.from_inputs(
+        kernel=(1, 3, 3),
+        dilation=(1, 3, 3),
+        stride=(1, 2, 2),
+        num_dims=3,
+    )
 
-class TestGetPaddingAndStride:
+    assert params.kernel == (1, 3, 3)
+    assert params.dilation == (1, 3, 3)
+    assert params.stride == (1, 2, 2)
+
+# ----------------------------  Tests for get_padding  ----------------------------
+
+class TestGetPadding:
     """Test cases for get_padding function"""
 
-    @pytest.mark.parametrize("kernel, dilation, expected_padding, padding_mode", [
-        (2, 2, 'same', PaddingMode.SAME),  # scalar inputs are expanded with correct number of dimensions to default num=2
-        ((3, 3), (1, 1), 'same', PaddingMode.SAME),  # kernel and dilation have the same size, they are passed through without modification
-        ((3, 3), 1, 'same', PaddingMode.SAME),  # when kernel is iterable and dilation is scalar, dilation is expanded to match kernel size
-        (2, 1, 0, PaddingMode.DOWNSAMPLING_FACTOR_2),  # scalar inputs are expanded with correct number of dimensions to default num=2
-        # when both kernel and dilation are iterables of the same size, they are passed through without modification
-        ((4, 4), (1, 1), 1, PaddingMode.DOWNSAMPLING_FACTOR_2),
-        ((2, 2), 1, 0, PaddingMode.DOWNSAMPLING_FACTOR_2),  # when kernel is iterable and dilation is scalar, dilation is expanded to match kernel size
+    @pytest.mark.parametrize("kernel, dilation, stride, expected_padding", [
+        # even kernels, even dilations result in integer padding
+        # odd kernels, odd dilations result in integer padding
+        # odd kernels, even dilations result in integer padding
+        ((2, 2), (2, 2), 1, (1, 1)),   # kernel=2, dilation=2 -> padding=1
+        ((3, 3), (1, 1), 1, (1, 1)),   # kernel=3, dilation=1 -> padding=1
+        ((3, 3), (2, 2), 1, (2, 2)),   # kernel=3, dilation=2 -> padding=2
 
     ])
-    def test_get_padding_integration_with__normalize_conv_inputs_success(self, kernel: IntOrTuple2d3d,
-                                                                         dilation: IntOrTuple2d3d,
-                                                                         expected_padding: Union[TupleOfInt2d3d, str],
-                                                                         padding_mode: PaddingMode) -> None:
+    def test_get_padding_success(self,
+                                 kernel: TupleOfInt2d3d,
+                                 dilation: TupleOfInt2d3d,
+                                 stride: TupleOfInt2d3d,
+                                 expected_padding: TupleOfInt2d3d) -> None:
         """
-        Integration with _normalize_conv_inputs for success cases
+        Test get_padding, where input parameters result in integer padding
         """
-        padding = get_padding(kernel, dilation, padding_mode)
-        assert padding == 'same' if padding_mode == PaddingMode.SAME else (expected_padding, expected_padding)  # we have num_dims=2 by default
-
-    @pytest.mark.parametrize("kernel, dilation, padding_mode", [
-        ((3, 3), (1, 1, 1), PaddingMode.SAME),  # a ValueError is raised when kernel and dilation are iterables of different sizes
-        ((3, 3, 3), (3, 3), PaddingMode.DOWNSAMPLING_FACTOR_2),
-    ])
-    def test_get_padding_integration_with__normalize_conv_inputs_diff_sizes(self, kernel: IntOrTuple2d3d,
-                                                                            dilation: IntOrTuple2d3d, padding_mode: PaddingMode) -> None:
-        """Integration with _normalize_conv_inputs for error cases - different sizes"""
-        with pytest.raises(ValueError, match="All inputs must have the same length"):
-            get_padding(kernel, dilation, padding_mode)
-
-    @pytest.mark.parametrize("kernel, dilation, padding_mode, error_msg", [
-        ((3, 2.5), (1, 1), PaddingMode.SAME, "must contain only integers"),
-        ((3, "5"), (1, 1), PaddingMode.SAME, "must contain only integers"),
-        ((3, 5), (1, 1.5), PaddingMode.SAME, "must contain only integers"),
-        ((3, 5), (1, "1"), PaddingMode.SAME, "must contain only integers"),
-        ((3, 2.5), (1, 1), PaddingMode.DOWNSAMPLING_FACTOR_2, "must contain only integers"),
-        ((3, "5"), (1, 1), PaddingMode.DOWNSAMPLING_FACTOR_2, "must contain only integers"),
-        ((3, 5), (1, 1.5), PaddingMode.DOWNSAMPLING_FACTOR_2, "must contain only integers"),
-        ((3, 5), (1, "1"), PaddingMode.DOWNSAMPLING_FACTOR_2, "must contain only integers"),
-    ])
-    def test_get_padding_integration_with__normalize_conv_inputs_invalid_types(self, kernel: IntOrTuple2d3d,
-                                                                               dilation: IntOrTuple2d3d,
-                                                                               padding_mode: PaddingMode,
-                                                                               error_msg: str) -> None:
-        """Integration with _normalize_conv_inputs for error cases - invalid types"""
-        with pytest.raises(TypeError, match=error_msg):
-            get_padding(kernel, dilation, padding_mode)
-
-    @pytest.mark.parametrize("sampling_mode", [
-        "invalid_mode",
-        "DOWNSAMPLING_FACTOR_22",
-    ])
-    def test_wrong_sampling_mode(self, sampling_mode: PaddingMode) -> None:
-        """Test get_padding_value_and_stride, when sampling mode is not in PaddingMode"""
-        with pytest.raises(ValueError, match="is not a valid"):  # propagated from _ensure_padding_mode
-            _ = get_padding(1, 3, sampling_mode)
-
-    @pytest.mark.parametrize(
-        "padding_mode,kernel,dilation,expected_padding", [
-            # SAME mode cases (stride forced to 1)
-            # odd kernels, odd dilation result in integer padding
-            (PaddingMode.SAME, 3, 1, 'same'),  # kernel=3, dilation=1 -> padding=1
-            # even kernels, even dilation result in integer padding
-            (PaddingMode.SAME, 4, 2, 'same'),  # kernel=4, dilation=2 -> padding=3
-            # odd kernels, even dilation result in integer padding
-            (PaddingMode.SAME, 5, 2, 'same'),  # kernel=5, dilation=2 -> padding=4
-            # DOWNSAMPLING_FACTOR_2 mode cases (stride forced to 2)
-            # even kernels, odd dilations result in integer padding
-            (PaddingMode.DOWNSAMPLING_FACTOR_2, 2, 1, (0, 0)),   # kernel=2, dilation=1 -> padding=0
-        ])
-    def test_padding_modes_unified(self, padding_mode: PaddingMode,
-                                   kernel: IntOrTuple2d3d,
-                                   dilation: IntOrTuple2d3d,
-                                   expected_padding: Union[TupleOfInt2d3d, str]) -> None:
-        """
-        Unified test covering SAME, and DOWNSAMPLING_FACTOR_2 modes for the default value of num_dims=2.
-        """
-        padding = get_padding(kernel=kernel, dilation=dilation, padding_mode=padding_mode)
+        params = ConvParams.from_inputs(
+            kernel=kernel,
+            dilation=dilation,
+            stride=stride,
+            num_dims=2,
+        )
+        padding = get_padding(params)
+        assert len(padding) == 2
         assert padding == expected_padding
-
-    def test_get_padding_invalid_mode_raises(self) -> None:
-        """
-        Test get_padding raises ValueError for invalid padding mode string raised through _ensure_padding_mode
-        """
-        with pytest.raises(ValueError):
-            get_padding(kernel=3, dilation=1, padding_mode=cast(PaddingMode, "not_a_mode"))  # cast for mypy only
-            get_padding(kernel=3, dilation=1, padding_mode=cast(PaddingMode, "not_a_mode"))  # cast for mypy only
+        assert padding == expected_padding
