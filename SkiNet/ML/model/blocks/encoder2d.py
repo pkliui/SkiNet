@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Any
+from typing import Callable, Optional
 
 import torch.nn as nn
 from torch import Tensor
@@ -67,7 +67,7 @@ class Encoder2D(nn.Module):
             apply_batchnorm=apply_batchnorm,
             activation=activation)
 
-    def forward(self, x: Tensor) -> Any:
+    def forward(self, x: Tensor) -> Tensor:
         x = self.conv2d_layer1(x)
         conv2 = self.conv2d_layer2(x)
         return conv2 + x if self.use_residual else conv2
