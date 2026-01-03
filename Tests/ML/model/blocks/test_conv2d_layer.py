@@ -9,7 +9,10 @@ from SkiNet.ML.model.blocks.conv2d_layer import Conv2dLayer
 @pytest.mark.parametrize("batch_size, in_channels, out_channels, kernel, stride, dilation, apply_bias, apply_batchnorm, activation, input_size, expected_size",
                          [
                              (2, 3, 6, 3, 1, 1, False, True, torch.nn.ReLU, 10, 10),  # stride=1
+                             (2, 6, 12, 3, 2, 1, False, True, torch.nn.ReLU, 20, 10),  # stride=2
                              (2, 6, 12, 4, 2, 2, False, True, torch.nn.ReLU, 10, 5),  # stride=2
+                             (2, 6, 12, 6, 2, 2, False, True, torch.nn.ReLU, 20, 10),  # stride=2
+
                          ])
 def test_basic_layer_forward_and_backward_pass(batch_size: int,
                                                in_channels: int,
