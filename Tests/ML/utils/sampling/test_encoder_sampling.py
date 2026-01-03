@@ -57,6 +57,8 @@ class TestHandleMixedInputs:
         ((3, 4), (1, 1), 1),
         ((4, 4), (1, 1), 2),
         ((3, 4), (1, 1), 2),
+        # negative-valued should raise through _validate_param - whose full tests are following later
+        ((-1, -1), (1, 1), 2),
 
     ]
 )

@@ -90,6 +90,8 @@ def _validate_param(value: IntOrTuple2d3d,
                 raise ValueError(f"Input must contain only integers: {name.value}[{i}] must be int, got {type(v).__name__}")
             if v <= 0:
                 raise ValueError(f"Input must contain only positive values: {name.value}[{i}] must be positive, got {v}")
+    else:
+        raise ValueError(f"Input must be int or tuple, got {type(value).__name__}")
     return value
 
 
