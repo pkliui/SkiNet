@@ -1,130 +1,90 @@
 import pytest
-from SkiNet.ML.utils.sampling.decoder_sampling import EncoderSpec, compute_convtranspose2d_params, UpsamplingParams, validate_encoder_spec
+
+from SkiNet.ML.utils.sampling.decoder_sampling import get_output_padding, get_padding_for_transpose_conv
+from SkiNet.ML.utils.typing_utils import IntOrTuple2d3d
 
 
-######################################## Tests for UpsamplingParams ########################################
-
-class TestUpsamplingParams:
-    """
-    Unit tests for UpsamplingParams dataclass, covering instantiation with various argument types.
-    """
-    def test_tuple_inputs(self):
-        """
-        Test instantiation with tuple arguments for all fields.
-        """
-        params = UpsamplingParams(
-            upsampling_kernel=(3, 3),
-            upsampling_stride=(2, 2),
-            upsampling_padding=(1, 1)
-        )
-        assert params.upsampling_kernel == (3, 3)
-        assert params.upsampling_stride == (2, 2)
-        assert params.upsampling_padding == (1, 1)
-
-    def test_str_tuple_int_inputs(self):
-        """
-        Test instantiation with int kernel and stride and string padding.
-        """
-        params = UpsamplingParams(
-            upsampling_kernel=(4,4),
-            upsampling_stride=[2,2],
-            upsampling_padding="same")
-        assert params.upsampling_kernel == (4,4)
-        assert params.upsampling_stride == [2,2]
-        assert params.upsampling_padding == "same"
+@pytest.mark.parametrize(
+    "kernel, msg",
+    [
+        (-1, "must be positive"),
+        ("1", "must be int or tuple"),
+        (1.5, "must be int or tuple"),
+        (0, "must be positive"),
+        ((0, 3), "must be positive"),
+        ((3, 0), "must be positive"),
+        ((-1, 3), "must be positive"),
+        ((3, -1), "must be positive"),
+        ((3.5, 2), "must be int"),
+        (("3", 2), "must be int"),
+        ((1, 2, 3, 4), "must have length 2 or 3"),  # invalid length
+    ],
+)
+def test_get_padding_for_transpose_conv_invalid(kernel: IntOrTuple2d3d, msg: str) -> None:
+    with pytest.raises(ValueError, match=msg):
+        get_padding_for_transpose_conv(kernel)
 
 
-######################################## Tests for EncoderSpec ########################################
+@pytest.mark.parametrize(
+    "kernel,expected_padding",
+    [
+        (1, 0),
+        (2, 0),
+        (3, 1),
+        (4, 1),
+        (5, 2),
+        (6, 2),
+        (7, 3),
+    ],
+)
+def test_get_padding_for_transpose_conv(kernel: IntOrTuple2d3d,
+                                        expected_padding: IntOrTuple2d3d) -> None:
+    padding = get_padding_for_transpose_conv(kernel)
 
-class TestEncoderSpec:
-    """
-    Unit tests for the EncoderSpec dataclass, covering instantiation and field access.
-    """
-    def test_tuple_inputs(self):
-        """
-        Test instantiation with tuple arguments for all fields.
-        """
-        spec = EncoderSpec(
-            kernel=(3, 3),
-            stride=(2, 2),
-            padding=(1, 1)
-        )
-        assert spec.kernel == (3, 3)
-        assert spec.stride == (2, 2)
-        assert spec.padding == (1, 1)
+    assert isinstance(padding, IntOrTuple2d3d)
+    assert padding == expected_padding
 
-    def test_str_and_int_inputs(self):
-        """
-        Test instantiation with int kernel and stride and string padding.
-        """
-        spec = EncoderSpec(
-            kernel=(4,4),
-            stride=(2,2),
-            padding="same"
-        )
-        assert spec.kernel == (4,4)
-        assert spec.stride == (2,2)
-        assert spec.padding == "same"
 
-    def test_optional_fields(self):
-        """
-        Test instantiation with only required fields and default values for optional fields.
-        """
-        spec = EncoderSpec(
-            kernel=(5, 5),
-            stride=(2, 2)
-        )
-        assert spec.kernel == (5, 5)
-        assert spec.stride == (2, 2)
-        assert spec.padding is None
+@pytest.mark.parametrize(
+    "kernel, stride, msg",
+    [
+        (1, -1, "must be positive"),
+        (1, "2", "must be int or tuple"),
+        (1, 1.5, "must be int or tuple"),
+        (1, 0, "must be positive"),
+        ((3, 3), -1, "must be positive"),
+        ((3, -3), 1, "must be positive"),
+        ((3, 3), -2, "must be positive"),
+        ((-3, 3), 2, "must be positive"),
+        ((3, 3), 2.2, "must be int"),
+        ((3, 3), "1", "must be int"),
+        ((1, 1), (1, 1, 1, 1), "must have length 2 or 3"),  # invalid length
+    ],
+)
+def test_get_output_padding_invalid(kernel: IntOrTuple2d3d, stride: IntOrTuple2d3d, msg: str) -> None:
+    with pytest.raises(ValueError, match=msg):
+        _ = get_output_padding(kernel, stride)
 
-def test_validate_encoder_spec_raises_on_missing_fields():
-    """
-    Test missing fields in EncoderSpec raise ValueError.
-    """
-    # Missing 'stride'
-    spec_missing_stride = EncoderSpec(kernel=(5, 5), stride=None, padding=(1, 1))
-    with pytest.raises(ValueError, match="encoder_spec.stride must be specified. Got None."):
-        validate_encoder_spec(spec_missing_stride)
+@pytest.mark.parametrize(
+    "kernel,stride,expected_output_padding",
+    [
+        # stride even
+        (2, 2, 0),
+        (3, 2, 1),
+        (4, 2, 0),
+        (5, 2, 1),
 
-    # Missing 'kernel'
-    spec_missing_kernel = EncoderSpec(kernel=None, stride=(2, 2), padding=(1, 1))
-    with pytest.raises(ValueError, match="encoder_spec.kernel must be specified. Got None."):
-        validate_encoder_spec(spec_missing_kernel)
+        # stride odd
+        (2, 1, 0),
+        (3, 1, 0),
+        (4, 3, 0),
+        (5, 5, 0),
+    ],
+)
+def test_get_output_padding(kernel: IntOrTuple2d3d,
+                            stride: IntOrTuple2d3d,
+                            expected_output_padding: IntOrTuple2d3d) -> None:
+    output_padding = get_output_padding(kernel, stride)
 
-    # Missing 'padding'
-    spec_missing_padding = EncoderSpec(kernel=(5, 5), stride=(2, 2), padding=None)
-    with pytest.raises(ValueError, match="encoder_spec.padding must be specified. Got None."):
-        validate_encoder_spec(spec_missing_padding)
-
-    # encoder_spec is None
-    with pytest.raises(ValueError, match="encoder_spec must be provided."):
-        validate_encoder_spec(None)
-
-######################################## Tests for compute_convtranspose2d_params ########################################
-
-class TestComputeConvTranspose2DParams:
-    """
-    Unit tests for compute_convtranspose2d_params, covering both upsampling modes and error cases.
-    """
-    @pytest.mark.parametrize(
-        "kernel, stride, padding, expected_upsampling_kernel, expected_upsampling_stride, expected_upsampling_padding",
-        [
-            ((4, 4), (2, 2), (1, 1), (4, 4), (2, 2), (1, 1)),
-            ((6, 6), (2, 2), (1, 1), (6, 6), (2, 2), (1, 1)),
-        ]
-    )
-    def test_compute_convtranspose2d_params(self, kernel, stride, padding, expected_upsampling_kernel, expected_upsampling_stride, expected_upsampling_padding):
-        """
-        Test compute_convtranspose2d_params returns correct kernel, stride, and numeric padding; and correct UpsamplingParams type.
-        """
-        encoder_spec = EncoderSpec(
-            kernel=kernel,
-            stride=stride,
-            padding=padding,
-        )
-        params = compute_convtranspose2d_params(encoder_spec=encoder_spec)
-        assert params.upsampling_kernel == expected_upsampling_kernel
-        assert params.upsampling_stride == expected_upsampling_stride
-        assert params.upsampling_padding == expected_upsampling_padding
-        assert isinstance(params, UpsamplingParams)
+    assert isinstance(output_padding, IntOrTuple2d3d)
+    assert output_padding == expected_output_padding

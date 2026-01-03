@@ -1,57 +1,32 @@
-from dataclasses import dataclass
-from typing import Iterable, Tuple, Union, Optional
+from SkiNet.ML.utils.sampling.encoder_sampling import ConvParamSpec, _validate_param
+from SkiNet.ML.utils.typing_utils import IntOrTuple2d3d
 
 
-@dataclass
-class UpsamplingParams:
+def get_padding_for_transpose_conv(kernel: IntOrTuple2d3d) -> int:
     """
-    Holds the parameters for the upsampling operation.
+    Return padding required for torch.nn.ConvTranspose2d
+
+    Input validated through encoder _validate_param
+    :param kernel: Kernel size of the convolution operation in the encoder
+
+    :return output_padding value that is either 0 or 1
     """
-    upsampling_kernel: Union[int, Iterable[int]]
-    upsampling_stride: Union[int, Iterable[int]]
-    upsampling_padding: Optional[Union[Tuple[int, ...], str]] = None
+    _validate_param(kernel, ConvParamSpec.KERNEL)
+    return (kernel - 1) // 2
 
-
-@dataclass
-class EncoderSpec:
-    """Simple container describing the encoder convolution that we want to invert.
-
-    :param kernel: Kernel size used in the encoder Conv2d (int or iterable)
-    :param stride: Stride used in the encoder Conv2d (int or iterable)
-    :param padding: (Optional) Numeric padding used in the encoder Conv2d (int/tuple) — kept for compatibility but not used when a PaddingMode is available
+def get_output_padding(kernel: IntOrTuple2d3d, stride: IntOrTuple2d3d) -> int:
     """
-    kernel: Union[int, Iterable[int]] = None
-    stride: Union[int, Iterable[int]] = None
-    padding: Optional[Union[int, Iterable[int], str]] = None
+    Return output_padding required for torch.nn.ConvTranspose2d
 
+    Input validated through encoder _validate_param
+    :param kernel: Kernel size of the convolution operation, equal to that used in the encoder
+    :param stride: Stride of the convolution operation, equal to that used in the encoder
 
-def validate_encoder_spec(encoder_spec: Optional[EncoderSpec]) -> None:
+    :return output_padding value that is either 0 or 1
     """
-    Validates that all required fields in EncoderSpec are present and not None.
-    Raises ValueError if any required field is missing.
-    """
-    required_fields = ['stride', 'kernel', 'padding']
-    if encoder_spec is None:
-        raise ValueError("encoder_spec must be provided.")
-    for field in required_fields:
-        if getattr(encoder_spec, field) is None:
-            raise ValueError(f"encoder_spec.{field} must be specified. Got None.")
-
-
-def compute_convtranspose2d_params(encoder_spec: Optional[EncoderSpec] = None) -> UpsamplingParams:
-    """
-    Compute ConvTranspose2d parameters for the decoder
-
-    :param encoder_spec: EncoderSpec describing the corresponding encoder convolution to be inverted.
-    """
-    validate_encoder_spec(encoder_spec)
-
-    upsampling_kernel = encoder_spec.kernel
-    upsampling_stride = encoder_spec.stride
-    # padding is set to the same as encoder padding to ensure we can recover the original input size
-    # see documentation note for https://docs.pytorch.org/docs/stable/generated/torch.nn.ConvTranspose2d.html
-    upsampling_padding = encoder_spec.padding
-
-    return UpsamplingParams(upsampling_kernel=upsampling_kernel,
-                            upsampling_stride=upsampling_stride,
-                            upsampling_padding=upsampling_padding)
+    _validate_param(kernel, ConvParamSpec.KERNEL)
+    _validate_param(stride, ConvParamSpec.STRIDE)
+    if stride % 2 == 0:
+        return 0 if kernel % 2 == 0 else 1
+    else:
+        return 0

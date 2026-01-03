@@ -1,9 +1,10 @@
-import torch
-import torch.nn as nn
-from typing import Optional, Callable
+from typing import Callable
 
-from SkiNet.ML.model.tr_conv2d_layer import TrConv2dLayer
-from SkiNet.ML.utils.sampling.decoder_sampling import EncoderSpec
+import torch.nn as nn
+from torch import Tensor
+
+from SkiNet.ML.model.blocks.tr_conv2d_layer import TrConv2dLayer
+from SkiNet.ML.utils.typing_utils import IntOrTuple2d
 
 
 class Decoder2D(nn.Module):
@@ -12,23 +13,25 @@ class Decoder2D(nn.Module):
 
     :param in_channels: Number of input channels.
     :param out_channels: Number of output channels.
-    :param encoder_spec: EncoderSpec describing the corresponding encoder convolution to be inverted.
-    :param activation: Non-linear activation function applied after batch normalization. If None, no activation is applied.
-        Default is torch.nn.ReLU
+    :param decoding_kernel_size: Kernel size for transposed convolution
+    :param decoding_stride: Stride for transposed convolution
+    :param activation: Non-linear activation function applied after batch normalization.
     """
+
     def __init__(self,
                  in_channels: int,
-                 out_channels:  int,
-                 encoder_spec: EncoderSpec,
-                 activation: Optional[Callable] = torch.nn.ReLU):
+                 out_channels: int,
+                 decoding_kernel_size: IntOrTuple2d,
+                 decoding_stride: IntOrTuple2d,
+                 activation: Callable = nn.ReLU) -> None:
         super().__init__()
 
-        self.decoder_layer = TrConv2dLayer(
-                    in_channels=in_channels,
-                    out_channels=out_channels,
-                    encoder_spec=encoder_spec,
-                    activation=activation)
+        self.decoder_layer = TrConv2dLayer(in_channels=in_channels,
+                                           out_channels=out_channels,
+                                           decoding_kernel_size=decoding_kernel_size,
+                                           decoding_stride=decoding_stride,
+                                           activation=activation)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         x = self.decoder_layer(x)
         return x

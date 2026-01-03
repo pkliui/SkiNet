@@ -1,47 +1,46 @@
-import torch
-from typing import Optional, Callable
-from SkiNet.ML.utils.sampling.decoder_sampling import compute_convtranspose2d_params, EncoderSpec
+from typing import Callable
+
+import torch.nn as nn
+from torch import Tensor
+
+from SkiNet.ML.utils.sampling.decoder_sampling import get_output_padding, get_padding_for_transpose_conv
+from SkiNet.ML.utils.typing_utils import IntOrTuple2d
 
 
-class TrConv2dLayer(torch.nn.Module):
+class TrConv2dLayer(nn.Module):
     """
     TrConv2dLayer is a 2D transposed convolution followed by batch normalization
 
     :param in_channels: Number of input channels.
     :param out_channels: Number of output channels.
-    :param encoder_spec: EncoderSpec describing the corresponding encoder convolution to be inverted.
-    :param activation: Optional non-linear activation function applied after batch normalization.
+    :param decoding_kernel_size: Kernel size for transposed convolution
+    :param decoding_stride: Stride for transposed convolution
+    :param activation: Non-linear activation function applied after batch normalization.
         Default is torch.nn.ReLU.
     """
+
     def __init__(self,
                  in_channels: int,
-                 out_channels:  int,
-                 encoder_spec: EncoderSpec,
-                 activation: Optional[Callable] = torch.nn.ReLU):
+                 out_channels: int,
+                 decoding_kernel_size: IntOrTuple2d,
+                 decoding_stride: IntOrTuple2d,
+                 activation: Callable = nn.ReLU):
         super().__init__()
-
-        if not isinstance(encoder_spec, EncoderSpec):
-            raise ValueError(f"Invalid encoder spec: {encoder_spec}. Must be an instance of EncoderSpec.")
-
 
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        params = compute_convtranspose2d_params(encoder_spec=encoder_spec)
-        self.upsampling_kernel = params.upsampling_kernel
-        self.upsampling_stride = params.upsampling_stride
-        self.upsampling_padding = params.upsampling_padding
+        self.deconv2d = nn.ConvTranspose2d(in_channels=self.in_channels,
+                                           out_channels=self.out_channels,
+                                           kernel_size=decoding_kernel_size,
+                                           stride=decoding_stride,
+                                           padding=get_padding_for_transpose_conv(decoding_kernel_size),
+                                           output_padding=get_output_padding(decoding_kernel_size, decoding_stride))
 
-        self.deconv2d = torch.nn.ConvTranspose2d(in_channels=self.in_channels,
-                                                out_channels=self.out_channels,
-                                                kernel_size=self.upsampling_kernel,
-                                                stride=self.upsampling_stride,
-                                                padding=self.upsampling_padding)
-
-        self.batchnorm2d = torch.nn.BatchNorm2d(num_features=self.out_channels)
+        self.batchnorm2d = nn.BatchNorm2d(num_features=self.out_channels)
         self.activation = activation(inplace=True)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         x = self.deconv2d(x)
         x = self.batchnorm2d(x)
         x = self.activation(x)
