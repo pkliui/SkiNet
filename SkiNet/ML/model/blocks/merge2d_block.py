@@ -1,10 +1,12 @@
-from typing import Callable, Iterable, Optional, Union
-import torch
+from typing import Callable, cast
 
-from SkiNet.ML.model.conv2d_layer import Conv2dLayer
-from SkiNet.ML.utils.sampling.encoder_sampling import PaddingMode
+from torch import Tensor, nn
 
-class Merge2DBlock(torch.nn.Module):
+from SkiNet.ML.model.blocks.conv2d_layer import Conv2dLayer
+from SkiNet.ML.utils.sampling.base_sampling import EncoderParams2D
+
+
+class Merge2DBlock(nn.Module):
     """
     Merge2DBlock merges the output of a decoder with a skip connection.
 
@@ -22,48 +24,55 @@ class Merge2DBlock(torch.nn.Module):
         Note, the Conv2dLayers applied to the inputs do not use activation functions.
         Instead, the activation function is explicitly applied after adding the convolved inputs and batch normalization.
     """
+
     def __init__(self,
-                    in_channels: int,
-                    out_channels:  int,
-                    kernel: Union[int, Iterable[int]] = 4,
-                    apply_batchnorm: bool = True,
-                    apply_bias: bool = False,
-                    activation: Optional[Callable] = torch.nn.ReLU):
+                 layer_number: int,
+                 in_channels: int,
+                 out_channels: int,
+                 conv_params: EncoderParams2D,
+                 activation: Callable[[], nn.Module] = nn.ReLU):
         super().__init__()
+        self.layer_number = layer_number
 
-        self.conv1 = Conv2dLayer(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel=kernel,
-            padding_mode=PaddingMode.SAME,
-            apply_batchnorm=False,
-            apply_bias=True,
-            activation=None
-        )
-        self.conv2 = Conv2dLayer(
-            in_channels=out_channels,
-            out_channels=out_channels,
-            kernel=kernel,
-            padding_mode=PaddingMode.SAME,
-            apply_batchnorm=False,
-            apply_bias=True,
-            activation=None
-        )
-        self.batchnorm2d = torch.nn.BatchNorm2d(out_channels)
-        self.activation = activation(inplace=True)
+        self.merging_layer = True
+        """Denotes if the layer merges the output of a decoder with a skip connection. Required for the forward method of the UNet."""
 
-        self.conv3 = Conv2dLayer(
-            in_channels=out_channels,
-            out_channels=out_channels,
-            kernel=kernel,
-            padding_mode=PaddingMode.SAME,
-            apply_batchnorm=apply_batchnorm,
-            apply_bias=apply_bias,
-            activation=activation
-        )
+        self.conv1 = Conv2dLayer(in_channels=in_channels,
+                                 out_channels=out_channels,
+                                 kernel=conv_params.kernel,
+                                 stride=(1, 1),
+                                 dilation=conv_params.dilation,
+                                 padding=conv_params.padding,
+                                 apply_bias=True,
+                                 apply_batchnorm=False,
+                                 activation=None)
 
-    def forward(self, x, skip_connection_map):
+        self.conv2 = Conv2dLayer(in_channels=in_channels,
+                                 out_channels=out_channels,
+                                 kernel=conv_params.kernel,
+                                 stride=(1, 1),
+                                 dilation=conv_params.dilation,
+                                 padding=conv_params.padding,
+                                 apply_bias=True,
+                                 apply_batchnorm=False,
+                                 activation=None)
+
+        self.batchnorm2d = nn.BatchNorm2d(out_channels)
+
+        self.conv3 = Conv2dLayer(in_channels=in_channels,
+                                 out_channels=out_channels,
+                                 kernel=conv_params.kernel,
+                                 stride=(1, 1),
+                                 dilation=conv_params.dilation,
+                                 padding=conv_params.padding,
+                                 apply_bias=False,
+                                 apply_batchnorm=True,
+                                 activation=activation)
+
+        self.activation = activation()
+
+    def forward(self, x: Tensor, skip_connection_map: Tensor) -> Tensor:
         x = self.conv1(x) + self.conv2(skip_connection_map)
         x = self.batchnorm2d(x)
         x = self.activation(x)
-        return self.conv3(x) + x
+        return cast(Tensor, self.conv3(x) + x)

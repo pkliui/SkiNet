@@ -1,37 +1,51 @@
-from typing import Callable
+from typing import Callable, Optional, cast
 
-import torch.nn as nn
-from torch import Tensor
+from torch import Tensor, nn
 
-from SkiNet.ML.model.blocks.tr_conv2d_layer import TrConv2dLayer
-from SkiNet.ML.utils.typing_utils import IntOrTuple2d
+from SkiNet.ML.utils.sampling.base_sampling import DecoderParams2D
 
 
 class Decoder2D(nn.Module):
     """
-    Decoder2D is a decoder block that consists of a TrConv2dLayer.
+    Decoder2D is a transposed convolution layer followed by batch normalization
 
+    :param layer_number: Layer number
     :param in_channels: Number of input channels.
     :param out_channels: Number of output channels.
-    :param decoding_kernel_size: Kernel size for transposed convolution
-    :param decoding_stride: Stride for transposed convolution
+    :param decoder_params: Decoder-side transposed convolution parameters
     :param activation: Non-linear activation function applied after batch normalization.
     """
 
     def __init__(self,
+                 layer_number: int,
                  in_channels: int,
                  out_channels: int,
-                 decoding_kernel_size: IntOrTuple2d,
-                 decoding_stride: IntOrTuple2d,
-                 activation: Callable = nn.ReLU) -> None:
+                 decoder_params: DecoderParams2D,
+                 activation: Callable[[], nn.Module] = nn.ReLU):
         super().__init__()
 
-        self.decoder_layer = TrConv2dLayer(in_channels=in_channels,
-                                           out_channels=out_channels,
-                                           decoding_kernel_size=decoding_kernel_size,
-                                           decoding_stride=decoding_stride,
-                                           activation=activation)
+        self.layer_number = layer_number
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.decoder_params = decoder_params
+
+        self.merging_layer = False
+        """Denotes if the layer merges the output of a decoder with a skip connection. Required for the forward method of the UNet."""
+
+        self.deconv2d = nn.ConvTranspose2d(in_channels=self.in_channels,
+                                           out_channels=self.out_channels,
+                                           kernel_size=self.decoder_params.kernel,
+                                           stride=self.decoder_params.stride,
+                                           dilation=self.decoder_params.dilation,
+                                           padding=self.decoder_params.padding,
+                                           output_padding=self.decoder_params.output_padding)
+
+        self.batchnorm2d = nn.BatchNorm2d(num_features=self.out_channels)
+        self.activation = activation()
 
     def forward(self, x: Tensor) -> Tensor:
-        x = self.decoder_layer(x)
+        x = self.deconv2d(x)
+        x = self.batchnorm2d(x)
+        # cast for mypy
+        x = cast(Tensor, self.activation(x))
         return x

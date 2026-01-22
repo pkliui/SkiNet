@@ -1,5 +1,9 @@
-from typing import Tuple, Union
+from typing import Tuple
 
+IntOrTuple2d = int | Tuple[int, int]
+TupleOfInt2d = Tuple[int, int]
+IntOrTuple3d = int | Tuple[int, int, int]
+TupleOfInt3d = Tuple[int, int, int]
 IntOrTuple2d3d = int | Tuple[int, int] | Tuple[int, int, int]
 TupleOfInt2d3d = Tuple[int, int] | Tuple[int, int, int]
 
