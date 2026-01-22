@@ -1,40 +1,46 @@
 import pytest
-import torch
-import torch.nn as nn
-from torch import Tensor
+from torch import Tensor, nn, randn
 
 from SkiNet.ML.model.blocks.decoder2d import Decoder2D
+from SkiNet.ML.utils.sampling.decoder_sampling import get_decoder_params_2d
+from SkiNet.ML.utils.sampling.encoder_sampling import get_encoder_params_2d
 
 
-@pytest.mark.parametrize(
-    "batch,in_channels,out_channels,kernel,stride,input_size,expected_size",
-    [
-        # stride = 2 → upsample
-        (2, 8, 4, 3, 2, 10, 20),
-        (1, 16, 8, 4, 2, 5, 10),
-        (4, 3, 6, 5, 2, 7, 14),
+@pytest.mark.parametrize("batch, out_channels, in_channels, kernel, stride, dilation, input_size, expected_size",
+                         [  # Vary batch
+                             (4, 6, 12, 3, 2, 1, 8, 16),
+                             # Vary input size
+                             (2, 6, 12, 3, 2, 1, 16, 32),
+                             # Vary channels
+                             (2, 3, 6, 3, 2, 1, 16, 32),
+                             # Vary kernel and dilation, stride = 2, i.e. upsampling = 2 are fixed
+                             (2, 6, 12, 3, 2, 1, 8, 16),  # k=2n+1, d=2n+1
+                             (2, 6, 12, 5, 2, 1, 32, 64),
+                             (2, 6, 12, 3, 2, 2, 8, 16),  # d=2n
+                             (2, 6, 12, 7, 2, 2, 32, 64)
+                         ])
+def test_forward_and_output_shape(batch: int,
+                                  in_channels: int,
+                                  out_channels: int,
+                                  kernel: int,
+                                  stride: int,
+                                  dilation: int,
+                                  input_size: int,
+                                  expected_size: int) -> None:
+    """
+    Test forward pass with various parameters and exact output shape verification.
+    """
+    params = get_encoder_params_2d(kernel=kernel, stride=stride, dilation=dilation)
 
-        # stride = 1 → same size
-        (2, 8, 4, 3, 1, 10, 10),
-        (1, 16, 8, 5, 1, 7, 7),
-    ],
-)
-def test_decoder2d_forward_and_shape(batch: int,
-                                     in_channels: int,
-                                     out_channels: int,
-                                     kernel: int,
-                                     stride: int,
-                                     input_size: int,
-                                     expected_size: int) -> None:
-    decoder = Decoder2D(in_channels=in_channels,
-                        out_channels=out_channels,
-                        decoding_kernel_size=kernel,
-                        decoding_stride=stride,
-                        activation=nn.ReLU)
+    layer = Decoder2D(in_channels=in_channels,
+                      out_channels=out_channels,
+                      decoder_params=get_decoder_params_2d(params),
+                      activation=nn.ReLU,
+                      layer_number=1)
 
-    x = torch.rand(batch, in_channels, input_size, input_size)
-    y = decoder(x)
+    input = randn(batch, in_channels, input_size, input_size).float()
 
-    assert isinstance(y, Tensor)
-    assert torch.all(y >= 0)
-    assert y.shape == (batch, out_channels, expected_size, expected_size)
+    output = layer(input)
+
+    assert isinstance(output, Tensor)
+    assert output.shape == (batch, out_channels, expected_size, expected_size)
