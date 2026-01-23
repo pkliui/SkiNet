@@ -39,6 +39,10 @@ RUN wget $MINICONDA_URL -O ~/miniconda.sh && \
     /bin/bash ~/miniconda.sh -b -p ${CONDA_DIR}
 ENV PATH=/root/.local/bin:${CONDA_DIR}/bin:${PATH}
 
+
+RUN conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main && \
+    conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+
 # create a new environment and install packages
 # conda init bash is required to make conda available in bash
 # use mamba to speed up the process - conda often fails with connection failed error
