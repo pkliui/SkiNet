@@ -7,7 +7,7 @@ channels:
 dependencies:
   - numpy
   - pytest
-  - python=3.11  # the latest supported version required by s3torchconnector is 3.11; Not specifying 3.11 will result in an error "Cannot install azureml-fsspec because these package versions have conflicting dependencies.""
+  - python=3.11 # the latest supported version required by s3torchconnector is 3.11; Not specifying 3.11 will result in an error "Cannot install azureml-fsspec because these package versions have conflicting dependencies.""
   - scikit-image
   - matplotlib
   - ipykernel
@@ -18,12 +18,13 @@ dependencies:
   - param
   - yacs
   - pip:
-    - torch
-    - torchvision
-    - torchaudio
-    - torchdata
-    - azureml-fsspec==1.3.1
-    - mltable
-    - azure-ai-ml 
-    - albumentations
-
+      - torch
+      - torchvision
+      - torchaudio
+      - torchdata
+      - azureml-fsspec==1.3.1
+      - mltable
+      - azure-ai-ml
+      - albumentations
+      - flake8
+      - mypy
