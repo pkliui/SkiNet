@@ -4,7 +4,7 @@ ENV RUNNING_IN_DOCKER=true
 # Specify environment variables for the environment name, paths to the project root directory and conda
 # Append project path to the python path
 # Specify work directory
-# Copy conda's environment file 
+# Copy conda's environment file
 ARG ENV_NAME=skinet
 ENV PROJECT_PATH=/workplace/SkiNet
 ENV CONDA_DIR=/opt/conda
@@ -17,7 +17,7 @@ COPY environment.yaml .
 # rm -rf cleans up respective folder after installations
 # build-essential is required to install conda
 RUN DEBIAN_FRONTEND=noninteractive \
-    apt-get update && apt-get install -y sudo wget curl unzip build-essential && \
+    apt-get update && apt-get install -y sudo wget curl unzip build-essential git && \
     rm -rf /var/lib/apt/lists/*
 
 # install AWS CLI
