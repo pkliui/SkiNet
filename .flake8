@@ -1,0 +1,6 @@
+[flake8]
+ignore = E226,E302,E401,E402,E701,W503
+max-line-length = 160
+max-complexity = 25
+exclude = .git,__pycache__,.mypy_cache,.pytest_cache,.ipynb_checkpoints,.vscode,.github,build,dist
+min_python_version = 3.11

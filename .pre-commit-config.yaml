@@ -1,0 +1,14 @@
+repos:
+  - repo: local
+    hooks:
+      - id: flake8
+        name: flake8 check
+        entry: flake8
+        language: system
+        types: [python]
+
+      - id: mypy-custom
+        name: mypy type check via check_types.py
+        entry: python check_types.py -f
+        language: system
+        types: [python]

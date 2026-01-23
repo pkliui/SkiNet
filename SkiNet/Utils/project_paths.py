@@ -26,23 +26,20 @@ def get_repo_root_directory() -> Path:
     return root
 
 
-#######################################################################################################################################################################################################
-
+# ________________REPO_PATHS_____________
+# Repo root
+REPO_ROOT = get_repo_root_directory()
 # Name of the project
-SKINET_PROJECT_NAME = 'SkiNet'
+SKINET_PROJECT_NAME = "SkiNet"
 # Root directory of the project, i.e. SkiNet/SkiNet
 SKINET_ROOT_DIR = get_repo_root_directory() / SKINET_PROJECT_NAME
 
-
-##########################################################################################____TESTS____##########################################################################################
-
+# ________________TESTS__________________
 # Name and path to Tests directory
 TEST_DIR_NAME = "Tests"
 TESTS_DIR = get_repo_root_directory() / TEST_DIR_NAME
 
-
-##########################################################################################____SKINET/AZURE____##########################################################################################
-
+# ______________SKINET/AZURE_____________
 # Name and path to a directory containing Azure-related code
 AZURE_DIR_NAME = "Azure"
 AZURE_DIR = SKINET_ROOT_DIR / AZURE_DIR_NAME
