@@ -9,17 +9,17 @@ In short, one needs to make a Dockerfile, specifying the target OS and all neces
 
 ```Docker
 docker build -t skinet .
-docker run --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/workplace/SkiNet --mount type=bind,src=/Users/Pavel/.aws/,dst=/.aws/ -t skinet
+docker run -it --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/workplace/SkiNet skinet bash
 ```
 Then, in Visual Studio Code, right click on the running container and select "Attach Visual Studio". This will open a new VSC window in the Docker container.
 
 ## Conda Environment and Dependencies
 
-- SkiNet uses Miniconda as a package management system 
-- A conda environment is created using   ```environment.yaml``` 
+- SkiNet uses Miniconda as a package management system
+- A conda environment is created using   ```environment.yaml```
 
 - Pytorch packages are being installed through pip as Pytorch's official Anaconda channel was [deprecated](https://github.com/pytorch/pytorch/issues/138506) (with 2.5 being the last release on anaconda)
- 
+
 - [Azure Machine Learning](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-access-data-interactive?view=azureml-api-2&tabs=adls) requires the latest azure-fsspec, mltable, and azure-ai-ml python libraries  that are also installed through pip
 
 ##  Dockerfile
@@ -34,8 +34,8 @@ ENV RUNNING_IN_DOCKER=true
 - Specify environment variables for the environment name, paths to the project root directory and conda
 - Append project path to the python path
 - Specify work directory
-- Copy conda's environment file 
-  
+- Copy conda's environment file
+
 ```
 ARG ENV_NAME=skinet
 ENV PROJECT_PATH=/workplace/SkiNet
@@ -80,7 +80,7 @@ RUN conda install -n base -c conda-forge mamba && \
 
 
 - Activate the conda environment
-- Add "bin" directory of the conda environment to the PATH to be able to call binaries installed in the environment directly 
+- Add "bin" directory of the conda environment to the PATH to be able to call binaries installed in the environment directly
 ```
 ENV CONDA_DEFAULT_ENV=${ENV_NAME}
 RUN echo "conda activate ${ENV_NAME}" >> ~/.bashrc
