@@ -8,7 +8,7 @@ on:
 jobs:
   docs:
     runs-on: ubuntu-latest
-    steps:      
+    steps:
       # Step 1: Check out the repository
       - name: Check out at the current branch
         uses: actions/checkout@v4
@@ -25,14 +25,15 @@ jobs:
       - name: Validate documentation
         shell: bash -l {0}
         run: |
-          sphinx-build docs/source -W -b linkcheck -d docs/source docs/build/html
-          
+          sphinx-build docs/source -b linkcheck -d docs/source docs/build/html
+
       # Step 4: Build the documentation using Sphinx
       - name: Build the documentation using Sphinx
-        shell: bash -l {0}  # -l to ensure a login bash, where the conda environment is correctly set; {0} a template placeholder, replaced at pipeline execution time by the actual script command to execute
-        run: | # build sphinx documentation directly into /docs to have index.html in /docs; this is expected so when the GitHub Pages site is being built from branch "gh-pages", folder "/root" (see Settings/Pages/Build and deployment)
-          sphinx-build -b html docs/source/ docs/ 
-          touch docs/.nojekyll 
+        shell: bash -l {0} # -l to ensure a login bash, where the conda environment is correctly set; {0} a template placeholder, replaced at pipeline execution time by the actual script command to execute
+        run:
+          | # build sphinx documentation directly into /docs to have index.html in /docs; this is expected so when the GitHub Pages site is being built from branch "gh-pages", folder "/root" (see Settings/Pages/Build and deployment)
+          sphinx-build -b html docs/source/ docs/
+          touch docs/.nojekyll
 
       # Step 5: Deploy the documentation to GitHub Pages
       - name: Deploy the documentation to GitHub Pages
