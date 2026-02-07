@@ -27,5 +27,5 @@ dependencies:
       - azure-ai-ml
       - albumentations
       - flake8
-      - yapf
+      - autopep8
       - mypy
