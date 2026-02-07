@@ -1,4 +1,0 @@
-[style]
-split_before_expression_after_opening_paren=false
-split_before_named_assigns=false
-dedent_closing_brackets = false
