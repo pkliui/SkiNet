@@ -29,3 +29,4 @@ dependencies:
       - flake8
       - autopep8
       - mypy
+      - pre-commit
