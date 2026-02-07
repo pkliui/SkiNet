@@ -3,10 +3,11 @@ import logging
 import os
 import random
 from enum import Enum, unique
-from typing import Optional
+from typing import Optional, cast
 
 import numpy as np
-import torch
+from torch import manual_seed
+from torch.nn import BatchNorm2d, Conv2d, ConvTranspose2d, Module, init
 
 
 @unique
@@ -56,6 +57,31 @@ def set_random_seed(random_seed: int, module_name: Optional[str] = None) -> None
         module_name = os.path.basename(inspect.stack()[1].filename)
         logging.getLogger(__name__).debug(f"Random seed set to {random_seed} in module {module_name}.")
 
-    torch.manual_seed(random_seed)
+    manual_seed(random_seed)
     np.random.seed(random_seed)
     random.seed(random_seed)
+
+def initialise_weights(module: Module) -> None:
+    """
+    Initialise the conv layers' weights using Kaiming method as described in Delving deep into rectifiers:
+    Surpassing human-level performance on ImageNet classification (2015), arXiv:1502.01852v1
+    and the batchnorm's weights to a normal distribution.
+
+    :param module: The module to initialise.
+
+    Example usage: model.apply(initialise_weights) will apply the weight initialisation to all modules in the model.
+    """
+    if cast(bool, getattr(module, "_skinet_initialized", False)):
+        return
+
+    if isinstance(module, (Conv2d, ConvTranspose2d)):
+        init.kaiming_normal_(module.weight, a=0, mode="fan_in", nonlinearity="relu")
+        if module.bias is not None:
+            init.zeros_(module.bias)
+        setattr(module, "_skinet_initialized", True)
+
+    elif isinstance(module, BatchNorm2d):
+        if module.affine:
+            init.normal_(module.weight, mean=1.0, std=0.01)
+            init.constant_(module.bias, 0.0)
+            setattr(module, "_skinet_initialized", True)
