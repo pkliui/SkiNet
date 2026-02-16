@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum, unique
-from typing import Optional, Tuple, cast, Any
+from typing import Any, Optional, Tuple, cast
 
 from SkiNet.ML.utils.sampling.base_sampling import EncoderParams2D
 from SkiNet.ML.utils.typing_utils import IntOrTuple2d, IntOrTuple2d3d, TupleOfInt2d3d, expand_to_tuple
@@ -83,6 +83,15 @@ def _validate_conv_inputs(kernel: IntOrTuple2d3d,
     kernel = _validate_param(kernel, EncoderParamSpec.KERNEL)
     dilation = _validate_param(dilation, EncoderParamSpec.DILATION)
     stride = _validate_param(stride, EncoderParamSpec.STRIDE)
+
+def validate_conv_inputs(kernel: IntOrTuple2d3d,
+                         dilation: IntOrTuple2d3d,
+                         stride: IntOrTuple2d3d) -> None:
+    """
+    Public validation for convolution hyperparameters.
+    Intended for config validators and other early checks.
+    """
+    _validate_conv_inputs(kernel=kernel, dilation=dilation, stride=stride)
 
 def _validate_param(value: IntOrTuple2d3d,
                     name: EncoderParamSpec) -> IntOrTuple2d3d:
