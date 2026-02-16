@@ -17,20 +17,6 @@ from SkiNet.ML.utils.typing_utils import IntOrTuple2d
 
 logger = logging.getLogger(__name__)
 
-class UNet2DConfig:
-    """
-    Configuration class for 2D U-Net architecture.
-    """
-    @staticmethod
-    def validate(in_channels: int, out_channels_layer1: int, number_of_layers: int, num_output_classes: int) -> None:
-        if in_channels <= 0:
-            raise ValueError("`in_channels` must be a positive integer.")
-        if out_channels_layer1 <= 0:
-            raise ValueError("`out_channels_layer1` must be a positive integer.")
-        if number_of_layers < 2:
-            raise ValueError("`number_of_layers` must be at least 2.")
-        if num_output_classes <= 0:
-            raise ValueError("`num_output_classes` must be a positive integer.")
 
 @dataclass(frozen=True)
 class EncoderPath:
@@ -125,8 +111,6 @@ class UNet2D(BaseSegmentation):
                  validate_forward: bool = False) -> None:
 
         super().__init__()
-
-        UNet2DConfig.validate(in_channels, out_channels_layer1, number_of_layers, num_output_classes)
 
         self.in_channels = in_channels
         self.out_channels_layer1 = out_channels_layer1
