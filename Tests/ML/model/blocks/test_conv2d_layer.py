@@ -1,7 +1,7 @@
 from typing import Callable, Optional
 
 import pytest
-from torch import all, isinf, isnan, nn, randn, sqrt
+from torch import all, isfinite, nn, randn, sqrt
 
 from SkiNet.ML.model.blocks.conv2d_layer import Conv2dLayer
 from SkiNet.ML.utils.sampling.encoder_sampling import get_encoder_params_2d
@@ -54,14 +54,12 @@ def test_basic_layer_forward_and_backward_pass(batch_size: int,
     # Loss is a positive finite value
     assert isinstance(loss.item(), float)
     assert loss.item() > 0
-    assert not isnan(loss).any()
-    assert not isinf(loss).any()
+    assert isfinite(loss).item() is True
 
     # Positive-valued output after ReLU
     if activation is not None:
         assert all(output >= 0.0)
-    assert not isnan(output).any()
-    assert not isinf(output).any()
+        assert isfinite(output).all()
 
 
 @pytest.mark.parametrize(
@@ -109,12 +107,9 @@ def test_conv2d_layer_accepts_relu_and_relu_inplace(activation: Optional[Callabl
     # Loss is a positive finite value
     assert isinstance(loss.item(), float)
     assert loss.item() > 0
-    assert not isnan(loss).any()
-    assert not isinf(loss).any()
+    assert isfinite(loss).item() is True
 
     # Positive-valued output after ReLU
-    if activation in ((nn.ReLU,) or callable(activation)):
+    if activation is not None:
         assert all(output >= 0.0)
-    # Otherwise still should not be any nans or infinite values
-    assert not isnan(output).any()
-    assert not isinf(output).any()
+        assert isfinite(output).all()
