@@ -37,7 +37,7 @@ def test_merge2d_block_forward(batch_size: int,
 
     # input_to_decoder will be upsampled by the decoder to the dimensions of the skip connection
     input_to_decoder = randn(batch_size, in_channels, input_shape[0], input_shape[1])
-    skip_connection = randn(batch_size, out_channels, input_shape[0]*stride[0], input_shape[1]*stride[1])
+    skip_connection = randn(batch_size, out_channels, input_shape[0] * stride[0], input_shape[1] * stride[1])
 
     decoder_output = decoder(input_to_decoder)
     assert skip_connection.shape == decoder_output.shape
@@ -46,4 +46,5 @@ def test_merge2d_block_forward(batch_size: int,
     output_of_merge_block = merge_block(decoder_output, skip_connection)
     # batch size and the number of channels are conserved
     # the shape is input shape to the decoder scaled by stride
-    assert output_of_merge_block.shape == (batch_size, out_channels, input_shape[0]*stride[0], input_shape[1]*stride[1])
+    assert output_of_merge_block.shape == (batch_size, out_channels, input_shape[0] * stride[0],
+                                           input_shape[1] * stride[1])
