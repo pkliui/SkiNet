@@ -1,5 +1,5 @@
 import pytest
-from torch import all, isinf, isnan, randn, sqrt
+from torch import all, isfinite, randn, sqrt
 from torch.nn import MSELoss, ReLU
 
 from SkiNet.ML.model.blocks.encoder2d import Encoder2D
@@ -119,10 +119,8 @@ class TestEncoder2D:
         # Loss is a positive finite value
         assert isinstance(loss.item(), float)
         assert loss.item() > 0
-        assert not isnan(loss).any()
-        assert not isinf(loss).any()
+        assert isfinite(loss).item() is True
 
         # Positive-valued output after ReLU
         assert all(output >= 0.0)
-        assert not isnan(output).any()
-        assert not isinf(output).any()
+        assert isfinite(output).all()
