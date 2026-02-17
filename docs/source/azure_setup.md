@@ -2,7 +2,7 @@
 
 ## Azure storage setup
 
-In order to keep the images in and access them from Azure Blob Storage, we need to do the following. 
+In order to keep the images in and access them from Azure Blob Storage, we need to do the following.
 
 - Set up a valid Azure account and a subscription
 - Set up a new Resource group
@@ -14,11 +14,11 @@ In order to keep the images in and access them from Azure Blob Storage, we need 
 
 - Login into the Azure portal (given you already have a valid account and a subscription)
 - Create a new resource group, under ```Home / Resource groups```, hit ```Create```, invent a name (e.g. pkliui-rg) and select a region for the group (e.g. Central US)
-- Next, create a new workspace. In ```All services / Azure Machine Learning```, hit ```Create``` and select ```New workspace``` Specify the resource group, give the workspace a name and  finish with ```Create```. More details about Azure workspaces can be found [here](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-workspace?view=azureml-api-2&tabs=python). 
+- Next, create a new workspace. In ```All services / Azure Machine Learning```, hit ```Create``` and select ```New workspace``` Specify the resource group, give the workspace a name and  finish with ```Create```. More details about Azure workspaces can be found [here](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-manage-workspace?view=azureml-api-2&tabs=python).
 
 ### Create a Storage account and upload data
 
-Now we need to make a new storage account to keep our images. 
+Now we need to make a new storage account to keep our images.
 - Under ```Home / Storage accounts```, hit ```Create```
 - Select the resource group (e.g. pkliui-rg) and specify a globally unique storage account name (e.g. skinetstorage), the region (US Central), performance and redundancy (LRS or the lowest costs and non-critical scenarios) and  finish with ```Create```
 - Enter the newly created storage account and under ```Storage browser / Blob containers``` select ```Add container``` and give a name to it e.g. skinet-container, click ```Create```
@@ -28,12 +28,12 @@ Now we need to make a new storage account to keep our images.
 
 - You need to link the storage account that holds your data to a new datastore using an account key in order to give AzureML permissions to manage it. In the storage account go to ```Security + Networking / Access keys```  and copy one of the keys.
 - In the workspace, hit  ```Studio web URL ``` to open Machine Learning Studio
-- Select the workspace and under  ```Assets / Data ``` select  ```Datastores ``` and  ```Create ``` 
+- Select the workspace and under  ```Assets / Data ``` select  ```Datastores ``` and  ```Create ```
 - Enter a name for this new datastore e.g. skinetdatastore
 - Select Datastore type e.g. Azure Blob Storage
 - Select your newly created storage account e.g. skinetstorage and a respective blob container e.g. skinet-container
 - Pick "Save credentials with the datastore or data access", under "Authentication type" select "Account key" and paste the storage account key from the clipboard, click ```Create```.
-  
+
 ### Create a Service Principal
 
 - To be able to access the storage account programmatically, we will use a Service Principal. More about Service Principals and application registrations can be read [here](https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals?tabs=browser). Please note that using [Managed Identities](https://learn.microsoft.com/en-us/entra/identity/managed-identities-azure-resources/overview) eliminates the need to manage credentials, but this option is apparently available only for Azure machines. At the moment, I am using a local machine.
@@ -55,6 +55,27 @@ Now we need to make a new storage account to keep our images.
 
 ##  Retrieve data from Azure
 
+### Create a YAML config file
+
+Create a YAML config file (e.g., azure_settings.yaml) that contains:
+  - Azure credentials and workspace details
+  - A `PATH_ON_DATASTORE` dictionary mapping dataset names (keys) to their relative paths on the datastore
+**Example**:
+
+```yaml
+AZURE_TENANT_ID: "<tenant-id>"
+AZURE_CLIENT_ID: "<client-id>"
+SUBSCRIPTION_ID: "<subscription-id>"
+RESOURCE_GROUP: "<resource-group>"
+WORKSPACE_NAME: "<workspace-name>"
+DATASTORE_NAME: "<datastore-name>"
+PATH_ON_DATASTORE:
+  PH2DATASET: "PH2DATA/"
+  ANOTHERSET: "another/path/"
+```
+> **Note:** The dataset name you use in code (e.g., `"PH2DATASET"`) must match a key in `PATH_ON_DATASTORE`.
+
+
 ### Authentication from the code
 - To access data stored in the blob container from within the code, one must do an authentication with the SP created above. This is done by calling [```service_principal_authentication()```](https://github.com/pkliui/SkiNet/blob/main/SkiNet/Azure/azure_setup.py) method:
 
@@ -63,10 +84,27 @@ Now we need to make a new storage account to keep our images.
     AzureSetup.service_principal_authentication()
 ```
 
-- Next, one need to specify the dataset name as an argument to ```get_azureml_filesystem``` and then pass the returned Azure filesystem
-  object to the ```data_root```argument in the relevant dataset class. For example, for PH2 dataset:
+### Azure file system
+- To get an Azure filesystem for a specific dataset (matching your YAML key), call get_azureml_filesystem with the dataset name.
+**Example for PH2 dataset with YAML from above:**
 ```python
-    fs = AzureSetup.get_azureml_filesystem("PH2")
-    dataset = PH2Dataset(data_root=fs)
+    fs = AzureSetup.get_azureml_filesystem("PH2DATASET")
 ```
-- In case, the specified dataset does not exist, a Value Error will be risen and provide information on available datasets.
+
+
+### URI Azure file system
+- To get an Azure URI and path for a specific dataset (matching your YAML key), call get_azure_uri with the dataset name:
+
+**Example for PH2 dataset with YAML from above:**
+```python
+    azure_uri, path_on_azure = AzureSetup.get_azure_uri("PH2DATASET")
+```
+Example return value:
+```python
+(
+    "azureml://subscriptions/{SUBSCRIPTION_ID}/resourcegroups/{RESOURCE_GROUP}/workspaces/{WORKSPACE_NAME}/datastores/{DATASTORE_NAME}/paths/{path_on_azure}/",
+    "{path_on_azure}"
+)
+```
+Here, `{path_on_azure}` is the value from `PATH_ON_DATASTORE[dataset_name]` in your YAML config.
+For example, if you call this method with `dataset_name="PH2DATASET"`, `{path_on_azure}` will be "PH2DATA/".
