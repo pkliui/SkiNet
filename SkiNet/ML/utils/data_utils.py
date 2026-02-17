@@ -6,6 +6,8 @@ import re
 from pathlib import Path
 from typing import List, Tuple, Union
 
+import numpy as np
+from numpy.typing import NDArray
 from PIL import Image
 
 
@@ -99,3 +101,17 @@ def filter_images_and_masks_of_different_sizes(paths_to_images: List[Path], path
             logging.getLogger(__name__).info(f"Image {img_path} and mask {msk_path} do not have the same size, skipping this pair.")
 
     return filtered_images_paths, filtered_masks_paths
+
+def convert_to_numpy_bytes(image_paths: list[Path], mask_paths: list[Path]) -> Tuple[NDArray[np.bytes_], NDArray[np.bytes_]]:
+    """
+    Convert lists of image and mask paths to NumPy arrays of bytes.
+
+    :param image_paths: List of image file paths
+    :param mask_paths: List of mask file paths
+    :return: Two NumPy arrays: one for image paths and one for mask paths
+    """
+    image_paths_array = np.array(image_paths, dtype=np.bytes_)
+    mask_paths_array = np.array(mask_paths, dtype=np.bytes_)
+    assert isinstance(image_paths_array, np.ndarray) and image_paths_array.dtype == np.bytes_
+    assert isinstance(mask_paths_array, np.ndarray) and mask_paths_array.dtype == np.bytes_
+    return image_paths_array, mask_paths_array
