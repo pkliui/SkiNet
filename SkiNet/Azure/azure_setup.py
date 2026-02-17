@@ -13,9 +13,27 @@ from SkiNet.Utils.get_configs import get_config_from_yaml
 
 class AzureSetup(param.Parameterized):
     """
-    Parametrized class used to set up Azure:
-    - Load Azure configuration from a YAML file
-    - Perform service principal authentication for e.g. data access in Azure ML
+    Parametrized class for Azure setup and authentication.
+
+    Loads Azure configuration from YAML files and provides methods for:
+    - Service principal authentication (using DefaultAzureCredential or InteractiveBrowserCredential)
+    - Building Azure ML datastore URIs for datasets
+    - Accessing Azure ML datastores via fsspec
+
+    The YAML config file (e.g., azure_settings.yaml) should contain:
+        - Azure credentials and workspace details
+        - A PATH_ON_DATASTORE dictionary mapping dataset names (keys) to their relative paths on the datastore
+
+    Example YAML:
+        AZURE_TENANT_ID: "<tenant-id>"
+        AZURE_CLIENT_ID: "<client-id>"
+        SUBSCRIPTION_ID: "<subscription-id>"
+        RESOURCE_GROUP: "<resource-group>"
+        WORKSPACE_NAME: "<workspace-name>"
+        DATASTORE_NAME: "<datastore-name>"
+        PATH_ON_DATASTORE:
+          PH2DATASET: "PH2DATA/"
+          ANOTHERSET: "another/path/"
     """
     AZURE_TENANT_ID: str = param.String(doc="The tenant ID returned when you created the service principal")
     AZURE_CLIENT_ID: str = param.String(doc="The client ID returned when you created the service principal")
@@ -24,7 +42,8 @@ class AzureSetup(param.Parameterized):
     RESOURCE_GROUP: str = param.String(doc="Resource group that contains the current workspace")
     WORKSPACE_NAME: str = param.String(doc="Name of the workspace")
     DATASTORE_NAME: str = param.String(doc="Name of the datastore containing data")
-    PATH_ON_DATASTORE = param.Dict(doc="Dict mapping dataset names to paths on the datastore")
+    PATH_ON_DATASTORE = param.Dict(
+        doc="Dictionary mapping dataset names (as used in code) to their relative paths on the datastore, as defined in azure_settings.yaml")
 
     def __init__(self, **params: Any) -> None:
         super().__init__(**params)
@@ -32,24 +51,37 @@ class AzureSetup(param.Parameterized):
     @classmethod
     def get_azure_config_from_yaml(cls, path_to_yaml: Path) -> "AzureSetup":
         """
-        Load Azure configuration from a YAML file
-        :param path_to_yaml: Path to a YAML file with Azure configuration
-        :return: Configured instance of AzureSetup
+        Load Azure configuration from a YAML file.
+
+        :param path_to_yaml: Path to a YAML file with Azure configuration.
+        :return: Configured instance of AzureSetup.
+
+        Expected YAML structure is described in AzureSetup's docstring
         """
         return cls(**get_config_from_yaml(path_to_yaml))
 
     @classmethod
-    def get_azureml_filesystem(cls, dataset_name: str) -> AzureMachineLearningFileSystem:
+    def get_azure_uri(cls, dataset_name: str) -> tuple[str, str]:
         """
-        Get AzureMachineLearningFileSystem
+        Build an Azure ML datastore URI for a configured dataset.
 
-        :param dataset_name: Relative path to data on the datastore, w.r.t. to the datastore's root
-        :return fs: AzureMachineLearningFileSystem object
+        :param dataset_name: The name of the dataset used in code, i.e., a key from the PATH_ON_DATASTORE dictionary in your Azure YAML config.
+            This key maps to the relative path of the dataset on the datastore.
+            Example YAML structure:
+                PATH_ON_DATASTORE:
+                  PH2DATASET: "PH2DATA/"
+                  ANOTHERSET: "another/path/"
+            In this example, valid values for `dataset_name` are "PH2DATASET" and "ANOTHERSET".
 
-        Example if data are under azure_uri:
-            azure_uri = f"azureml://subscriptions/{azure_config.SUBSCRIPTION_ID}/resourcegroups/
-            {azure_config.RESOURCE_GROUP}/workspaces/{azure_config.WORKSPACE_NAME}/datastores/{azure_config.DATASTORE_NAME}/paths/{path}/"
-            In this case, "dataset_name" corresponds to "path"
+        :return: Tuple of (Azure ML URI string for the specified dataset, relative path on the datastore).
+
+        Example return value:
+            (
+                "azureml://subscriptions/{SUBSCRIPTION_ID}/resourcegroups/{RESOURCE_GROUP}/workspaces/{WORKSPACE_NAME}/datastores/{DATASTORE_NAME}/paths/{path}/",
+                "{path}"
+            )
+        Here, `{path}` is the value from PATH_ON_DATASTORE[dataset_name] in your YAML config.
+        For example, if you call this method with `dataset_name="PH2DATASET"`, `{path}` will be "PH2DATA/".
         """
         azure_config = cls.get_azure_config_from_yaml(project_paths.AZURE_SETTINGS_YAML)
 
@@ -60,6 +92,17 @@ class AzureSetup(param.Parameterized):
         path = azure_config.PATH_ON_DATASTORE[dataset_name]
 
         azure_uri = f"azureml://subscriptions/{azure_config.SUBSCRIPTION_ID}/resourcegroups/{azure_config.RESOURCE_GROUP}/workspaces/{azure_config.WORKSPACE_NAME}/datastores/{azure_config.DATASTORE_NAME}/paths/{path}/"  # noqa: E501
+        return (azure_uri, path)
+
+    @classmethod
+    def get_azureml_filesystem(cls, dataset_name: str) -> AzureMachineLearningFileSystem:
+        """
+        Get AzureMachineLearningFileSystem for a dataset.
+
+        :param dataset_name: Key from PATH_ON_DATASTORE in your Azure YAML config (see get_azure_uri docstring for example).
+        :return: AzureMachineLearningFileSystem object for the specified dataset.
+        """
+        azure_uri, _ = cls.get_azure_uri(dataset_name)
         fs = AzureMachineLearningFileSystem(azure_uri)
         return fs
 

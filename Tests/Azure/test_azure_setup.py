@@ -181,3 +181,29 @@ def test_get_azureml_filesystem_dataset_not_found(monkeypatch: pytest.MonkeyPatc
         yaml.dump(config, f)
     with pytest.raises(ValueError):
         AzureSetup.get_azureml_filesystem("PH22")
+
+
+"""---------------------------------------------------TESTS for get_azure_uri---------------------------------------------------------------"""
+
+
+def test_get_azure_uri_success(monkeypatch: pytest.MonkeyPatch, azure_settings_yaml: Tuple[Path, dict]) -> None:
+    """
+    Test that get_azure_uri returns the correct URI and path for a valid dataset name.
+    """
+    azure_config_path, config = azure_settings_yaml
+    monkeypatch.setattr(project_paths, "AZURE_SETTINGS_YAML", azure_config_path)
+    dataset_name = list(config["PATH_ON_DATASTORE"].keys())[0]
+    expected_path_on_azure = config["PATH_ON_DATASTORE"][dataset_name]
+
+    azure_uri, path = AzureSetup.get_azure_uri(dataset_name)
+    assert expected_path_on_azure == path
+    assert expected_path_on_azure in azure_uri  # Check that the expected path on Azure is in the Azure URI
+
+def test_get_azure_uri_dataset_not_found(monkeypatch: pytest.MonkeyPatch, azure_settings_yaml: Tuple[Path, dict]) -> None:
+    """
+    Test that get_azure_uri raises ValueError for an invalid dataset name.
+    """
+    azure_config_path, _ = azure_settings_yaml
+    monkeypatch.setattr(project_paths, "AZURE_SETTINGS_YAML", azure_config_path)
+    with pytest.raises(ValueError):
+        AzureSetup.get_azure_uri("nonexistent_dataset")

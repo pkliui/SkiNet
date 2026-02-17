@@ -51,3 +51,9 @@ AZURE_SETTINGS_YAML = AZURE_DIR / AZURE_SETTINGS_YAML_NAME
 # Name and path to a file keeping Azure secrets - must NOT be version-controlled!!!
 PRIVATE_AZURE_SECRETS_YAML_NAME = "PrivateAzureSecrets.yaml"
 PRIVATE_AZURE_SECRETS_YAML = AZURE_DIR / PRIVATE_AZURE_SECRETS_YAML_NAME
+
+# ______________Data-related_____________
+# Name of the PH2 dataset that is used in the code and in the Azure yaml config file
+PH2_DATASET_KEY = "PH2DATASET"
+# Name of the CSV file containing metadata for the PH2 dataset, how it is saved or read from the disk
+PH2_CSV_NAME = "ph2_metadata.csv"
