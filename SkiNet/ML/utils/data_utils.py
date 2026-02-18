@@ -112,6 +112,6 @@ def convert_to_numpy_bytes(image_paths: list[Path], mask_paths: list[Path]) -> T
     """
     image_paths_array = np.array(image_paths, dtype=np.bytes_)
     mask_paths_array = np.array(mask_paths, dtype=np.bytes_)
-    assert isinstance(image_paths_array, np.ndarray) and image_paths_array.dtype == np.bytes_
-    assert isinstance(mask_paths_array, np.ndarray) and mask_paths_array.dtype == np.bytes_
+    assert isinstance(image_paths_array, np.ndarray)
+    assert isinstance(mask_paths_array, np.ndarray)
     return image_paths_array, mask_paths_array
