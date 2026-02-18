@@ -30,3 +30,4 @@ dependencies:
       - autopep8
       - mypy
       - pre-commit
+      - types-PyYAML
