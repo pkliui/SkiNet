@@ -45,7 +45,7 @@ def test_create_ph2_metadata_local(tmp_path: Path,
         file_path.write_bytes(content)
 
     output_csv = tmp_path / PH2_CSV_NAME
-    create_ph2_metadata(tmp_path, output_csv, azure_data=False)
+    create_ph2_metadata(output_csv_path=output_csv, local_data_source=tmp_path, azure_data=False)
 
     # read the csv
     df = pd.read_csv(output_csv)
