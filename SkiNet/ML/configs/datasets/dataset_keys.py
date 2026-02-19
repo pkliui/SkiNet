@@ -10,9 +10,9 @@ class AzureDatasetKey(Enum):
     ```
     from SkiNet.Azure.azure_setup import AzureSetup
 
-    dataset_key = AzureDatasetKey.PH2_DATASET
+    dataset_name = AzureDatasetKey.PH2_DATASET_KEY.value
     AzureSetup.service_principal_authentication()
-    fs = AzureSetup.get_azureml_filesystem(dataset_key)
+    fs = AzureSetup.get_azureml_filesystem(dataset_name)
     ```
     """
     PH2_DATASET_KEY = "PH2_DATASET"

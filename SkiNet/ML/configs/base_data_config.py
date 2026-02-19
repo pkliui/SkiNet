@@ -14,18 +14,31 @@ from SkiNet.ML.configs.datasets.dataset_keys import AzureDatasetKey
 class BaseDataConfig(BaseModel):
     """
     Base class for dataset configuration.
-    Examples on how to call see in specific dataset config classes inheriting from BaseDataConfig.
 
     Args:
-        csv_path (Optional[str]): Path to the CSV file, w.r.t. the current working directory
-        azure_data (bool): Indicates if the data is stored in Azure.
+        csv_path (Optional[str]): Path to the CSV file. Can be absolute or relative to the current working directory (typically the repository root).
+        azure_data (bool): Indicates if the data is stored in Azure Blob Storage.
+            If True, the class will load the CSV from Azure using the Azure dataset key and CSV name supplied in the class variables of the subclass.
+            If False, it will load from the local file system using csv_path that must be provided by user.
 
     Attributes:
         _data_frame (Optional[pd.DataFrame]): Cached DataFrame loaded from the CSV file.
-            Private attribute (not part of model validation/serialization).
-        REQUIRED_COLUMNS (Set[str]): Set of required columns for the dataset.
-        AZURE_DATASET_KEY (Optional[str]): Azure dataset key.
-        AZURE_CSV_NAME (Optional[str]): Azure CSV file name.
+            This is a private attribute and not part of model validation/serialization.
+        REQUIRED_COLUMNS (Set[str]): Set of required columns for the dataset. Must be defined in subclasses.
+        AZURE_DATASET_KEY (Optional[AzureDatasetKey]): One of the keys from AzureDatasetKey. Must match the key used in the YAML config file
+        AZURE_CSV_NAME (Optional[str]): Name of the CSV file in Azure Blob Storage.
+
+    Example usage (local CSV):
+        cfg = MyDatasetConfig(csv_path="PH2Data/ph2_metadata.csv", azure_data=False)
+        df = cfg.data_frame
+
+    Example usage (Azure CSV):
+        cfg = MyDatasetConfig(azure_data=True)
+        df = cfg.data_frame
+
+    Note:
+        - For Azure, the value of the dataset key (AZURE_DATASET_KEY.value) must match the key in the YAML config file under PATH_ON_DATASTORE.
+        - For local, csv_path must point to the actual CSV file (not a directory).
     """
     csv_path: Optional[str] = None
     azure_data: bool = False
