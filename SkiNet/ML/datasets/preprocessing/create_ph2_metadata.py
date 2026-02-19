@@ -10,10 +10,11 @@ from azureml.fsspec import AzureMachineLearningFileSystem
 from numpy.typing import NDArray
 
 from SkiNet.Azure.azure_setup import AzureSetup
+from SkiNet.ML.configs.datasets.dataset_keys import AzureDatasetKey
 from SkiNet.ML.utils.data_utils import convert_to_numpy_bytes, filter_missing_images_and_masks
 from SkiNet.Utils.csv_headers import PH2_DATAPATH_HEADER, PH2_DATATYPE_HEADER, PH2_SAMPLEID_HEADER
 from SkiNet.Utils.loggers import file_logging, stdout_logging
-from SkiNet.Utils.project_paths import PH2_CSV_NAME, PH2_DATASET_KEY
+from SkiNet.Utils.project_paths import PH2_CSV_NAME
 
 """
 This script prepares the PH2 dataset for using with SkiNet by creating a metadata CSV
@@ -96,7 +97,7 @@ def create_ph2_metadata(output_csv_path: Union[str, Path],
 
         # Authenticate and get the Azure file system
         AzureSetup.service_principal_authentication()
-        fs = AzureSetup.get_azureml_filesystem(PH2_DATASET_KEY)
+        fs = AzureSetup.get_azureml_filesystem(AzureDatasetKey.PH2_DATASET_KEY.value)
         logging.getLogger(__name__).info(f"Azure data fs: {fs.ls()}")
 
         image_paths, mask_paths = get_ph2_data_paths(fs)
@@ -139,9 +140,9 @@ def create_ph2_metadata(output_csv_path: Union[str, Path],
         raise
 
     if azure_data:
-        upload_csv_to_blob(str(output_csv_path), PH2_DATASET_KEY)
+        upload_csv_to_blob(str(output_csv_path), AzureDatasetKey.PH2_DATASET_KEY.value)
         logging.getLogger(__name__).info(
-            f"CSV file with the local path {output_csv_path} was saved on Azure filesystem {PH2_DATASET_KEY} with {len(df)} entries.")
+            f"CSV file with the local path {output_csv_path} was saved on Azure filesystem {AzureDatasetKey.PH2_DATASET_KEY.value} with {len(df)} entries.")
         try:
             os.remove(output_csv_path)
             logging.getLogger(__name__).info(f"Temporary local CSV file {output_csv_path} has been removed.")
@@ -179,7 +180,21 @@ def main_create_ph2_metadata_from_args(args: argparse.Namespace) -> None:
 
 
 if __name__ == "__main__":
+    """
+    Entry point for creating PH2 metadata.
 
+    Example for local data:
+    ```
+    create_ph2_metadata(local_data_source=Path("path/to/local/data"),
+                        output_csv_path=Path("path/to/output.csv"),
+                        azure_data=False)
+    ```
+
+    Example for Azure data:
+    ```
+    create_ph2_metadata(azure_data=True)
+    ```
+    """
     parser = argparse.ArgumentParser(description="Create PH2 metadata CSV for SkiNet.")
     parser.add_argument("--azure-data",
                         action='store_true',
