@@ -56,3 +56,6 @@ PRIVATE_AZURE_SECRETS_YAML = AZURE_DIR / PRIVATE_AZURE_SECRETS_YAML_NAME
 # NB: For the dataset keys see SkiNet.ML.configs.datasets.dataset_keys.AzureDatasetKey class
 # Name of the CSV file containing metadata for the PH2 dataset, how it is saved or read from the disk
 PH2_CSV_NAME = "ph2_metadata.csv"
+
+# Name of the TXT file containing the PH2 dataset's metadata as it is originally provided by the dataset authors
+PH2_TXT_NAME = "PH2_dataset.txt"

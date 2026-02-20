@@ -3,8 +3,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from SkiNet.ML.datasets.preprocessing.create_ph2_metadata import create_ph2_metadata
-from SkiNet.Utils.csv_headers import PH2_DATAPATH_HEADER, PH2_DATATYPE_HEADER, PH2_SAMPLEID_HEADER
+from SkiNet.ML.datasets.preprocessing.create_ph2_metadata import create_ph2_metadata, save_dataframe_to_csv
+from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, SAMPLEID_HEADER
 from SkiNet.Utils.project_paths import PH2_CSV_NAME
 
 
@@ -45,17 +45,18 @@ def test_create_ph2_metadata_local(tmp_path: Path,
         file_path.write_bytes(content)
 
     output_csv = tmp_path / PH2_CSV_NAME
-    create_ph2_metadata(output_csv_path=output_csv, local_data_source=tmp_path, azure_data=False)
+    df = create_ph2_metadata(local_data_source=tmp_path, azure_data=False)
+    save_dataframe_to_csv(df=df, output_csv_path=output_csv, azure_data=False)
 
     # read the csv
     df = pd.read_csv(output_csv)
 
     # Check subject and channel columns
-    assert set(df[PH2_SAMPLEID_HEADER]) == set(expected_subjects)
-    assert set(df[PH2_DATATYPE_HEADER]) == set(expected_channels)
+    assert set(df[SAMPLEID_HEADER]) == set(expected_subjects)
+    assert set(df[DATATYPE_HEADER]) == set(expected_channels)
 
     # Compare actual filePath values to expected
-    actual_paths = set(df[PH2_DATAPATH_HEADER])
+    actual_paths = set(df[DATAPATH_HEADER])
     assert actual_paths == set(expected_file_paths), f"Actual paths: {actual_paths}, Expected: {expected_file_paths}"
-    for fp in df[PH2_DATAPATH_HEADER]:
+    for fp in df[DATAPATH_HEADER]:
         assert not str(fp).startswith(str(tmp_path))
