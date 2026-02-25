@@ -9,18 +9,18 @@ import pytest
 
 import SkiNet.ML.configs.base_data_config as base_data_config
 from SkiNet.ML.configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
-from SkiNet.Utils.csv_headers import PH2_DATAPATH_HEADER, PH2_DATATYPE_HEADER, PH2_SAMPLEID_HEADER
+from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, SAMPLEID_HEADER
 from SkiNet.Utils.project_paths import PH2_CSV_NAME
 
 
 @pytest.mark.parametrize(
     "columns,should_raise",
     [
-        ([PH2_SAMPLEID_HEADER, PH2_DATAPATH_HEADER, PH2_DATATYPE_HEADER], False),  # all present
-        ([PH2_SAMPLEID_HEADER, PH2_DATAPATH_HEADER], True),  # missing one
-        ([PH2_DATAPATH_HEADER, PH2_DATATYPE_HEADER], True),  # missing one
-        ([PH2_SAMPLEID_HEADER, PH2_DATATYPE_HEADER], True),  # missing one
-        ([PH2_SAMPLEID_HEADER], True),  # only one
+        ([SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER], False),  # all present
+        ([SAMPLEID_HEADER, DATAPATH_HEADER], True),  # missing one
+        ([DATAPATH_HEADER, DATATYPE_HEADER], True),  # missing one
+        ([SAMPLEID_HEADER, DATATYPE_HEADER], True),  # missing one
+        ([SAMPLEID_HEADER], True),  # only one
     ]
 )
 def test_ph2datasetconfig_column_validation(tmp_path: Path, columns: list[str], should_raise: bool) -> None:
@@ -41,7 +41,7 @@ def test_ph2datasetconfig_column_validation(tmp_path: Path, columns: list[str], 
 @pytest.mark.parametrize(
     "columns,should_raise",
     [
-        ([PH2_SAMPLEID_HEADER, PH2_DATAPATH_HEADER, PH2_DATATYPE_HEADER], True),  # all present
+        ([SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER], True),  # all present
     ]
 )
 def test_ph2datasetconfig_empty_values(tmp_path: Path, columns: list[str], should_raise: bool) -> None:
@@ -84,8 +84,8 @@ def test_ph2datasetconfig_file_paths_exist(tmp_path: Path) -> None:
 
     # Expected data
     expected_rows = [
-        {PH2_SAMPLEID_HEADER: "ID1", PH2_DATAPATH_HEADER: str(img_path), PH2_DATATYPE_HEADER: "image"},
-        {PH2_SAMPLEID_HEADER: "ID1", PH2_DATAPATH_HEADER: str(mask_path), PH2_DATATYPE_HEADER: "mask"},
+        {SAMPLEID_HEADER: "ID1", DATAPATH_HEADER: str(img_path), DATATYPE_HEADER: "image"},
+        {SAMPLEID_HEADER: "ID1", DATAPATH_HEADER: str(mask_path), DATATYPE_HEADER: "mask"},
     ]
 
     # Create CSV referencing those files
@@ -99,10 +99,10 @@ def test_ph2datasetconfig_file_paths_exist(tmp_path: Path) -> None:
     # Check that all paths exist and all columns match expected values
     for i, row in enumerate(expected_rows):
         loaded_row = df_loaded.iloc[i]
-        assert str(loaded_row[PH2_SAMPLEID_HEADER]) == str(row[PH2_SAMPLEID_HEADER])
-        assert str(loaded_row[PH2_DATAPATH_HEADER]) == str(row[PH2_DATAPATH_HEADER])
-        assert str(loaded_row[PH2_DATATYPE_HEADER]) == str(row[PH2_DATATYPE_HEADER])
-        assert os.path.exists(loaded_row[PH2_DATAPATH_HEADER])
+        assert str(loaded_row[SAMPLEID_HEADER]) == str(row[SAMPLEID_HEADER])
+        assert str(loaded_row[DATAPATH_HEADER]) == str(row[DATAPATH_HEADER])
+        assert str(loaded_row[DATATYPE_HEADER]) == str(row[DATATYPE_HEADER])
+        assert os.path.exists(loaded_row[DATAPATH_HEADER])
 
 
 # ---------------------------------------------------Azure-------------------------------------------------#
@@ -119,8 +119,8 @@ def test_ph2datasetconfig_file_paths_exist_azure(monkeypatch: pytest.MonkeyPatch
 
     # Expected data
     expected_rows = [
-        {PH2_SAMPLEID_HEADER: "ID1", PH2_DATAPATH_HEADER: str(img_path), PH2_DATATYPE_HEADER: "image"},
-        {PH2_SAMPLEID_HEADER: "ID1", PH2_DATAPATH_HEADER: str(mask_path), PH2_DATATYPE_HEADER: "mask"},
+        {SAMPLEID_HEADER: "ID1", DATAPATH_HEADER: str(img_path), DATATYPE_HEADER: "image"},
+        {SAMPLEID_HEADER: "ID1", DATAPATH_HEADER: str(mask_path), DATATYPE_HEADER: "mask"},
     ]
 
     df = pd.DataFrame(expected_rows)
@@ -156,7 +156,7 @@ def test_ph2datasetconfig_file_paths_exist_azure(monkeypatch: pytest.MonkeyPatch
     # Check that all paths exist and all columns match expected values
     for i, row in enumerate(expected_rows):
         loaded_row = df_loaded.iloc[i]
-        assert str(loaded_row[PH2_SAMPLEID_HEADER]) == str(row[PH2_SAMPLEID_HEADER])
-        assert str(loaded_row[PH2_DATAPATH_HEADER]) == str(row[PH2_DATAPATH_HEADER])
-        assert str(loaded_row[PH2_DATATYPE_HEADER]) == str(row[PH2_DATATYPE_HEADER])
-        assert os.path.exists(loaded_row[PH2_DATAPATH_HEADER])
+        assert str(loaded_row[SAMPLEID_HEADER]) == str(row[SAMPLEID_HEADER])
+        assert str(loaded_row[DATAPATH_HEADER]) == str(row[DATAPATH_HEADER])
+        assert str(loaded_row[DATATYPE_HEADER]) == str(row[DATATYPE_HEADER])
+        assert os.path.exists(loaded_row[DATAPATH_HEADER])
