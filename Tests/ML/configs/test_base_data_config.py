@@ -5,12 +5,12 @@ import pandas as pd
 import pytest
 
 from SkiNet.ML.configs.base_data_config import BaseDataConfig
-from SkiNet.ML.configs.datasets.dataset_keys import AzureDatasetKey
+from SkiNet.ML.configs.datasets.dataset_keys import DatasetKey
 
 
 class DummyConfig(BaseDataConfig):
     REQUIRED_COLUMNS: ClassVar[Set[str]] = {"a", "b"}
-    AZURE_DATASET_KEY: ClassVar[Optional[AzureDatasetKey]] = None
+    AZURE_DATASET_KEY: ClassVar[Optional[DatasetKey]] = None
     AZURE_CSV_NAME: ClassVar[Optional[str]] = None
 
 

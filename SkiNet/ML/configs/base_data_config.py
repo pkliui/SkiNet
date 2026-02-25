@@ -8,7 +8,7 @@ import pandas as pd
 from pydantic import BaseModel, PrivateAttr
 
 from SkiNet.Azure.azure_setup import AzureSetup
-from SkiNet.ML.configs.datasets.dataset_keys import AzureDatasetKey
+from SkiNet.ML.configs.datasets.dataset_keys import DatasetKey
 
 
 class BaseDataConfig(BaseModel):
@@ -25,7 +25,7 @@ class BaseDataConfig(BaseModel):
         _data_frame (Optional[pd.DataFrame]): Cached DataFrame loaded from the CSV file.
             This is a private attribute and not part of model validation/serialization.
         REQUIRED_COLUMNS (Set[str]): Set of required columns for the dataset. Must be defined in subclasses.
-        AZURE_DATASET_KEY (Optional[AzureDatasetKey]): One of the keys from AzureDatasetKey. Must match the key used in the YAML config file
+        AZURE_DATASET_KEY (Optional[DatasetKey]): One of the keys from DatasetKey. Must match the key used in the YAML config file
         AZURE_CSV_NAME (Optional[str]): Name of the CSV file in Azure Blob Storage.
 
     Example usage (local CSV):
@@ -45,7 +45,7 @@ class BaseDataConfig(BaseModel):
 
     _data_frame: Optional[pd.DataFrame] = PrivateAttr(default=None)
     REQUIRED_COLUMNS: ClassVar[Set[str]] = set()
-    AZURE_DATASET_KEY: ClassVar[Optional[AzureDatasetKey]] = None
+    AZURE_DATASET_KEY: ClassVar[Optional[DatasetKey]] = None
     AZURE_CSV_NAME: ClassVar[Optional[str]] = None
 
     def validate_dataframe(self, df: pd.DataFrame, csv_path: str) -> None:
@@ -77,18 +77,18 @@ class BaseDataConfig(BaseModel):
             fs = AzureSetup.get_azureml_filesystem(dataset_name)
 
             # get the path to the dataset folder and CSV file on Azure
-            _, path_on_azure = AzureSetup.get_azure_uri(dataset_name)
+            _, azure_data_root = AzureSetup.get_azure_uri(dataset_name)
 
             if self.AZURE_CSV_NAME is None:
                 raise ValueError("AZURE_CSV_NAME must be set for Azure data.")
-            csv_path_on_azure = str(Path(path_on_azure) / self.AZURE_CSV_NAME)
+            csv_azure_data_root = str(Path(azure_data_root) / self.AZURE_CSV_NAME)
             try:
-                with fs.open(csv_path_on_azure, "r") as f:
+                with fs.open(csv_azure_data_root, "r") as f:
                     df = pd.read_csv(f, **kwargs)
-                self.validate_dataframe(df, csv_path_on_azure)
+                self.validate_dataframe(df, csv_azure_data_root)
             except Exception as e:
                 # AzureML may raise UserErrorException for missing files
-                msg = f"CSV file not found on Azure at '{csv_path_on_azure}'."
+                msg = f"CSV file not found on Azure at '{csv_azure_data_root}'."
                 logging.getLogger(__name__).error(f"{msg} Original error: {e}")
                 raise FileNotFoundError(f"{msg} Original error: {e}") from e
         else:
