@@ -60,7 +60,7 @@ Now we need to make a new storage account to keep our images.
 Create a YAML config file (e.g., azure_settings.yaml) that contains:
   - Azure credentials and workspace details
   - A `PATH_ON_DATASTORE` dictionary mapping dataset keys to their relative paths on the datastore
-  - In practice, the paths on the datastore may vary, and the dataset keys must match the **enum values** of the class `AzureDatasetKey` (SkiNet/ML/configs/datasets/dataset_keys.py) used in your code
+  - In practice, the paths on the datastore may vary, and the dataset keys must match the **enum values** of the class `DatasetKey` (SkiNet/ML/configs/datasets/dataset_keys.py) used in your code
 **Example**:
 
 ```yaml
@@ -71,7 +71,7 @@ RESOURCE_GROUP: "<resource-group>"
 WORKSPACE_NAME: "<workspace-name>"
 DATASTORE_NAME: "<datastore-name>"
 PATH_ON_DATASTORE:
-  PH2DATASET: "PH2DATA/"
+  PH2: "PH2DATA/"
   ANOTHERSET: "another/path/"
 ```
 
@@ -84,27 +84,27 @@ AzureSetup.service_principal_authentication()
 ```
 
 ### Access Azure file system for a specific dataset
-- To get an Azure filesystem for a specific dataset, call get_azureml_filesystem with one of the **enum values** defined in class `AzureDatasetKey` under SkiNet/ML/configs/datasets/dataset_keys.py.
+- To get an Azure filesystem for a specific dataset, call get_azureml_filesystem with one of the **enum values** defined in class `DatasetKey` under SkiNet/ML/configs/datasets/dataset_keys.py.
 - The argument must match the YAML key under PATH_ON_DATASTORE.
 
 
 **Example for a PH2 dataset saved on Azure in folder "PH2DATA/" (with YAML key "PH2DATASET"), as per YAML settings above:**
 ```python
-fs = AzureSetup.get_azureml_filesystem(AzureDatasetKey.PH2_DATASET_KEY.value) # "PH2DATASET"
+fs = AzureSetup.get_azureml_filesystem(DatasetKey.PH2_DATASET_KEY.value) # "PH2DATASET"
 ```
 
 ### Return URI for a specific dataset on Azure and its path on Azure
 
 **Example for PH2 dataset saved on Azure in folder "PH2DATA/" (with YAML key "PH2DATASET"), as per YAML settings above:**
 ```python
-azure_uri, path_on_azure = AzureSetup.get_azure_uri(AzureDatasetKey.PH2_DATASET_KEY.value) # "PH2DATASET"
+azure_uri, azure_data_root = AzureSetup.get_azure_uri(DatasetKey.PH2_DATASET_KEY.value) # "PH2DATASET"
 ```
 Example return value:
 ```python
 (
-    "azureml://subscriptions/{SUBSCRIPTION_ID}/resourcegroups/{RESOURCE_GROUP}/workspaces/{WORKSPACE_NAME}/datastores/{DATASTORE_NAME}/paths/{path_on_azure}/",
-    "{path_on_azure}"
+    "azureml://subscriptions/{SUBSCRIPTION_ID}/resourcegroups/{RESOURCE_GROUP}/workspaces/{WORKSPACE_NAME}/datastores/{DATASTORE_NAME}/paths/{azure_data_root}/",
+    "{azure_data_root}"
 )
 ```
-Here, `{path_on_azure}` is the value from `PATH_ON_DATASTORE[AzureDatasetKey.SOME_DATASET_KEY.value]` in your YAML config.
-For example, if you call this method with `AzureDatasetKey.SOME_DATASET_KEY.value="PH2DATASET"`, `{path_on_azure}` will be "PH2DATA/".
+Here, `{azure_data_root}` is the value from `PATH_ON_DATASTORE[DatasetKey.SOME_DATASET_KEY.value]` in your YAML config.
+For example, if you call this method with `DatasetKey.SOME_DATASET_KEY.value="PH2DATASET"`, `{azure_data_root}` will be "PH2DATA/".
