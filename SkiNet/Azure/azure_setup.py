@@ -22,7 +22,7 @@ class AzureSetup(param.Parameterized):
 
     The YAML config file (e.g., azure_settings.yaml) should contain:
         - Azure credentials and workspace details
-        - A PATH_ON_DATASTORE dictionary mapping dataset names (keys) to their relative paths on the datastore
+        - A PATH_ON_DATASTORE dictionary mapping dataset enum KEY VALUES to their relative paths on the datastore
 
     Example YAML:
         AZURE_TENANT_ID: "<tenant-id>"
@@ -32,8 +32,15 @@ class AzureSetup(param.Parameterized):
         WORKSPACE_NAME: "<workspace-name>"
         DATASTORE_NAME: "<datastore-name>"
         PATH_ON_DATASTORE:
-          PH2DATASET: "PH2DATA/"
-          ANOTHERSET: "another/path/"
+          PH2_DATASET: "PH2DATA/"
+          ANOTHER_DATASET: "another/path/"
+
+    The yaml key PH2_DATASET must match the enum value of DatasetKey.PH2 if the dataset class is defined as
+
+    @unique
+    class DatasetKey(Enum):
+        PH2 = "PH2_DATASET"
+        ANOTHER = "ANOTHER_DATASET"
     """
     AZURE_TENANT_ID: str = param.String(doc="The tenant ID returned when you created the service principal")
     AZURE_CLIENT_ID: str = param.String(doc="The client ID returned when you created the service principal")
@@ -42,8 +49,7 @@ class AzureSetup(param.Parameterized):
     RESOURCE_GROUP: str = param.String(doc="Resource group that contains the current workspace")
     WORKSPACE_NAME: str = param.String(doc="Name of the workspace")
     DATASTORE_NAME: str = param.String(doc="Name of the datastore containing data")
-    PATH_ON_DATASTORE = param.Dict(
-        doc="Dictionary mapping dataset names (as used in code) to their relative paths on the datastore, as defined in azure_settings.yaml")
+    PATH_ON_DATASTORE = param.Dict(doc="Dictionary mapping DatasetKey enum values to paths on datastore, as defined in azure_settings.yaml")
 
     def __init__(self, **params: Any) -> None:
         super().__init__(**params)
@@ -61,48 +67,43 @@ class AzureSetup(param.Parameterized):
         return cls(**get_config_from_yaml(path_to_yaml))
 
     @classmethod
-    def get_azure_uri(cls, dataset_name: str) -> tuple[str, str]:
+    def get_azure_uri(cls, dataset_key: str) -> tuple[str, str]:
         """
         Build an Azure ML datastore URI for a configured dataset.
 
-        :param dataset_name: The name of the dataset used in code, i.e., a key from the PATH_ON_DATASTORE dictionary in your Azure YAML config.
-            This key maps to the relative path of the dataset on the datastore.
-            Example YAML structure:
-                PATH_ON_DATASTORE:
-                  PH2DATASET: "PH2DATA/"
-                  ANOTHERSET: "another/path/"
-            In this example, valid values for `dataset_name` are "PH2DATASET" and "ANOTHERSET".
+        :param dataset_key: The enum value as defined in DatasetKey enum.
+            This must match one of the keys under PATH_ON_DATASTORE in your YAML config.
 
-        :return: Tuple of (Azure ML URI string for the specified dataset, relative path on the datastore).
+        :return: Tuple of (Azure ML URI string for the specified dataset, relative path to a dataset root directory on the datastore).
 
         Example return value:
             (
                 "azureml://subscriptions/{SUBSCRIPTION_ID}/resourcegroups/{RESOURCE_GROUP}/workspaces/{WORKSPACE_NAME}/datastores/{DATASTORE_NAME}/paths/{path}/",
-                "{path}"
+                "{data_root_on_azure}"
             )
-        Here, `{path}` is the value from PATH_ON_DATASTORE[dataset_name] in your YAML config.
-        For example, if you call this method with `dataset_name="PH2DATASET"`, `{path}` will be "PH2DATA/".
+        Here, `{data_root_on_azure}` is the value from PATH_ON_DATASTORE[dataset_key] in your YAML config.
         """
         azure_config = cls.get_azure_config_from_yaml(project_paths.AZURE_SETTINGS_YAML)
 
         # get path to data on the datastore w.r.t. its root
-        if dataset_name not in azure_config.PATH_ON_DATASTORE:
-            raise ValueError(f"Dataset name '{dataset_name}' not found in azure_config.PATH_ON_DATASTORE!"
+        if dataset_key not in azure_config.PATH_ON_DATASTORE:
+            raise ValueError(f"The keys of azure_config.PATH_ON_DATASTORE do not contain '{dataset_key}'. "
+                             f"Check keys in YAML config {project_paths.AZURE_SETTINGS_YAML} and make sure they match the DatasetKey enum values."
                              f"Available options: {list(azure_config.PATH_ON_DATASTORE.keys())}")
-        path = azure_config.PATH_ON_DATASTORE[dataset_name]
+        data_root_on_azure = azure_config.PATH_ON_DATASTORE[dataset_key]
 
-        azure_uri = f"azureml://subscriptions/{azure_config.SUBSCRIPTION_ID}/resourcegroups/{azure_config.RESOURCE_GROUP}/workspaces/{azure_config.WORKSPACE_NAME}/datastores/{azure_config.DATASTORE_NAME}/paths/{path}/"  # noqa: E501
-        return (azure_uri, path)
+        azure_uri = f"azureml://subscriptions/{azure_config.SUBSCRIPTION_ID}/resourcegroups/{azure_config.RESOURCE_GROUP}/workspaces/{azure_config.WORKSPACE_NAME}/datastores/{azure_config.DATASTORE_NAME}/paths/{data_root_on_azure}/"  # noqa: E501
+        return (azure_uri, data_root_on_azure)
 
     @classmethod
-    def get_azureml_filesystem(cls, dataset_name: str) -> AzureMachineLearningFileSystem:
+    def get_azureml_filesystem(cls, dataset_key: str) -> AzureMachineLearningFileSystem:
         """
         Get AzureMachineLearningFileSystem for a dataset.
 
-        :param dataset_name: Key from PATH_ON_DATASTORE in your Azure YAML config (see get_azure_uri docstring for example).
+        :param dataset_key: Key from PATH_ON_DATASTORE in your Azure YAML config (see get_azure_uri docstring for example).
         :return: AzureMachineLearningFileSystem object for the specified dataset.
         """
-        azure_uri, _ = cls.get_azure_uri(dataset_name)
+        azure_uri, _ = cls.get_azure_uri(dataset_key)
         fs = AzureMachineLearningFileSystem(azure_uri)
         return fs
 
