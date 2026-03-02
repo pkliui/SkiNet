@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 
 from SkiNet.Azure.azure_setup import AzureSetup
 from SkiNet.ML.utils.data_utils import convert_to_numpy_bytes, filter_missing_images_and_masks
-from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, SAMPLEID_HEADER
+from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_IMAGE, DATATYPE_MASK, SAMPLEID_HEADER
 
 
 class BaseCSVBuilder(ABC):
@@ -134,8 +134,8 @@ class BaseCSVBuilder(ABC):
             mask_rel_path = datapath_func(mask_path_str)
 
             # Add entries for both image and mask to the data list
-            data.append({SAMPLEID_HEADER: sample_id, DATAPATH_HEADER: img_rel_path, DATATYPE_HEADER: "image"})
-            data.append({SAMPLEID_HEADER: sample_id, DATAPATH_HEADER: mask_rel_path, DATATYPE_HEADER: "mask"})
+            data.append({SAMPLEID_HEADER: sample_id, DATAPATH_HEADER: img_rel_path, DATATYPE_HEADER: DATATYPE_IMAGE})
+            data.append({SAMPLEID_HEADER: sample_id, DATAPATH_HEADER: mask_rel_path, DATATYPE_HEADER: DATATYPE_MASK})
         return pd.DataFrame(data)
 
     def create_basic_metadata(self) -> pd.DataFrame:
