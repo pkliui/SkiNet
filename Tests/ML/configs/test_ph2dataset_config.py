@@ -7,8 +7,8 @@ from typing import Any
 import pandas as pd
 import pytest
 
-import SkiNet.ML.configs.base_data_config as base_data_config
-from SkiNet.ML.configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
+import SkiNet.ML.configs.data_configs.base_data_config as base_data_config
+from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
 from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, SAMPLEID_HEADER
 from SkiNet.Utils.project_paths import PH2_CSV_NAME
 
@@ -31,12 +31,12 @@ def test_ph2datasetconfig_column_validation(tmp_path: Path, columns: list[str], 
     csv_path = tmp_path / PH2_CSV_NAME
     df.to_csv(csv_path, index=False)
 
-    cfg = PH2DatasetConfig(csv_path=str(csv_path))
+    cfg = PH2DatasetConfig(local_data_root=str(tmp_path))   # type: ignore
     if should_raise:
         with pytest.raises(ValueError, match="is missing required columns"):
-            _ = cfg.data_frame
+            _ = cfg.metadata
     else:
-        _ = cfg.data_frame
+        _ = cfg.metadata
 
 @pytest.mark.parametrize(
     "columns,should_raise",
@@ -52,12 +52,12 @@ def test_ph2datasetconfig_empty_values(tmp_path: Path, columns: list[str], shoul
     csv_path = tmp_path / PH2_CSV_NAME
     df.to_csv(csv_path, index=False)
 
-    cfg = PH2DatasetConfig(csv_path=str(csv_path))
+    cfg = PH2DatasetConfig(local_data_root=str(tmp_path))  # type: ignore
     if should_raise:
         with pytest.raises(ValueError, match="all required columns have only empty values"):
-            _ = cfg.data_frame
+            _ = cfg.metadata
     else:
-        _ = cfg.data_frame
+        _ = cfg.metadata
 
 
 def test_ph2datasetconfig_empty_csv(tmp_path: Path) -> None:
@@ -67,9 +67,9 @@ def test_ph2datasetconfig_empty_csv(tmp_path: Path) -> None:
     csv_path = tmp_path / PH2_CSV_NAME
     csv_path.write_text("")
 
-    cfg = PH2DatasetConfig(csv_path=str(csv_path))
+    cfg = PH2DatasetConfig(local_data_root=str(tmp_path))  # type: ignore
     with pytest.raises(pd.errors.EmptyDataError):
-        _ = cfg.data_frame
+        _ = cfg.metadata
 
 
 def test_ph2datasetconfig_file_paths_exist(tmp_path: Path) -> None:
@@ -93,8 +93,8 @@ def test_ph2datasetconfig_file_paths_exist(tmp_path: Path) -> None:
     csv_path = tmp_path / PH2_CSV_NAME
     df.to_csv(csv_path, index=False)
 
-    cfg = PH2DatasetConfig(csv_path=str(csv_path), azure_data=False)
-    df_loaded = cfg.data_frame
+    cfg = PH2DatasetConfig(local_data_root=str(tmp_path))  # type: ignore
+    df_loaded = cfg.metadata
 
     # Check that all paths exist and all columns match expected values
     for i, row in enumerate(expected_rows):
@@ -150,8 +150,8 @@ def test_ph2datasetconfig_file_paths_exist_azure(monkeypatch: pytest.MonkeyPatch
     # Mock the AzureSetup class in base_data_config
     monkeypatch.setattr(base_data_config, "AzureSetup", MockAzureSetup)
 
-    cfg = PH2DatasetConfig(azure_data=True)
-    df_loaded = cfg.data_frame
+    cfg = PH2DatasetConfig(azure_data=True)  # type: ignore
+    df_loaded = cfg.metadata
 
     # Check that all paths exist and all columns match expected values
     for i, row in enumerate(expected_rows):
