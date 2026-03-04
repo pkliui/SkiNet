@@ -18,7 +18,8 @@ class BaseDataConfig(BaseModel):
     :attributes:
         METADATA_CSV_NAME (Optional[str]): Name of a dataset metadata file used in config, as defined in project paths. Must be specified in subclasses.
         REQUIRED_COLUMNS (Set[str]): Set of required columns in the metadata file. Must be specified in subclasses.
-        AZURE_DATASET_KEY (Optional[DatasetKey]): One of the keys from DatasetKey. Must match the key used in the YAML config file and specified in subclasses.
+        DATASET_KEY (Optional[DatasetKey]): One of the keys from DatasetKey.
+            Its value must match the key used in the YAML config file and specified in subclasses.
         _metadata (Optional[pd.DataFrame]): Cached dataset metadata loaded from a CSV file into a DataFrame. Not part of model validation/serialization.
 
     Example usage (local CSV):
@@ -30,7 +31,7 @@ class BaseDataConfig(BaseModel):
         df = cfg.metadata
 
     Note:
-        - For Azure, the value of the dataset key (AZURE_DATASET_KEY.value) must match the key in the YAML config file under PATH_ON_DATASTORE.
+        - For Azure, the value of the dataset key (DATASET_KEY.value) must match the key in the YAML config file under PATH_ON_DATASTORE.
         - The CSV file must be present in the specified location (local or Azure) and must contain the required columns as per REQUIRED_COLUMNS.
     """
     azure_data: bool = Field(False, description="Indicates if the data is stored in Azure Blob Storage."
@@ -41,7 +42,7 @@ class BaseDataConfig(BaseModel):
 
     METADATA_CSV_NAME: ClassVar[Optional[str]] = None
     REQUIRED_COLUMNS: ClassVar[Set[str]] = set()
-    AZURE_DATASET_KEY: ClassVar[Optional[DatasetKey]] = None
+    DATASET_KEY: ClassVar[Optional[DatasetKey]] = None
 
     _metadata: Optional[pd.DataFrame] = PrivateAttr(default=None)
 
@@ -51,8 +52,8 @@ class BaseDataConfig(BaseModel):
         """
         missing = []
         if self.azure_data:
-            if self.AZURE_DATASET_KEY is None:
-                missing.append("AZURE_DATASET_KEY")
+            if self.DATASET_KEY is None:
+                missing.append("DATASET_KEY")
             if self.METADATA_CSV_NAME is None:
                 missing.append("METADATA_CSV_NAME")
             if missing:
@@ -92,10 +93,10 @@ class BaseDataConfig(BaseModel):
 
             # get Azure file system
             AzureSetup.service_principal_authentication()
-            dataset_key = self.AZURE_DATASET_KEY.value if self.AZURE_DATASET_KEY is not None else "local"
-            logging.getLogger(__name__).info(f"Reading the following dataset on Azure: {dataset_key}")
-            fs = AzureSetup.get_azureml_filesystem(dataset_key)
-            _, data_root_on_azure = AzureSetup.get_azure_uri(dataset_key)
+            dataset_name = self.DATASET_KEY.value if self.DATASET_KEY is not None else "local"
+            logging.getLogger(__name__).info(f"Reading the following dataset on Azure: {dataset_name}")
+            fs = AzureSetup.get_azureml_filesystem(dataset_name)
+            _, data_root_on_azure = AzureSetup.get_azure_uri(dataset_name)
 
             # open metadata CSV file on Azure and read into DataFrame
             assert self.METADATA_CSV_NAME is not None

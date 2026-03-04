@@ -67,11 +67,11 @@ class AzureSetup(param.Parameterized):
         return cls(**get_config_from_yaml(path_to_yaml))
 
     @classmethod
-    def get_azure_uri(cls, dataset_key: str) -> tuple[str, str]:
+    def get_azure_uri(cls, dataset_name: str) -> tuple[str, str]:
         """
         Build an Azure ML datastore URI for a configured dataset.
 
-        :param dataset_key: The enum value as defined in DatasetKey enum.
+        :param dataset_name: The string value from DatasetKey enum (e.g., "PH2_DATASET").
             This must match one of the keys under PATH_ON_DATASTORE in your YAML config.
 
         :return: Tuple of (Azure ML URI string for the specified dataset, relative path to a dataset root directory on the datastore).
@@ -81,29 +81,29 @@ class AzureSetup(param.Parameterized):
                 "azureml://subscriptions/{SUBSCRIPTION_ID}/resourcegroups/{RESOURCE_GROUP}/workspaces/{WORKSPACE_NAME}/datastores/{DATASTORE_NAME}/paths/{path}/",
                 "{data_root_on_azure}"
             )
-        Here, `{data_root_on_azure}` is the value from PATH_ON_DATASTORE[dataset_key] in your YAML config.
+        Here, `{data_root_on_azure}` is the value from PATH_ON_DATASTORE[dataset_name] in your YAML config.
         """
         azure_config = cls.get_azure_config_from_yaml(project_paths.AZURE_SETTINGS_YAML)
 
         # get path to data on the datastore w.r.t. its root
-        if dataset_key not in azure_config.PATH_ON_DATASTORE:
-            raise ValueError(f"The keys of azure_config.PATH_ON_DATASTORE do not contain '{dataset_key}'. "
+        if dataset_name not in azure_config.PATH_ON_DATASTORE:
+            raise ValueError(f"The keys of azure_config.PATH_ON_DATASTORE do not contain '{dataset_name}'. "
                              f"Check keys in YAML config {project_paths.AZURE_SETTINGS_YAML} and make sure they match the DatasetKey enum values."
                              f"Available options: {list(azure_config.PATH_ON_DATASTORE.keys())}")
-        data_root_on_azure = azure_config.PATH_ON_DATASTORE[dataset_key]
+        data_root_on_azure = azure_config.PATH_ON_DATASTORE[dataset_name]
 
         azure_uri = f"azureml://subscriptions/{azure_config.SUBSCRIPTION_ID}/resourcegroups/{azure_config.RESOURCE_GROUP}/workspaces/{azure_config.WORKSPACE_NAME}/datastores/{azure_config.DATASTORE_NAME}/paths/{data_root_on_azure}/"  # noqa: E501
         return (azure_uri, data_root_on_azure)
 
     @classmethod
-    def get_azureml_filesystem(cls, dataset_key: str) -> AzureMachineLearningFileSystem:
+    def get_azureml_filesystem(cls, dataset_name: str) -> AzureMachineLearningFileSystem:
         """
         Get AzureMachineLearningFileSystem for a dataset.
 
-        :param dataset_key: Key from PATH_ON_DATASTORE in your Azure YAML config (see get_azure_uri docstring for example).
+        :param dataset_name: String key from PATH_ON_DATASTORE in your Azure YAML config (see get_azure_uri docstring for example).
         :return: AzureMachineLearningFileSystem object for the specified dataset.
         """
-        azure_uri, _ = cls.get_azure_uri(dataset_key)
+        azure_uri, _ = cls.get_azure_uri(dataset_name)
         fs = AzureMachineLearningFileSystem(azure_uri)
         return fs
 

@@ -11,7 +11,7 @@ CSV_NAME = "dummy.csv"
 
 class DummyConfig(BaseDataConfig):
     REQUIRED_COLUMNS: ClassVar[Set[str]] = {"a", "b"}
-    AZURE_DATASET_KEY: ClassVar[Optional[DatasetKey]] = None
+    DATASET_KEY: ClassVar[Optional[DatasetKey]] = None
     METADATA_CSV_NAME: ClassVar[str] = CSV_NAME
 
 @pytest.mark.parametrize(

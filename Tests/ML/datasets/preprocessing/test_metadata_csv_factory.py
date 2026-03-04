@@ -12,12 +12,12 @@ from SkiNet.ML.datasets.preprocessing.ph2_csv_builder import PH2AzureCSVBuilder,
 @pytest.fixture
 def local_arg_ph2(tmp_path: pytest.TempPathFactory) -> argparse.Namespace:
     """Simulate argparse.Namespace for local"""
-    return argparse.Namespace(local_data_root=str(tmp_path), dataset_key="PH2", azure_data=False)
+    return argparse.Namespace(local_data_root=str(tmp_path), dataset_key_str="PH2", azure_data=False)
 
 @pytest.fixture
 def azure_arg_ph2() -> argparse.Namespace:
     """Simulate argparse.Namespace for Azure"""
-    return argparse.Namespace(local_data_root=None, dataset_key="PH2", azure_data=True)
+    return argparse.Namespace(local_data_root=None, dataset_key_str="PH2", azure_data=True)
 
 @pytest.mark.parametrize("factory_cls, builder_cls, arg_fixture", [
     (PH2MetadataFactory, PH2LocalCSVBuilder, "local_arg_ph2"),
@@ -60,7 +60,7 @@ def test_main_local(monkeypatch: pytest.MonkeyPatch, local_arg_ph2: argparse.Nam
         def get_azure_csv_builder(self) -> Any:
             return DummyBuilder()
 
-    monkeypatch.setattr("SkiNet.ML.datasets.preprocessing.metadata_csv_factory.get_factory", lambda dataset_key: DummyFactory())
+    monkeypatch.setattr("SkiNet.ML.datasets.preprocessing.metadata_csv_factory.get_factory", lambda dataset_key_str: DummyFactory())
     main(local_arg_ph2)  # Should not raise
 
 def test_main_azure(monkeypatch: pytest.MonkeyPatch, azure_arg_ph2: argparse.Namespace) -> None:
@@ -78,11 +78,11 @@ def test_main_azure(monkeypatch: pytest.MonkeyPatch, azure_arg_ph2: argparse.Nam
         def get_azure_csv_builder(self) -> Any:
             return DummyBuilder()
 
-    monkeypatch.setattr("SkiNet.ML.datasets.preprocessing.metadata_csv_factory.get_factory", lambda dataset_key: DummyFactory())
+    monkeypatch.setattr("SkiNet.ML.datasets.preprocessing.metadata_csv_factory.get_factory", lambda dataset_key_str: DummyFactory())
     main(azure_arg_ph2)  # Should not raise
 
 @pytest.mark.parametrize("arg", [
-    argparse.Namespace(local_data_root="some/path", dataset_key="PH2", azure_data=True),
+    argparse.Namespace(local_data_root="some/path", dataset_key_str="PH2", azure_data=True),
 ])
 def test_main_raises_on_both_local_and_azure(arg: argparse.Namespace) -> None:
     """
@@ -94,9 +94,9 @@ def test_main_raises_on_both_local_and_azure(arg: argparse.Namespace) -> None:
 
 def test_enum_conversion_invalid_key() -> None:
     """Test that converting an invalid dataset key string to the DatasetKey enum raises a ValueError with an appropriate message."""
-    args = argparse.Namespace(dataset_key="INVALID", azure_data=False, local_data_root="dummy")
-    with pytest.raises(ValueError, match="Unknown dataset key: INVALID"):
+    args = argparse.Namespace(dataset_key_str="INVALID", azure_data=False, local_data_root="dummy")
+    with pytest.raises(ValueError, match="Unknown dataset key string: INVALID"):
         try:
-            _ = DatasetKey[args.dataset_key.upper()]
+            _ = DatasetKey[args.dataset_key_str.upper()]
         except KeyError:
-            raise ValueError(f"Unknown dataset key: {args.dataset_key}. Valid options: {[k.name for k in DatasetKey]}")
+            raise ValueError(f"Unknown dataset key string: {args.dataset_key_str}. Valid options: {[k.name for k in DatasetKey]}")
