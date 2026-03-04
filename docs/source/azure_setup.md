@@ -74,7 +74,7 @@ DATASTORE_NAME: "<datastore-name>"
 
 ### Identification of datasets
 
-- The `DatasetKey` Enum is used to uniquely identify datasets throughout the code. The **value** of each enum member is called `dataset_key`.
+- The `DatasetKey` Enum is used to uniquely identify datasets throughout the code. The **value** of each enum member is called `dataset_name`.
 
 **Example Enum:**
 ```python
@@ -84,8 +84,8 @@ class DatasetKey(Enum):
     ANOTHERSET = "ANOTHER_SET"
 ```
 
-- In YAML config, add a section `PATH_ON_DATASTORE` mapping `dataset_key`s from `DatasetKey` to the respective relative paths to data on the datastore.
-- The `dataset_key`s in `DatasetKey` Enum must match the keys `PATH_ON_DATASTORE`. The corresponding YAML value is called `data_root_on_azure`.
+- In YAML config, add a section `PATH_ON_DATASTORE` mapping `dataset_name`s from `DatasetKey` to the respective relative paths to data on the datastore.
+- The `dataset_name`s in `DatasetKey` Enum must match the YAML keys under `PATH_ON_DATASTORE`. The corresponding YAML value `data_root_on_azure` points to relative paths to data on the datastore.
 
 
 **Example YAML config**
@@ -101,10 +101,10 @@ PATH_ON_DATASTORE:
     ANOTHER_DATASET: "another/path/"
 ```
 
-| Enum Member   | dataset_key (Enum Value) | data_root_on_azure (YAML Value) |
-|---------------|--------------------------|-------------------------------------|
-| PH2           | "PH2_DATASET"            | "PH2DATA/"                          |
-| ANOTHERSET    | "ANOTHER_SET"            | "another/path/"                     |
+| Enum Member (dataset_key)   | Enum Value or YAML key (dataset_name) | YAML Value (data_root_on_azure)     |
+|-----------------------------|---------------------------------------|-------------------------------------|
+| PH2                         | "PH2_DATASET"                         | "PH2DATA/"                          |
+| ANOTHERSET                  | "ANOTHER_SET"                         | "another/path/"                     |
 
 ### Access datasets from code
 - To access data stored in the blob container from within the code, authenticate with the Service Principal created above. This is done by calling [service_principal_authentication()](https://github.com/pkliui/SkiNet/blob/main/SkiNet/Azure/azure_setup.py):
@@ -115,17 +115,17 @@ PATH_ON_DATASTORE:
 from SkiNet.Azure.azure_setup import AzureSetup
 AzureSetup.service_principal_authentication()
 
-dataset_key = DatasetKey.PH2.value  # "PH2_DATASET"
-fs = AzureSetup.get_azureml_filesystem(dataset_key)
+dataset_name= DatasetKey.PH2.value  # "PH2_DATASET"
+fs = AzureSetup.get_azureml_filesystem(dataset_name)
 ```
 
-In this example, dataset_key (DatasetKey.PH2.value == "PH2_DATASET") matches the YAML key PH2_DATASET,
-which maps to the path "PH2DATA/" on the Azure datastore. This allows the code to access the correct dataset on Azure using the enum key.
+In this example, dataset_name (DatasetKey.PH2.value == "PH2_DATASET") matches the YAML key PH2_DATASET,
+which maps to the path "PH2DATA/" on the Azure datastore. This allows the code to access the correct dataset on Azure.
 
 
 ### Return URI for a specific dataset on Azure and its path on Azure
 
-**Example for PH2 dataset saved on Azure in folder "PH2DATA/" (with the dataset_key "PH2_DATASET"), as per YAML settings above:**
+**Example for PH2 dataset saved on Azure in folder "PH2DATA/" (with the dataset_name "PH2_DATASET"), as per YAML settings above:**
 ```python
 azure_uri, data_root_on_azure = AzureSetup.get_azure_uri(DatasetKey.PH2.value) # "PH2_DATASET"
 ```
@@ -137,4 +137,4 @@ Example return value:
 )
 ```
 Here, `{data_root_on_azure}` is the value from `PATH_ON_DATASTORE` in your YAML config.
-For example, if you call this method with `DatasetKey.PH2.value="PH2_DATASET"`, `{data_root_on_azure}` will be "PH2DATA/".
+For example, if you call this method with the dataset_name `DatasetKey.PH2.value="PH2_DATASET"`, `{data_root_on_azure}` will be "PH2DATA/".

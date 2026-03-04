@@ -14,7 +14,7 @@ class PH2DatasetConfig(BaseDataConfig):
 
     :attributes:
         REQUIRED_COLUMNS (ClassVar[Set[str]]): Set of required columns in the metadata CSV.
-        AZURE_DATASET_KEY (ClassVar[DatasetKey]): Key for the Azure dataset.
+        DATASET_KEY (ClassVar[DatasetKey]): Key for the Azure dataset.
         METADATA_CSV_NAME (ClassVar[str]): Name of the metadata CSV file as defined in project paths.
 
     Example usage for a local dataset:
@@ -33,5 +33,5 @@ class PH2DatasetConfig(BaseDataConfig):
     kind: Literal["ph2"] = Field("ph2", description="Dataset kind identifier for PH2. Used for config selection and validation.")
 
     REQUIRED_COLUMNS: ClassVar[Set[str]] = {SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER}
-    AZURE_DATASET_KEY: ClassVar[DatasetKey] = DatasetKey.PH2
+    DATASET_KEY: ClassVar[DatasetKey] = DatasetKey.PH2
     METADATA_CSV_NAME: ClassVar[str] = PH2_CSV_NAME

@@ -209,14 +209,14 @@ class AzureCSVBuilder(BaseCSVBuilder):
     Base class for building Azure CSV metadata.
     """
 
-    def __init__(self, dataset_key: str):
+    def __init__(self, dataset_name: str):
         """
-        :param dataset_key: One of the dataset keys from DatasetKey enum or a YAML file that maps to a dataset path on Azure.
-            The value of the dataset key must match the key in the YAML config file under PATH_ON_DATASTORE.
+        :param dataset_name: One of the dataset names from DatasetKey enum or a YAML file that maps to a dataset path on Azure.
+            The value of the dataset name must match the key in the YAML config file under PATH_ON_DATASTORE.
         """
         AzureSetup.service_principal_authentication()
-        self.fs = AzureSetup.get_azureml_filesystem(dataset_key)
-        _, self._data_root_on_azure = AzureSetup.get_azure_uri(dataset_key)
+        self.fs = AzureSetup.get_azureml_filesystem(dataset_name)
+        _, self._data_root_on_azure = AzureSetup.get_azure_uri(dataset_name)
 
     @property
     def data_root_on_azure(self) -> str:
@@ -233,7 +233,7 @@ class AzureCSVBuilder(BaseCSVBuilder):
 
         Note 1: For specifying paths on Azure, use the `data_root_on_azure` property.
 
-        Note 2: even if the filesystem is mounted to the dataset root (i.e. self.fs = AzureSetup.get_azureml_filesystem(dataset_key)),
+        Note 2: even if the filesystem is mounted to the dataset root (i.e. self.fs = AzureSetup.get_azureml_filesystem(dataset_name)),
         glob() and ls() may still return paths prefixed with the datastore root path.  For this reason, use the `datapath_func` method
         to obtain paths relative to the dataset root.
         """

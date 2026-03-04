@@ -50,6 +50,8 @@ def get_factory(dataset_key: DatasetKey) -> MetadataFactory:
     """
     Get a specific factory for creating metadata based on the dataset key.
     This function can be extended to return different factories for different datasets.
+
+    :param dataset_key: Enum member of the DatasetKey identifying the dataset for which to create metadata.
     """
 
     factories = {
@@ -71,14 +73,14 @@ def main(args: argparse.Namespace) -> None:
     """
     # Convert string to enum, i.e. "PH2" -> DatasetKey.PH2
     try:
-        dataset_key = DatasetKey[args.dataset_key.upper()]
+        dataset_key = DatasetKey[args.dataset_key_str.upper()]
     except KeyError:
-        raise ValueError(f"Unknown dataset key: {args.dataset_key}. Valid options: {[k.name for k in DatasetKey]}")
+        raise ValueError(f"Unknown dataset key string: {args.dataset_key_str}. Valid options: {[k.name for k in DatasetKey]}")
 
     if args.azure_data and args.local_data_root is not None:
         raise ValueError("Do not provide --local-data-root when using --azure-data.")
 
-    factory = get_factory(dataset_key=dataset_key)
+    factory = get_factory(dataset_key)
 
     builder: Union[AzureCSVBuilder, LocalCSVBuilder]
     if args.azure_data:
@@ -94,12 +96,12 @@ if __name__ == "__main__":
 
     Example for local data:
     ```
-    python metadata_csv_factory.py --dataset_key="PH2" --local_data_root="path/to/local/data/PH2folder"
+    python metadata_csv_factory.py --dataset_key_str="PH2" --local_data_root="path/to/local/data/PH2folder"
     ```
 
     Example for Azure data:
     ```
-    python metadata_csv_factory.py --dataset_key="PH2" --azure_data,
+    python metadata_csv_factory.py --dataset_key_str="PH2" --azure_data,
     ```
 
     where "PH2" is a valid dataset key from the DatasetKey Enum.
@@ -107,10 +109,10 @@ if __name__ == "__main__":
     For data on Azure, the script will look for the data location specified in the YAML config file.
     """
     parser = argparse.ArgumentParser(description="Create metadata CSV for SkiNet.")
-    parser.add_argument("--dataset-key",
+    parser.add_argument("--dataset-key-str",
                         type=str,
                         required=True,
-                        help="Dataset identifier key. Should be one specific key from DatasetKey, uniquely "
+                        help="Dataset identifier key string. Should be one specific dataset key string from DatasetKey, uniquely "
                         "identifying the dataset for which you want to create metadata. For example, use 'PH2' for the PH2 dataset.")
     parser.add_argument("--azure-data",
                         action='store_true',
