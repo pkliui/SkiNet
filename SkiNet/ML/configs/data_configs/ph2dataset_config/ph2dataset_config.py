@@ -26,7 +26,7 @@ class PH2DatasetConfig(BaseDataConfig):
     Example usage for an Azure dataset:
     ```
     cfg = PH2DatasetConfig(azure_data=True)
-    df = cfg.data_frame
+    df = cfg.metadata
     ```
 
     """
