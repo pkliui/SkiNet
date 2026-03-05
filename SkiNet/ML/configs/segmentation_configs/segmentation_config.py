@@ -7,17 +7,14 @@ from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import P
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
 
-DataConfig = Annotated[Union[PH2DatasetConfig],
-                       Field(discriminator="kind")]
-ModelConfig = Annotated[Union[UNet2DModelConfig],
-                        Field(discriminator="kind")]
+DataConfig = Annotated[Union[PH2DatasetConfig], Field(discriminator="kind")]
+ModelConfig = Annotated[Union[UNet2DModelConfig], Field(discriminator="kind")]
 
 class SegmentationConfig(BaseExperimentConfig):
     """
     Configuration for segmentation experiments.
     """
-    model_type: Literal["segmentation"] = "segmentation"
-
+    experiment_type: Literal["segmentation"] = "segmentation"
     dataconfig: DataConfig = Field(..., description="Data configuration for segmentation experiments. "
                                    "Discriminated by 'kind' field to select the appropriate dataset configuration.")
     trainconfig: BaseTrainConfig = Field(..., description="Training configuration for segmentation experiments")
