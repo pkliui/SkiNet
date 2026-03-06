@@ -1,8 +1,7 @@
-from typing import Annotated, Literal, Union
+from typing import Annotated, Union
 
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from SkiNet.ML.configs.base_experiment_config import BaseExperimentConfig
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
@@ -10,11 +9,15 @@ from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
 DataConfig = Annotated[Union[PH2DatasetConfig], Field(discriminator="kind")]
 ModelConfig = Annotated[Union[UNet2DModelConfig], Field(discriminator="kind")]
 
-class SegmentationConfig(BaseExperimentConfig):
+class ExperimentConfig(BaseModel):
     """
-    Configuration for segmentation experiments.
+    Base configuration for an experiment, containing common fields such as experiment name, description, and model type.
+
     """
-    experiment_type: Literal["segmentation"] = "segmentation"
+    model_config = ConfigDict(extra="forbid")  # Forbid extra fields not defined in the model or its subclasses
+    experiment_type: str  # Subclasses specify the experiment type, e.g. segmentation, classification, etc.
+    experiment_name: str = Field(..., description="Name of the experiment")
+    description: str = Field(..., description="Description of the experiment")
     dataconfig: DataConfig = Field(..., description="Data configuration for segmentation experiments. "
                                    "Discriminated by 'kind' field to select the appropriate dataset configuration.")
     trainconfig: BaseTrainConfig = Field(..., description="Training configuration for segmentation experiments")

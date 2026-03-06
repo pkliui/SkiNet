@@ -5,10 +5,10 @@ from pathlib import Path
 from typing import Any, ClassVar, Optional, Set
 
 import pandas as pd
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 
 from SkiNet.Azure.azure_setup import AzureSetup
-from SkiNet.ML.configs.datasets.dataset_keys import DatasetKey
+from SkiNet.Utils.experiment_keys import DatasetKey
 
 
 class BaseDataConfig(BaseModel):
@@ -34,6 +34,8 @@ class BaseDataConfig(BaseModel):
         - For Azure, the value of the dataset key (DATASET_KEY.value) must match the key in the YAML config file under PATH_ON_DATASTORE.
         - The CSV file must be present in the specified location (local or Azure) and must contain the required columns as per REQUIRED_COLUMNS.
     """
+    model_config = ConfigDict(extra='ignore', validate_assignment=True)
+
     azure_data: bool = Field(False, description="Indicates if the data is stored in Azure Blob Storage."
                              "If True, will load metadata CSV from Azure using the Azure dataset key and CSV name supplied in class variables of the subclass."
                              "If False, will load from the local file system using local_data_root that must be provided by user.")

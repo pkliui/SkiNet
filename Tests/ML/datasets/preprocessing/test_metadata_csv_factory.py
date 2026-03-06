@@ -4,9 +4,9 @@ from typing import Any
 
 import pytest
 
-from SkiNet.ML.configs.datasets.dataset_keys import DatasetKey
 from SkiNet.ML.datasets.preprocessing.metadata_csv_factory import PH2MetadataFactory, get_factory, main
 from SkiNet.ML.datasets.preprocessing.ph2_csv_builder import PH2AzureCSVBuilder, PH2LocalCSVBuilder
+from SkiNet.Utils.experiment_keys import DatasetKey
 
 
 @pytest.fixture

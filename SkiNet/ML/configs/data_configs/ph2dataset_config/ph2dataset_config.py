@@ -3,8 +3,8 @@ from typing import ClassVar, Literal, Set
 from pydantic import Field
 
 from SkiNet.ML.configs.data_configs.base_data_config import BaseDataConfig
-from SkiNet.ML.configs.datasets.dataset_keys import DatasetKey
 from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, SAMPLEID_HEADER
+from SkiNet.Utils.experiment_keys import DatasetKey
 from SkiNet.Utils.project_paths import PH2_CSV_NAME
 
 
