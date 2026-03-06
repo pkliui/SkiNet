@@ -3,9 +3,9 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Union
 
-from SkiNet.ML.configs.datasets.dataset_keys import DatasetKey
 from SkiNet.ML.datasets.preprocessing.base_csv_builder import AzureCSVBuilder, LocalCSVBuilder
 from SkiNet.ML.datasets.preprocessing.ph2_csv_builder import PH2AzureCSVBuilder, PH2LocalCSVBuilder
+from SkiNet.Utils.experiment_keys import DatasetKey
 
 
 class MetadataFactory(ABC):

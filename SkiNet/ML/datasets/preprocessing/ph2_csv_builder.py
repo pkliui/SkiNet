@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from SkiNet.ML.configs.datasets.dataset_keys import DatasetKey
 from SkiNet.ML.datasets.preprocessing.base_csv_builder import AzureCSVBuilder, BaseCSVBuilder, LocalCSVBuilder
 from SkiNet.Utils.csv_headers import PH2_COLORS_HEADER, PH2_COLORS_LIST_HEADER, PH2_NAME_HEADER, SAMPLEID_HEADER
+from SkiNet.Utils.experiment_keys import DatasetKey
 from SkiNet.Utils.project_paths import (PH2_CSV_NAME, PH2_IMAGE_PATTERN_AZURE, PH2_IMAGE_PATTERN_LOCAL,
                                         PH2_MASK_PATTERN_AZURE, PH2_MASK_PATTERN_LOCAL, PH2_TXT_NAME)
 
