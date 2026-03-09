@@ -5,6 +5,33 @@ from typing import Any
 from SkiNet.ML.configs.config_creator import ConfigCreator, PH2_UNet_ConfigCreator
 from SkiNet.Utils.experiment_keys import DatasetKey, ModelKey
 
+"""
+ConfigFactory registry and helpers
+
+Purpose
+-------
+This module defines the abstract ConfigFactory API and a small registry that maps
+(ModelKey, DatasetKey) -> concrete factory class. Factories are responsible for
+producing ConfigCreator instances which in turn create ExperimentConfig objects.
+
+Public API
+----------
+- ConfigFactory (abstract): implement get_config_creator(**kwargs) -> ConfigCreator
+    (subclasses create and return a ConfigCreator for a model/dataset pairing)
+- PH2_UNet_ConfigFactory: example concrete factory (UNet2D + PH2)
+- get_config_factory(model_key: ModelKey, dataset_key: DatasetKey) -> ConfigFactory
+    Lookup registry (mapping of (ModelKey, DatasetKey) -> factory *class*) and
+    instantiate a factory per-call. Returns a ConfigFactory instance.
+
+Extension steps
+----------------
+1. Implement a new ConfigCreator subclass that returns ExperimentConfig instances.
+2. Add a concrete ConfigFactory that returns your creator from get_config_creator().
+3. Register the factory in the registry mapping (tuple -> factory class).
+4. Add unit tests:
+   - get_config_factory returns an instance of your factory class.
+   - The factory's creator.create_config(...) returns a valid ExperimentConfig for expected kwargs.
+"""
 
 class ConfigFactory(ABC):
     """
@@ -24,7 +51,7 @@ class PH2_UNet_ConfigFactory(ConfigFactory):
         return PH2_UNet_ConfigCreator()
 
 
-def _get_config_factory(model_key: ModelKey, dataset_key: DatasetKey) -> ConfigFactory:
+def get_config_factory(model_key: ModelKey, dataset_key: DatasetKey) -> ConfigFactory:
     """
     Get the configuration factory for an experiment using a specific model and dataset combination.
 

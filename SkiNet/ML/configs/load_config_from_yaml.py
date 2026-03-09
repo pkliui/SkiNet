@@ -5,7 +5,7 @@ import yaml
 
 from SkiNet.ML.config_keys import (DATA_CONFIG, DATASET, EXPERIMENT_TYPE, GENERAL_CONFIG, MODEL, MODEL_CONFIG,
                                    SEGMENTATION, TRAIN_CONFIG)
-from SkiNet.ML.configs.config_factory import ConfigFactory, _get_config_factory
+from SkiNet.ML.configs.config_factory import ConfigFactory, get_config_factory
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.Utils.experiment_keys import DatasetKey, ModelKey
 
@@ -32,7 +32,7 @@ def load_config_from_yaml(yaml_path: Path) -> ExperimentConfig:
 
     # get factory and prepare kwargs
     model_key, dataset_key = _get_model_and_dataset_keys(yaml_config)
-    factory: ConfigFactory = _get_config_factory(model_key, dataset_key)
+    factory: ConfigFactory = get_config_factory(model_key, dataset_key)
 
     dataconfig_kwargs = yaml_config.get(DATA_CONFIG, {})
     modelconfig_kwargs = yaml_config.get(MODEL_CONFIG, {})

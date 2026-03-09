@@ -3,7 +3,7 @@ import logging
 import pytest
 
 from SkiNet.ML.configs.config_creator import PH2_UNet_ConfigCreator
-from SkiNet.ML.configs.config_factory import ConfigFactory, PH2_UNet_ConfigFactory, _get_config_factory
+from SkiNet.ML.configs.config_factory import ConfigFactory, PH2_UNet_ConfigFactory, get_config_factory
 from SkiNet.Utils.experiment_keys import DatasetKey, ModelKey
 
 
@@ -21,11 +21,11 @@ def test_config_factory_is_abstract() -> None:
         (ModelKey.UNET2D, DatasetKey.PH2, PH2_UNet_ConfigFactory),
     ],
 )
-def test_get_config_factory_valid(model_key: ModelKey, dataset_key: DatasetKey, expected_factory_type: type) -> None:
+def testget_config_factory_valid(model_key: ModelKey, dataset_key: DatasetKey, expected_factory_type: type) -> None:
     """
     Test that the correct config factory is returned for valid model and dataset keys.
     """
-    factory = _get_config_factory(model_key, dataset_key)
+    factory = get_config_factory(model_key, dataset_key)
     assert isinstance(factory, expected_factory_type)
 
 
@@ -37,14 +37,14 @@ def test_get_config_factory_valid(model_key: ModelKey, dataset_key: DatasetKey, 
         ("unknown", "unknown"),
     ],
 )
-def test_get_config_factory_invalid_raises_and_logs(model_key: ModelKey, dataset_key: DatasetKey, caplog: pytest.LogCaptureFixture) -> None:
+def testget_config_factory_invalid_raises_and_logs(model_key: ModelKey, dataset_key: DatasetKey, caplog: pytest.LogCaptureFixture) -> None:
     """
     Test that the correct error is raised and logged for invalid model and dataset keys.
     """
     logger_name = "SkiNet.ML.configs.config_factory"
     with caplog.at_level(logging.ERROR, logger=logger_name):
         with pytest.raises(ValueError) as exc_info:
-            _get_config_factory(model_key, dataset_key)
+            get_config_factory(model_key, dataset_key)
 
     msg = str(exc_info.value)
     assert "No factory found for model key:" in msg
@@ -57,12 +57,12 @@ def test_get_config_factory_invalid_raises_and_logs(model_key: ModelKey, dataset
                for record in caplog.records)
 
 
-def test_get_config_factory_returns_fresh_instances() -> None:
+def testget_config_factory_returns_fresh_instances() -> None:
     """
     Ensure we instantiate a fresh factory per call (avoid shared mutable state).
     """
-    f1 = _get_config_factory(ModelKey.UNET2D, DatasetKey.PH2)
-    f2 = _get_config_factory(ModelKey.UNET2D, DatasetKey.PH2)
+    f1 = get_config_factory(ModelKey.UNET2D, DatasetKey.PH2)
+    f2 = get_config_factory(ModelKey.UNET2D, DatasetKey.PH2)
     assert f1 is not f2
 
 
@@ -70,6 +70,6 @@ def test_factory_get_config_creator_returns_expected_creator() -> None:
     """
     Ensure the returned factory creates the expected config creator.
     """
-    factory = _get_config_factory(ModelKey.UNET2D, DatasetKey.PH2)
+    factory = get_config_factory(ModelKey.UNET2D, DatasetKey.PH2)
     creator = factory.get_config_creator()
     assert isinstance(creator, PH2_UNet_ConfigCreator)
