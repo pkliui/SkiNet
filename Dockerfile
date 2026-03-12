@@ -16,15 +16,12 @@ COPY environment.yaml .
 # DEBIAN_FRONTEND=noninteractive to prevent any additional prompts during the package installation
 # rm -rf cleans up respective folder after installations
 # build-essential is required to install conda
+# lsb-release and blobfuse2 are required to mount Azure Blob Storage as a file system in Linux
 RUN DEBIAN_FRONTEND=noninteractive \
-    apt-get update && apt-get install -y sudo wget curl unzip build-essential git && \
+    apt-get update && apt-get install -y sudo wget curl unzip build-essential git lsb-release && \
+    wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && apt-get update && apt-get install -y blobfuse2 && \
     rm -rf /var/lib/apt/lists/*
-
-# install AWS CLI
-#RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-#    unzip awscliv2.zip && \
-#    rm awscliv2.zip && \
-#    ./aws/install
 
 # install Azure CLI
 # a separate ARG step to make this step cacheable
@@ -60,4 +57,3 @@ ENV PATH=/opt/conda/envs/${ENV_NAME}/bin:${PATH}
 # add a default user instead of using root in docker
 #RUN useradd -ms /bin/bash skinet_runner
 #USER skinet_runner
-
