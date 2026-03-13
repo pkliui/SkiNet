@@ -3,7 +3,7 @@ GENERAL_CONFIG:
   model: "UNET2D_MODEL"
   dataset: "PH2_DATASET"
 DATA_CONFIG:
-  local_data_root: "PH2Data/"
+  local_data_root:
   azure_data: True
   azure_blob_mount_point: "/mnt/skinet_data/"
 MODEL_CONFIG:
