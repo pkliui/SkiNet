@@ -1,0 +1,35 @@
+# Logger configuration
+logging:
+  type: syslog  #syslog|silent|base
+  level: log_info #log_off|log_crit|log_err|log_warning|log_info|log_trace|log_debug
+  file-path: /workplace/SkiNet/skinet_logs.log #<path where log files shall be stored. Default - '$HOME/.blobfuse2/blobfuse2.log'>
+
+components:
+  - libfuse
+  - block_cache
+  - attr_cache
+  - azstorage
+
+libfuse:
+  attribute-expiration-sec: 120
+  entry-expiration-sec: 120
+  negative-entry-expiration-sec: 120
+
+block_cache:
+  block-size-mb: 16
+  mem-size-mb: 1022
+  prefetch: 16
+  parallelism: 24
+
+attr_cache:
+  timeout-sec: 120
+
+azstorage:
+  type: block # type: block|adls
+  account-name: skinetstorage #<name of the storage account>
+  container: skinet-container #<name of the storage container to be mounted>
+  endpoint: skinetstorage.blob.core.windows.net #<example - https://account-name.blob.core.windows.net>
+  mode: spn #key|sas|spn|msi|azcli
+  clientid: '${AZURE_CLIENT_ID}'  # AZURE_CLIENT_ID
+  tenantid: '${AZURE_TENANT_ID}' # AZURE_TENANT_ID
+  clientsecret: '${AZURE_CLIENT_SECRET}'
