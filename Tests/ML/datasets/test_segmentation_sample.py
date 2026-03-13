@@ -13,11 +13,11 @@ from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_
 def _make_config(df: pd.DataFrame, data_root: Path) -> Any:
     """
     Create a configuration object for the dataset mimicking
-    config.dataconfig.metadata and config.dataconfig.local_data_root.
+    config.dataconfig.metadata and config.dataconfig.data_root.
     """
     cfg = SimpleNamespace(
         metadata=df,
-        local_data_root=str(data_root),
+        data_root=str(data_root),
     )
     return SimpleNamespace(dataconfig=cfg)
 
