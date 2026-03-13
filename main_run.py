@@ -20,6 +20,10 @@ def main(cfg_path: Path, azure_data: bool, batch_size: int, num_workers: int, ma
     """
     Main function to run the pipeline.
     """
+
+    # load config
+    cfg = load_config_from_yaml(cfg_path)
+
     # mount data
     mounter = AzureBlobMounter()
     try:
@@ -29,9 +33,6 @@ def main(cfg_path: Path, azure_data: bool, batch_size: int, num_workers: int, ma
     finally:
         # remove runtime config containing secret
         mounter._cleanup()
-
-    # load config
-    cfg = load_config_from_yaml(cfg_path)
 
     # set up dataset and dataloader
     dataset = SegmentationDataset(cfg)
