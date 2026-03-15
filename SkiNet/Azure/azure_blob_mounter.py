@@ -61,6 +61,12 @@ class AzureBlobMounter:
         # ensure mountpoint exists
         self.mountpoint.mkdir(parents=True, exist_ok=True)
 
+    def _use_managed_identity(self) -> bool:
+        return os.getenv("USE_MANAGED_IDENTITY", "false").lower() == "true"
+
+    def _managed_identity_client_id(self) -> str:
+        return os.getenv("AZURE_MANAGED_IDENTITY_CLIENT_ID", "").strip()
+
     def _ensure_unmounted(self) -> None:
         """
         Ensure the mountpoint is unmounted before attempting to mount.
@@ -118,17 +124,11 @@ class AzureBlobMounter:
         if _is_mounted():
             raise RuntimeError(f"Mountpoint {mp} is still mounted; cannot continue")
 
-    def _require_env(self) -> None:
+    def _require_auth(self) -> None:
         """
         Ensure required environment variables are set in the environment
         """
         AzureSetup.service_principal_authentication()
-        if not os.environ.get("AZURE_CLIENT_SECRET"):
-            raise SystemExit("Set AZURE_CLIENT_SECRET in environment before running")
-        if not os.environ.get("AZURE_TENANT_ID"):
-            raise SystemExit("Set AZURE_TENANT_ID in environment before running")
-        if not os.environ.get("AZURE_CLIENT_ID"):
-            raise SystemExit("Set AZURE_CLIENT_ID in environment before running")
 
     def _create_runtime_config(self) -> Path:
         """
@@ -195,7 +195,7 @@ class AzureBlobMounter:
         Mount Azure Blob Storage to the specified mountpoint using blobfuse2 with a runtime config containing credentials from environment variables.
         """
         self._ensure_unmounted()
-        self._require_env()
+        self._require_auth()
         self._ensure_ownership()
         self.runtime_cfg = self._create_runtime_config()
         self.cfg_path = str(self.runtime_cfg)

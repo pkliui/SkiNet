@@ -5,7 +5,7 @@ from typing import Any, Union
 
 import param
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-from azureml.fsspec import AzureMachineLearningFileSystem
+from azureml.fsspec import AzureMachineLearningFileSystem, ManagedIdentityCredential
 
 from SkiNet.Utils import project_paths
 from SkiNet.Utils.get_configs import get_config_from_yaml
@@ -108,32 +108,40 @@ class AzureSetup(param.Parameterized):
         return fs
 
     @classmethod
-    def service_principal_authentication(cls) -> Union[DefaultAzureCredential, InteractiveBrowserCredential]:
+    def service_principal_authentication(cls) -> Union[DefaultAzureCredential, InteractiveBrowserCredential, ManagedIdentityCredential]:
         """
-        Perform service principal (SP) authentication. SP uses the Azure Identity package for Python.
+        Return an Azure credential usable for both local and Azure compute.
+
+        Priority 1:
+        If an explicit managed identity is requested, use ManagedIdentityCredential instead.
+
+        Priority 2:
+        Perform service principal (SP) authentication.
+
+        SP uses the Azure Identity package for Python.
         The DefaultAzureCredential class looks for the following environment variables and uses their values
         when authenticating as the SP: AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_CLIENT_SECRET. See more at:
         1. https://learn.microsoft.com/en-us/entra/identity-platform/app-objects-and-service-principals?tabs=browser
         2. https://learn.microsoft.com/en-us/azure/machine-learning/how-to-setup-authentication?view=azureml-api-2&tabs=sdk
         3. https://devblogs.microsoft.com/azure-sdk/authentication-and-the-azure-sdk/
         """
+
+        use_managed_identity = os.getenv("USE_MANAGED_IDENTITY", "false").lower() == "true"
+        managed_identity_client_id = os.getenv("AZURE_MANAGED_IDENTITY_CLIENT_ID", "").strip()
+
+        if use_managed_identity:
+            if managed_identity_client_id:
+                logging.getLogger(__name__).info("Using user-assigned managed identity")
+                return ManagedIdentityCredential(client_id=managed_identity_client_id)
+
+            logging.getLogger(__name__).info("Using system-assigned managed identity")
+            return ManagedIdentityCredential()
+
         logging.getLogger(__name__).info(f"Loading Azure configuration from {project_paths.AZURE_SETTINGS_YAML}")
         azure_config = cls.get_azure_config_from_yaml(project_paths.AZURE_SETTINGS_YAML)
 
         logging.getLogger(__name__).info(f"Loading Azure secrets from {project_paths.PRIVATE_AZURE_SECRETS_YAML}")
         azure_secrets = cls.get_azure_config_from_yaml(project_paths.PRIVATE_AZURE_SECRETS_YAML)
-
-        # if some credentials are missing, use the InteractiveBrowserCredential
-        if (not azure_config.AZURE_TENANT_ID) or (not azure_config.AZURE_CLIENT_ID) or (not azure_secrets.AZURE_CLIENT_SECRET):
-            if not azure_config.AZURE_TENANT_ID:
-                logging.getLogger(__name__).warning(f"Missing AZURE_TENANT_ID key in Azure config file {project_paths.AZURE_SETTINGS_YAML}")
-            if not azure_config.AZURE_CLIENT_ID:
-                logging.getLogger(__name__).warning(f"Missing AZURE_CLIENT_ID key in Azure config file {project_paths.AZURE_SETTINGS_YAML}")
-            if not azure_secrets.AZURE_CLIENT_SECRET:
-                logging.getLogger(__name__).warning(f"Missing AZURE_CLIENT_SECRET key in Azure config file {project_paths.PRIVATE_AZURE_SECRETS_YAML}")
-            logging.getLogger(__name__).info("Using InteractiveBrowserCredential to authenticate with Azure")
-
-            return InteractiveBrowserCredential()
 
         # set environment variables needed to perform Azure authentication using DefaultAzureCredential
         logging.getLogger(__name__).info("Setting environment variables AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET")
