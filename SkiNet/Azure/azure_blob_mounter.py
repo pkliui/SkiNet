@@ -7,7 +7,6 @@ from typing import Optional
 
 import yaml
 
-from SkiNet.Azure.azure_setup import AzureSetup
 from SkiNet.Utils.project_paths import AZURE_MOUNT_PATH, BLOBFUSE2_CONFIG_PATH
 
 
@@ -127,7 +126,10 @@ class AzureBlobMounter:
         Ensure required environment variables are set in the environment
         """
         if not self.is_azure_mount:
+            from SkiNet.Azure.azure_setup import AzureSetup
             AzureSetup.service_principal_authentication()
+        else:
+            pass
 
     def _create_runtime_config(self) -> Path:
         """
