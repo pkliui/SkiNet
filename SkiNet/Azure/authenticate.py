@@ -1,7 +1,7 @@
 import logging
 import os
 
-from azureml.fsspec import ManagedIdentityCredential
+from azure.identity import ManagedIdentityCredential
 
 
 def managed_identity_authentication() -> ManagedIdentityCredential:
