@@ -32,23 +32,6 @@ echo "AZURE_MOUNT_PATH=$AZURE_MOUNT_PATH"
 echo "CONTAINER_AZURE_MOUNT_PATH=$CONTAINER_AZURE_MOUNT_PATH"
 
 
-if ! command -v blobfuse2 >/dev/null 2>&1; then
-  echo "==> Installing blobfuse2 on host"
-  sudo apt-get update
-  sudo apt-get install -y lsb-release wget gnupg
-  wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb
-  sudo dpkg -i packages-microsoft-prod.deb
-  sudo apt-get update
-  sudo apt-get install -y blobfuse2
-fi
-
-blobfuse2 --version
-python "$HOST_REPO/scripts/mount_blob_on_host.py"
-
-
-echo "==> Mounting Azure Blob on host"
-python "$HOST_REPO/mount_data.py"
-
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "ERROR: docker is not installed"
@@ -87,6 +70,24 @@ else
   git clone "$REPO_URL" "$HOST_REPO"
   git -C "$HOST_REPO" checkout "$BRANCH"
 fi
+
+
+if ! command -v blobfuse2 >/dev/null 2>&1; then
+  echo "==> Installing blobfuse2 on host"
+  sudo apt-get update
+  sudo apt-get install -y lsb-release wget gnupg
+  wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb
+  sudo dpkg -i packages-microsoft-prod.deb
+  sudo apt-get update
+  sudo apt-get install -y blobfuse2
+fi
+
+blobfuse2 --version
+python "$HOST_REPO/scripts/mount_blob_on_host.py"
+
+
+echo "==> Mounting Azure Blob on host"
+python "$HOST_REPO/mount_data.py"
 
 
 echo "==> Pulling Docker image $IMAGE"
