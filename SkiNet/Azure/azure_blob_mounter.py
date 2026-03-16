@@ -7,6 +7,7 @@ from typing import Optional
 
 import yaml
 
+from SkiNet.Azure.authenticate import managed_identity_authentication
 from SkiNet.Azure.azure_setup import AzureSetup
 from SkiNet.Utils.project_paths import AZURE_MOUNT_PATH, BLOBFUSE2_CONFIG_PATH
 
@@ -42,13 +43,17 @@ class AzureBlobMounter:
 
     def __init__(self,
                  config_path: Path = BLOBFUSE2_CONFIG_PATH,
-                 mount_path: Path = AZURE_MOUNT_PATH) -> None:
+                 mount_path: Path = AZURE_MOUNT_PATH,
+                 is_azure_mount: bool = True) -> None:
         """
         :param config_path: Path to a blobfuse2 YAML config file containing non-secret settings
         (account name, container, etc.) but not credentials.
         :param mount_path: Path to directory where Azure Blob Storage will be mounted.
             The directory is created if it does not already exist.
+        :param is_azure_mount: Whether this mount is for Azure Blob Storage.
+            If True, managed identity will be used. If False, the mounter will do service principal authentication.
         """
+        self.is_azure_mount = is_azure_mount
         self.orig_cfg = Path(config_path)
         if not self.orig_cfg.exists():
             raise FileNotFoundError(f"blobfuse2 config not found: {self.orig_cfg}")
@@ -60,12 +65,6 @@ class AzureBlobMounter:
 
         # ensure mountpoint exists
         self.mountpoint.mkdir(parents=True, exist_ok=True)
-
-    def _use_managed_identity(self) -> bool:
-        return os.getenv("USE_MANAGED_IDENTITY", "false").lower() == "true"
-
-    def _managed_identity_client_id(self) -> str:
-        return os.getenv("AZURE_MANAGED_IDENTITY_CLIENT_ID", "").strip()
 
     def _ensure_unmounted(self) -> None:
         """
@@ -128,7 +127,10 @@ class AzureBlobMounter:
         """
         Ensure required environment variables are set in the environment
         """
-        AzureSetup.service_principal_authentication()
+        if self.is_azure_mount:
+            managed_identity_authentication()
+        else:
+            AzureSetup.service_principal_authentication()
 
     def _create_runtime_config(self) -> Path:
         """

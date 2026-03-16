@@ -12,8 +12,8 @@ def main() -> None:
     mount_path = None
     if base:
         mount_path = Path(base).expanduser() / "azure_blob_data"
-    # mount data (pass mount_path if set)
-    mounter = AzureBlobMounter(mount_path=mount_path) if mount_path is not None else AzureBlobMounter()
+    # mount data on Azure (pass mount_path if set)
+    mounter = AzureBlobMounter(mount_path=mount_path, is_azure_mount=True) if mount_path is not None else AzureBlobMounter()
     try:
         mounter.mount()
     except Exception:
@@ -21,10 +21,6 @@ def main() -> None:
     finally:
         # remove runtime config containing secret
         mounter._cleanup()
-
-
-if __name__ == "__main__":
-    main()
 
 
 if __name__ == "__main__":

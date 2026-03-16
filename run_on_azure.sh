@@ -1,22 +1,36 @@
 #!/usr/bin/env bash
+
+# This script is intended to be run on an Azure VM. It will:
+# 1. Clone the SkiNet repo (or update it if it already exists)
+# 2. Install blobfuse2 if it is not already installed
+# 3. Mount the Azure Blob Storage using blobfuse2
+# 4. Pull the specified Docker image
+# 5. Run a container from the image, mounting the repo and the Azure Blob Storage into the container
+
 set -Eeuo pipefail
 
 IMAGE="${1:?Usage: $0 <docker-image> [script args...]}"
 shift || true
 
+# Set default values for environment variables if they are not already set
+
+# Determine a safe default for the home directory
 DEFAULT_HOME="${HOME:-/home/${USER:-$(whoami)}}"
 
+# Set repository variables
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
 HOST_REPO="${HOST_REPO:-$DEFAULT_HOME/repos/SkiNet}"
 CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
 BRANCH="${BRANCH:-data_on_azure}"
 
-PYTHON_BIN="${PYTHON_BIN:-python}"
+# Set Python binary
+PYTHON_BIN="${PYTHON_BIN:-python3}"
 
-USE_MANAGED_IDENTITY="${USE_MANAGED_IDENTITY:-true}"
+# Azure managed identity ID
 AZURE_MANAGED_IDENTITY_CLIENT_ID="${AZURE_MANAGED_IDENTITY_CLIENT_ID:-}"
-
+# Data mount path on Azure VM
 AZURE_MOUNT_PATH="${AZURE_MOUNT_PATH:-/mnt/azure_blob_data}"
+# Data mount path inside the container
 CONTAINER_AZURE_MOUNT_PATH="${CONTAINER_AZURE_MOUNT_PATH:-/mnt/data}"
 
 echo "Running with the following configuration:"
@@ -26,12 +40,9 @@ echo "HOST_REPO=$HOST_REPO"
 echo "CONTAINER_REPO=$CONTAINER_REPO"
 echo "BRANCH=$BRANCH"
 echo "PYTHON_BIN=$PYTHON_BIN"
-echo "USE_MANAGED_IDENTITY=$USE_MANAGED_IDENTITY"
 echo "AZURE_MANAGED_IDENTITY_CLIENT_ID=$AZURE_MANAGED_IDENTITY_CLIENT_ID"
 echo "AZURE_MOUNT_PATH=$AZURE_MOUNT_PATH"
 echo "CONTAINER_AZURE_MOUNT_PATH=$CONTAINER_AZURE_MOUNT_PATH"
-
-
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "ERROR: docker is not installed"
@@ -84,16 +95,16 @@ fi
 
 blobfuse2 --version
 
-if ! command -v python3 >/dev/null 2>&1; then
-  echo "==> Installing python3 on host"
+if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
+  echo "==> Installing '$PYTHON_BIN' on host"
   sudo apt-get update
-  sudo apt-get install -y python3 python3-pip
+  sudo apt-get install -y "$PYTHON_BIN" python3-pip
 fi
 
-python3 --version
+"$PYTHON_BIN" --version
 
 echo "==> Mounting Azure Blob on host"
-python3 "$HOST_REPO/mount_data.py"
+"$PYTHON_BIN" "$HOST_REPO/mount_data.py"
 
 
 echo "==> Pulling Docker image $IMAGE"

@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Any, Union
 
 import param
-from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-from azureml.fsspec import AzureMachineLearningFileSystem, ManagedIdentityCredential
+from azure.identity import DefaultAzureCredential
+from azureml.fsspec import AzureMachineLearningFileSystem
 
 from SkiNet.Utils import project_paths
 from SkiNet.Utils.get_configs import get_config_from_yaml
@@ -108,14 +108,8 @@ class AzureSetup(param.Parameterized):
         return fs
 
     @classmethod
-    def service_principal_authentication(cls) -> Union[DefaultAzureCredential, InteractiveBrowserCredential, ManagedIdentityCredential]:
+    def service_principal_authentication(cls) -> Union[DefaultAzureCredential]:
         """
-        Return an Azure credential usable for both local and Azure compute.
-
-        Priority 1:
-        If an explicit managed identity is requested, use ManagedIdentityCredential instead.
-
-        Priority 2:
         Perform service principal (SP) authentication.
 
         SP uses the Azure Identity package for Python.
@@ -125,17 +119,6 @@ class AzureSetup(param.Parameterized):
         2. https://learn.microsoft.com/en-us/azure/machine-learning/how-to-setup-authentication?view=azureml-api-2&tabs=sdk
         3. https://devblogs.microsoft.com/azure-sdk/authentication-and-the-azure-sdk/
         """
-
-        use_managed_identity = os.getenv("USE_MANAGED_IDENTITY", "false").lower() == "true"
-        managed_identity_client_id = os.getenv("AZURE_MANAGED_IDENTITY_CLIENT_ID", "").strip()
-
-        if use_managed_identity:
-            if managed_identity_client_id:
-                logging.getLogger(__name__).info("Using user-assigned managed identity")
-                return ManagedIdentityCredential(client_id=managed_identity_client_id)
-
-            logging.getLogger(__name__).info("Using system-assigned managed identity")
-            return ManagedIdentityCredential()
 
         logging.getLogger(__name__).info(f"Loading Azure configuration from {project_paths.AZURE_SETTINGS_YAML}")
         azure_config = cls.get_azure_config_from_yaml(project_paths.AZURE_SETTINGS_YAML)
