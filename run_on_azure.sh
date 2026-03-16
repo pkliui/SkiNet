@@ -79,10 +79,11 @@ if ! command -v blobfuse2 >/dev/null 2>&1; then
   wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb
   sudo dpkg -i packages-microsoft-prod.deb
   sudo apt-get update
-  sudo apt-get install -y blobfuse2
+  sudo apt-get install -y blobfuse2 python
 fi
 
 blobfuse2 --version
+python --version
 python "$HOST_REPO/scripts/mount_blob_on_host.py"
 
 
