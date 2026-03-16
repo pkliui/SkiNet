@@ -79,16 +79,21 @@ if ! command -v blobfuse2 >/dev/null 2>&1; then
   wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb
   sudo dpkg -i packages-microsoft-prod.deb
   sudo apt-get update
-  sudo apt-get install -y blobfuse2 python
+  sudo apt-get install -y blobfuse2
 fi
 
 blobfuse2 --version
-python --version
-python "$HOST_REPO/scripts/mount_blob_on_host.py"
 
+if ! command -v python3 >/dev/null 2>&1; then
+  echo "==> Installing python3 on host"
+  sudo apt-get update
+  sudo apt-get install -y python3 python3-pip
+fi
+
+python3 --version
 
 echo "==> Mounting Azure Blob on host"
-python "$HOST_REPO/mount_data.py"
+python3 "$HOST_REPO/mount_data.py"
 
 
 echo "==> Pulling Docker image $IMAGE"
