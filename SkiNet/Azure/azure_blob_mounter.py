@@ -7,7 +7,6 @@ from typing import Optional
 
 import yaml
 
-from SkiNet.Azure.authenticate import managed_identity_authentication
 from SkiNet.Azure.azure_setup import AzureSetup
 from SkiNet.Utils.project_paths import AZURE_MOUNT_PATH, BLOBFUSE2_CONFIG_PATH
 
@@ -127,9 +126,7 @@ class AzureBlobMounter:
         """
         Ensure required environment variables are set in the environment
         """
-        if self.is_azure_mount:
-            managed_identity_authentication()
-        else:
+        if not self.is_azure_mount:
             AzureSetup.service_principal_authentication()
 
     def _create_runtime_config(self) -> Path:
