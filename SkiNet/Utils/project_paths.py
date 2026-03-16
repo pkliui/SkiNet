@@ -72,10 +72,7 @@ PH2_MASK_PATTERN_AZURE = "**_lesion/**.bmp"
 
 # ______________Data-related for Azure machine_____________
 # Path to a directory on Azure where data from Azure Blob Container is mounted
-AZURE_MOUNT_PATH: Path = Path("/mnt/skinet_data/")
+AZURE_MOUNT_PATH: Path = Path("/mnt/azure_blob_data/")
 
 # Path to blobfuse2 configuration file
 BLOBFUSE2_CONFIG_PATH = AZURE_DIR / "blobfuse2.yaml"
-
-# Path to a script for mounting Azure Blob Storage
-BLOBFUSE2_MOUNT_SCRIPT_PATH = AZURE_DIR / "mount_azure_blob.py"

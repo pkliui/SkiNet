@@ -8,7 +8,6 @@ from pathlib import Path
 
 import torch
 
-from SkiNet.Azure.azure_blob_mounter import AzureBlobMounter
 from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
 from SkiNet.ML.dataloaders.dataloaders import RepeatDataLoader
 from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
@@ -23,16 +22,6 @@ def main(cfg_path: Path) -> None:
 
     # load config
     cfg = load_config_from_yaml(cfg_path)
-
-    # mount data
-    mounter = AzureBlobMounter()
-    try:
-        mounter.mount()
-    except Exception:
-        logging.getLogger(__name__).exception("Mount failed")
-    finally:
-        # remove runtime config containing secret
-        mounter._cleanup()
 
     # set up dataset and dataloader
     dataset = SegmentationDataset(cfg)
