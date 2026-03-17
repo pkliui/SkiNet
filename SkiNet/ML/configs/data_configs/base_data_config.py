@@ -108,8 +108,6 @@ class BaseDataConfig(BaseModel):
             if self.local_data_root is not None:
                 logging.getLogger(__name__).warning("Both azure_data is True and local_data_root is provided. local_data_root will be ignored.")
 
-            # read the metadata CSV file
-            AzureSetup.service_principal_authentication()
             dataset_name = self.DATASET_KEY.value if self.DATASET_KEY is not None else "local"
             logging.getLogger(__name__).info(f"Reading the following dataset on Azure: {dataset_name}")
             fs = AzureSetup.get_azureml_filesystem(dataset_name)
