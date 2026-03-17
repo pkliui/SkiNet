@@ -2,7 +2,7 @@
 logging:
   type: syslog  #syslog|silent|base
   level: log_info #log_off|log_crit|log_err|log_warning|log_info|log_trace|log_debug
-  file-path: /workplace/SkiNet/skinet_logs.log #<path where log files shall be stored. Default - '$HOME/.blobfuse2/blobfuse2.log'>
+  file-path: $HOME/.blobfuse2/blobfuse2.log
 
 components:
   - libfuse
