@@ -108,23 +108,10 @@ class BaseDataConfig(BaseModel):
             if self.local_data_root is not None:
                 logging.getLogger(__name__).warning("Both azure_data is True and local_data_root is provided. local_data_root will be ignored.")
 
-            dataset_name = self.DATASET_KEY.value if self.DATASET_KEY is not None else "local"
-            logging.getLogger(__name__).info(f"Reading the following dataset on Azure: {dataset_name}")
-            fs = AzureSetup.get_azureml_filesystem(dataset_name)
-            _, data_root_on_azure = AzureSetup.get_azure_uri(dataset_name)
-
-            # open metadata CSV file on Azure and read into DataFrame
-            assert self.METADATA_CSV_NAME is not None
-            csv_path_on_azure = str(Path(data_root_on_azure) / self.METADATA_CSV_NAME)
-            try:
-                with fs.open(csv_path_on_azure, "r") as f:
-                    df = pd.read_csv(f, **kwargs)
-                self._validate_dataframe(df, csv_path_on_azure)
-            except Exception as e:
-                # AzureML may raise UserErrorException for missing files
-                msg = f"CSV file not found on Azure at '{csv_path_on_azure}'."
-                logging.getLogger(__name__).error(f"{msg} Original error: {e}")
-                raise FileNotFoundError(f"{msg} Original error: {e}") from e
+            assert self.azure_blob_mount_point is not None
+            csv_path_on_azure = str(Path(self.azure_blob_mount_point) / self.METADATA_CSV_NAME)
+            df = pd.read_csv(csv_path_on_azure, **kwargs)
+            self._validate_dataframe(df, csv_path_on_azure)
         else:
             if self.local_data_root is None:
                 raise ValueError("Provide local_data_root argument pointing to a local dataset root")
