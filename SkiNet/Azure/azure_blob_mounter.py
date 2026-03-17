@@ -222,7 +222,7 @@ class AzureBlobMounter:
         self.runtime_cfg = self._create_runtime_config()
         self.cfg_path = str(self.runtime_cfg)
 
-        cmd = ["blobfuse2", "mount", str(self.mountpoint), f"--config-file={self.cfg_path}", "--log-level=LOG_DEBUG"]
+        cmd = ["blobfuse2", "mount", str(self.mountpoint), f"--config-file={self.cfg_path}", "--log-level=LOG_DEBUG", "--allow-other"]
         logging.getLogger(__name__).info("Running: %s", " ".join(cmd))
         subprocess.run(cmd, check=True)
         logging.getLogger(__name__).info("Mounted at %s", self.mountpoint)
