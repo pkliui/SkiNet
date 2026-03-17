@@ -97,7 +97,7 @@ fi
 
 # Mount Azure Blob Storage using blobfuse2
 echo "==> Mounting Azure Blob on host"
-"$PYTHON_BIN" "$HOST_REPO/mount_data.py" "$AZURE_MOUNT_PATH"
+"$PYTHON_BIN" "$HOST_REPO/mount_data.py" --mount-path="$AZURE_MOUNT_PATH"
 
 echo "==> Pulling Docker image $IMAGE"
 docker pull "$IMAGE"
