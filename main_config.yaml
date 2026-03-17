@@ -5,6 +5,7 @@ GENERAL_CONFIG:
 DATA_CONFIG:
   local_data_root:
   azure_data: True
-  azure_blob_mount_point: "mnt/data/"
+  azure_blob_mount_point: "/mnt/data/"
 MODEL_CONFIG:
+
 TRAIN_CONFIG:
