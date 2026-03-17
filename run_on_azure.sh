@@ -15,7 +15,7 @@ shift || true
 # Set default values for environment variables if they are not already set
 
 # Determine a safe default for the home directory
-DEFAULT_HOME="${HOME:-/home/${USER:-$(whoami)}}"
+DEFAULT_HOME="/home/azureuser"
 
 # Set repository variables
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
@@ -95,15 +95,20 @@ if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
 fi
 "$PYTHON_BIN" --version
 
+
+
 # Mount Azure Blob Storage using blobfuse2
 echo "==> Mounting Azure Blob on host"
+mkdir -p "$AZURE_MOUNT_PATH"
+echo "==> Updating /etc/fuse.conf"
+sudo sed -i 's/^#user_allow_other/user_allow_other/' /etc/fuse.conf
 "$PYTHON_BIN" "$HOST_REPO/mount_data.py" --mount-path="$AZURE_MOUNT_PATH"
 
 echo "==> Pulling Docker image $IMAGE"
 docker pull "$IMAGE"
 
 echo "==> Running fresh container"
-docker run --rm \
+docker run --rm -it\
   --cap-add=SYS_ADMIN \
   --device=/dev/fuse \
   --security-opt apparmor:unconfined \
