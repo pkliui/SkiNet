@@ -1,19 +1,13 @@
+import argparse
 import logging
-import os
 from pathlib import Path
 
 from SkiNet.Azure.azure_blob_mounter import AzureBlobMounter
 
 logging.basicConfig(level=logging.INFO)
 
-def main() -> None:
-
-    base = os.getenv("DEFAULT_HOME")
-    mount_path = None
-    if base:
-        mount_path = Path(base).expanduser() / "azure_blob_data"
-    # mount data on Azure (pass mount_path if set)
-    mounter = AzureBlobMounter(mount_path=mount_path, is_azure_mount=True) if mount_path is not None else AzureBlobMounter()
+def mount_data(mount_path: Path) -> None:
+    mounter = AzureBlobMounter(mount_path=mount_path, is_azure_mount=True)
     try:
         mounter.mount()
     except Exception:
@@ -24,4 +18,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--mount-path", type=Path, required=True,
+                    help="Path to mount Azure Blob Storage on VM host. Must be created and writable on the host before running this script.")
+    args = ap.parse_args()
+    mount_data(args.mount_path)

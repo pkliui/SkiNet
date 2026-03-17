@@ -28,8 +28,8 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 # Azure managed identity ID
 AZURE_MANAGED_IDENTITY_CLIENT_ID="${AZURE_MANAGED_IDENTITY_CLIENT_ID:-}"
-# Data mount path on Azure VM
-AZURE_MOUNT_PATH="${AZURE_MOUNT_PATH:-/mnt/azure_blob_data}"
+# Data mount path on Azure VM - must coincide with the mount path used in mount_data.py
+AZURE_MOUNT_PATH="${AZURE_MOUNT_PATH:-$DEFAULT_HOME/mnt/azure_blob_data}"
 # Data mount path inside the container
 CONTAINER_AZURE_MOUNT_PATH="${CONTAINER_AZURE_MOUNT_PATH:-/mnt/data}"
 
@@ -54,19 +54,13 @@ if ! command -v git >/dev/null 2>&1; then
   exit 1
 fi
 
-
+# Clone or update the repo on the host
 HOST_REPO_PARENT="$(dirname "$HOST_REPO")"
 mkdir -p "$HOST_REPO_PARENT"
 
+# Update repo if it exists, otherwise clone it
 if [[ -d "$HOST_REPO/.git" ]]; then
   echo "==> Repo already exists, updating it"
-
-  if [[ -n "${HOME:-}" ]]; then
-    git config --global --add safe.directory "$HOST_REPO" || true
-  else
-    echo "WARNING: HOME is not set; skipping git config --global safe.directory"
-  fi
-
   git -C "$HOST_REPO" fetch origin
   git -C "$HOST_REPO" checkout "$BRANCH"
   git -C "$HOST_REPO" pull --ff-only origin "$BRANCH"
@@ -75,14 +69,13 @@ else
     echo "ERROR: $HOST_REPO exists but is not a git repo and is not empty"
     exit 1
   fi
-
   echo "==> Cloning repo into $HOST_REPO"
   rm -rf "$HOST_REPO"
   git clone "$REPO_URL" "$HOST_REPO"
   git -C "$HOST_REPO" checkout "$BRANCH"
 fi
 
-
+# Install blobfuse2
 if ! command -v blobfuse2 >/dev/null 2>&1; then
   echo "==> Installing blobfuse2 on host"
   sudo apt-get update
@@ -92,32 +85,28 @@ if ! command -v blobfuse2 >/dev/null 2>&1; then
   sudo apt-get update
   sudo apt-get install -y blobfuse2
 fi
-
 blobfuse2 --version
 
+# Install python
 if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
   echo "==> Installing '$PYTHON_BIN' on host"
   sudo apt-get update
   sudo apt-get install -y "$PYTHON_BIN" python3-pip
 fi
-
 "$PYTHON_BIN" --version
 
+# Mount Azure Blob Storage using blobfuse2
 echo "==> Mounting Azure Blob on host"
-"$PYTHON_BIN" "$HOST_REPO/mount_data.py"
-
+"$PYTHON_BIN" "$HOST_REPO/mount_data.py" "$AZURE_MOUNT_PATH"
 
 echo "==> Pulling Docker image $IMAGE"
 docker pull "$IMAGE"
 
 echo "==> Running fresh container"
-
-
 docker run --rm \
   --cap-add=SYS_ADMIN \
   --device=/dev/fuse \
   --security-opt apparmor:unconfined \
-  -e "USE_MANAGED_IDENTITY=$USE_MANAGED_IDENTITY" \
   --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
   --mount "type=bind,src=$AZURE_MOUNT_PATH,dst=$CONTAINER_AZURE_MOUNT_PATH" \
   -w "$CONTAINER_REPO" \

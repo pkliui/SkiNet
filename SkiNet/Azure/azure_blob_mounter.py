@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 import subprocess
@@ -7,7 +8,7 @@ from typing import Optional
 
 import yaml
 
-from SkiNet.Utils.project_paths import AZURE_MOUNT_PATH, BLOBFUSE2_CONFIG_PATH
+from SkiNet.Utils.project_paths import BLOBFUSE2_CONFIG_PATH
 
 
 class AzureBlobMounter:
@@ -40,8 +41,8 @@ class AzureBlobMounter:
     """
 
     def __init__(self,
+                 mount_path: Path,
                  config_path: Path = BLOBFUSE2_CONFIG_PATH,
-                 mount_path: Path = AZURE_MOUNT_PATH,
                  is_azure_mount: bool = True) -> None:
         """
         :param config_path: Path to a blobfuse2 YAML config file containing non-secret settings
@@ -57,7 +58,7 @@ class AzureBlobMounter:
             raise FileNotFoundError(f"blobfuse2 config not found: {self.orig_cfg}")
         logging.getLogger(__name__).info(f"Using blobfuse2 config: {self.orig_cfg}")
 
-        self.mountpoint = Path(mount_path)
+        self.mountpoint = mount_path
         self.runtime_cfg: Optional[Path] = None
         self.cfg_path: Optional[str] = None
 
@@ -142,7 +143,27 @@ class AzureBlobMounter:
 
         # inline Azure credentials into the config
         az = cfg_data.get("azstorage", {}) or {}
-        # client secret, tenantid, clientid are not specified in the original config
+
+        # Managed identity: prefer using the original config.
+        # If original config is SPN-mode, create a small temp copy switching mode to 'msi' (no secrets added).
+        if self.is_azure_mount:
+            if az.get("mode", "").lower() == "spn":
+                az["mode"] = "msi"
+                cfg_data["azstorage"] = az
+                with tempfile.NamedTemporaryFile("w", delete=False, prefix="blobfuse2_runtime_msi_", suffix=".yaml") as tf:
+                    self.runtime_cfg = Path(tf.name)
+                    yaml.safe_dump(cfg_data, tf)
+                os.chmod(self.runtime_cfg, 0o600)
+                return self.runtime_cfg
+            # original config already suitable for MSI — use it directly
+            return self.orig_cfg
+
+        # Service principal auth: require env vars and inline secrets into a temp runtime config
+        required = ("AZURE_CLIENT_SECRET", "AZURE_TENANT_ID", "AZURE_CLIENT_ID")
+        missing = [k for k in required if not os.environ.get(k)]
+        if missing:
+            raise EnvironmentError(f"Missing required Azure credentials for service principal auth: {', '.join(missing)}")
+
         az["clientsecret"] = os.environ["AZURE_CLIENT_SECRET"]
         az["tenantid"] = os.environ["AZURE_TENANT_ID"]
         az["clientid"] = os.environ["AZURE_CLIENT_ID"]
@@ -209,7 +230,13 @@ class AzureBlobMounter:
 
 
 if __name__ == "__main__":
-    mounter = AzureBlobMounter()
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--mount-path", type=Path, required=True,
+                    help="Path to mount Azure Blob Storage on VM host. Must be created and writable on the host before running this script.")
+    args = ap.parse_args()
+
+    mounter = AzureBlobMounter(mount_path=args.mount_path)
     try:
         mounter.mount()
     except Exception:
