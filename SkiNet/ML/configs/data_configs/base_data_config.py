@@ -108,8 +108,8 @@ class BaseDataConfig(BaseModel):
             if self.local_data_root is not None:
                 logging.getLogger(__name__).warning("Both azure_data is True and local_data_root is provided. local_data_root will be ignored.")
 
-            assert self.azure_blob_mount_point is not None
-            csv_path_on_azure = str(Path(self.azure_blob_mount_point) / self.METADATA_CSV_NAME)
+            assert self.data_root is not None
+            csv_path_on_azure = str(Path(self.data_root) / self.METADATA_CSV_NAME)
             df = pd.read_csv(csv_path_on_azure, **kwargs)
             self._validate_dataframe(df, csv_path_on_azure)
         else:
