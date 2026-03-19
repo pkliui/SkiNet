@@ -1,4 +1,3 @@
-import argparse
 import logging
 import os
 import subprocess
@@ -8,16 +7,18 @@ from typing import Optional
 
 import yaml
 
-from SkiNet.Utils.project_paths import BLOBFUSE2_CONFIG_PATH
-
 
 class AzureBlobMounter:
     """
     Mounts Azure Blob Storage using blobfuse2.
 
     The checked-in blobfuse2 config file should contain only non-secret settings,
-    such as account name, container name, and mount options. Azure credentials are
+    such as account name, container name, and mount options.
+
+    - If authentication is done using service principal, Azure credentials are
     provided via environment variables at runtime and injected into a temporary runtime config.
+    - For managed identity, the original config is used directly if it is already set up for MSI,
+    or a temp copy with mode switched to MSI is created if the original config is set up for SPN.
 
     Example base blobfuse2.yaml:
 
@@ -42,25 +43,25 @@ class AzureBlobMounter:
 
     def __init__(self,
                  mount_path: Path,
-                 config_path: Path = BLOBFUSE2_CONFIG_PATH,
-                 is_azure_mount: bool = True) -> None:
+                 config_path: Path,
+                 is_azure_mount: bool) -> None:
         """
-        :param config_path: Path to a blobfuse2 YAML config file containing non-secret settings
-        (account name, container, etc.) but not credentials.
         :param mount_path: Path to directory where Azure Blob Storage will be mounted.
             The directory is created if it does not already exist.
+        :param config_path: Path to a blobfuse2 YAML config file containing non-secret settings.
         :param is_azure_mount: Whether this mount is for Azure Blob Storage.
             If True, managed identity will be used. If False, the mounter will do service principal authentication.
         """
         self.is_azure_mount = is_azure_mount
-        self.orig_cfg = Path(config_path)
+        self.mountpoint = mount_path
+        self.orig_cfg = config_path
         if not self.orig_cfg.exists():
             raise FileNotFoundError(f"blobfuse2 config not found: {self.orig_cfg}")
         logging.getLogger(__name__).info(f"Using blobfuse2 config: {self.orig_cfg}")
 
-        self.mountpoint = mount_path
         self.runtime_cfg: Optional[Path] = None
-        self.cfg_path: Optional[str] = None
+        """Path to the runtime config used for mounting, which may be the original config or a temporary copy with credentials
+        inlined, depending on the authentication method and original config setup."""
 
         # ensure mountpoint exists
         self.mountpoint.mkdir(parents=True, exist_ok=True)
@@ -127,8 +128,8 @@ class AzureBlobMounter:
         Ensure required environment variables are set in the environment
         """
         if not self.is_azure_mount:
-            from SkiNet.Azure.azure_setup import AzureSetup
-            AzureSetup.service_principal_authentication()
+            from SkiNet.Azure.azure_setup import service_principal_authentication
+            service_principal_authentication()
         else:
             pass
 
@@ -220,27 +221,10 @@ class AzureBlobMounter:
         self._require_auth()
         self._ensure_ownership()
         self.runtime_cfg = self._create_runtime_config()
-        self.cfg_path = str(self.runtime_cfg)
 
-        cmd = ["blobfuse2", "mount", str(self.mountpoint), f"--config-file={self.cfg_path}", "--log-level=LOG_DEBUG", "--allow-other"]
+        # "allow-other" to enable access to the mounted files for other users, such as from Docker containers.
+        cmd = ["blobfuse2", "mount", str(self.mountpoint), f"--config-file={str(self.runtime_cfg)}", "--log-level=LOG_DEBUG", "--allow-other"]
         logging.getLogger(__name__).info("Running: %s", " ".join(cmd))
         subprocess.run(cmd, check=True)
         logging.getLogger(__name__).info("Mounted at %s", self.mountpoint)
         print("Mounted at", self.mountpoint)
-
-
-if __name__ == "__main__":
-
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--mount-path", type=Path, required=True,
-                    help="Path to mount Azure Blob Storage on VM host. Must be created and writable on the host before running this script.")
-    args = ap.parse_args()
-
-    mounter = AzureBlobMounter(mount_path=args.mount_path)
-    try:
-        mounter.mount()
-    except Exception:
-        logging.getLogger(__name__).exception("Mount failed")
-    finally:
-        # remove runtime config containing secret
-        mounter._cleanup()

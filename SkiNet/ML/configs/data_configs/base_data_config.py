@@ -14,17 +14,17 @@ from SkiNet.Utils.experiment_keys import DatasetKey
 
 class BaseDataConfig(BaseModel):
     """
-    Base class for a dataset configuration.
+    Base class to configure dataset from metadata
 
     :param azure_data: Whether data and metadata reside in Azure Blob Storage.
-        If True, metadata is loaded via :class:`~azureml.fsspec.AzureMachineLearningFileSystem`
-        (which is set up via :class:`SkiNet.Azure.azure_setup.AzureSetup`) using DATASET_KEY and
-        METADATA_CSV_NAME.
-        Dataset files are expected to be available at the azure_blob_mount_point configured for the project
-        (see :class:`SkiNet.Azure.azure_blob_mounter.AzureBlobMounter`).
-        If False, metadata and files are read from local_data_root.
+        If True, metadata is read directly from a mounted Azure Blob Storage, assuming
+        the appropriate Managed Identity permissions and configurations are in place.
+        If False, metadata and files are read from a local_data_root.
     :param azure_blob_mount_point: The mount point for the Azure Blob Storage (if using Azure).
+        This is not a path to data and CSV file, but the root mount point for the blob storage.
+        The actual path to the dataset and metadata CSV within the blob storage is determined by the DATASET_KEY and AZURE_SETTINGS_YAML config.
     :param local_data_root: The root path to the local data (if not using Azure).
+        This is the directory where all data and the metadata CSV file resides.
 
     :attributes:
         METADATA_CSV_NAME (Optional[str]): Name of a dataset metadata file used in config, as defined in project paths. Must be specified in subclasses.
@@ -38,7 +38,8 @@ class BaseDataConfig(BaseModel):
 
     Example usage (Azure CSV):
         cfg = MyDatasetConfig(azure_blob_mount_point="mnt/data", azure_data=True)
-        # metadata dataframe is available through
+
+        # in both cases, metadata dataframe is available through
         df = cfg.metadata
 
     Note:
@@ -63,7 +64,8 @@ class BaseDataConfig(BaseModel):
 
     def _validate_config(self) -> None:
         """
-        Validates the configuration by checking for required fields. Raises ValueError if required fields are missing based on the value of azure_data.
+        Validates the configuration by checking for required fields.
+        Raises ValueError if required fields are missing based on the value of azure_data.
         """
         missing = []
 
@@ -104,30 +106,28 @@ class BaseDataConfig(BaseModel):
         Reads dataset metadata file (local or Azure) into a pandas DataFrame, validates, and returns it
         """
         self._validate_config()
-        if self.azure_data:
-            if self.local_data_root is not None:
-                logging.getLogger(__name__).warning("Both azure_data is True and local_data_root is provided. local_data_root will be ignored.")
 
-            assert self.data_root is not None
-            csv_path_on_azure = str(Path(self.data_root) / self.METADATA_CSV_NAME)
-            df = pd.read_csv(csv_path_on_azure, **kwargs)
-            self._validate_dataframe(df, csv_path_on_azure)
-        else:
-            if self.local_data_root is None:
-                raise ValueError("Provide local_data_root argument pointing to a local dataset root")
+        # Authentication and access to Azure Blob Storage are assumed to be handled externally,
+        # e.g. through appropriate Managed Identity permissions and Azure setup.
+        if self.azure_data and self.local_data_root is not None:
+            logging.getLogger(__name__).warning("Both azure_data is True and local_data_root is provided. local_data_root will be ignored.")
+        if not self.azure_data and self.local_data_root is None:
+            raise ValueError("Provide local_data_root argument pointing to a local dataset root")
 
-            # open metadata CSV file on local and read into DataFrame
-            assert self.METADATA_CSV_NAME is not None
-            csv_path_on_local = str(Path(self.local_data_root) / self.METADATA_CSV_NAME)
-            print("csv path on local", csv_path_on_local)
-            df = pd.read_csv(csv_path_on_local, **kwargs)
-            self._validate_dataframe(df, csv_path_on_local)
+        assert self.METADATA_CSV_NAME is not None
+        assert self.data_root is not None
+
+        # read CSV
+        csv_path = str(Path(self.data_root) / self.METADATA_CSV_NAME)
+        df = pd.read_csv(csv_path, **kwargs)
+
+        self._validate_dataframe(df, csv_path)
         self._metadata = df
         return df
 
     @property
     def metadata(self) -> pd.DataFrame:
-        """Returns the loaded DataFrame, reading it if necessary."""
+        """Returns the loaded DataFrame with metadata, reading it if necessary."""
         if self._metadata is None:
             self.read_metadata_csv()
         return self._metadata
@@ -135,7 +135,7 @@ class BaseDataConfig(BaseModel):
     @property
     def data_root(self) -> Path:
         """
-        Returns the root path for the dataset, taking into account whether it is stored on Azure or locally.
+        Returns the root path for the dataset and metadata CSV, taking into account whether it is stored on Azure or locally.
 
         Note DATASET_KEY specified in child classes uniquely identify the dataset. This key is used to locate
         the dataset within the blob storage, as specified in AZURE_SETTINGS_YAML.
@@ -149,7 +149,7 @@ class BaseDataConfig(BaseModel):
             assert self.azure_blob_mount_point is not None
             assert self.DATASET_KEY is not None
 
-            azure_config = AzureSetup.get_azure_config_from_yaml(project_paths.AZURE_SETTINGS_YAML)
+            azure_config = AzureSetup.from_yaml(project_paths.AZURE_SETTINGS_YAML)
             relative_dataset_root = azure_config.PATH_ON_DATASTORE[self.DATASET_KEY.value]
             return Path(self.azure_blob_mount_point) / Path(relative_dataset_root)
         else:

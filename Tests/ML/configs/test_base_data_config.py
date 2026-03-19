@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from SkiNet.ML.configs.data_configs.base_data_config import BaseDataConfig
-from SkiNet.ML.configs.datasets.dataset_keys import DatasetKey
+from SkiNet.Utils.experiment_keys import DatasetKey
 
 CSV_NAME = "dummy.csv"
 
@@ -29,7 +29,7 @@ def test_basedataconfig_column_validation(tmp_path: Path, columns: list[str], sh
     df = pd.DataFrame([{col: "dummy" for col in columns}])
     csv_path = tmp_path / CSV_NAME
     df.to_csv(csv_path, index=False)
-    cfg = DummyConfig(local_data_root=str(tmp_path), azure_data=False)
+    cfg = DummyConfig(local_data_root=str(tmp_path), azure_data=False, azure_blob_mount_point=str(tmp_path))
     if should_raise:
         with pytest.raises(ValueError, match="missing required columns"):
             _ = cfg.metadata
@@ -44,7 +44,7 @@ def test_basedataconfig_all_empty_required_columns(tmp_path: Path) -> None:
     df = pd.DataFrame([{"a": "", "b": ""}])
     csv_path = tmp_path / CSV_NAME
     df.to_csv(csv_path, index=False)
-    cfg = DummyConfig(local_data_root=str(tmp_path), azure_data=False)
+    cfg = DummyConfig(local_data_root=str(tmp_path), azure_data=False, azure_blob_mount_point=str(tmp_path))
     with pytest.raises(ValueError, match="all required columns have only empty values"):
         _ = cfg.metadata
 
@@ -55,7 +55,7 @@ def test_basedataconfig_empty_csv(tmp_path: Path) -> None:
     """
     csv_path = tmp_path / CSV_NAME
     csv_path.write_text("")
-    cfg = DummyConfig(local_data_root=str(tmp_path), azure_data=False)
+    cfg = DummyConfig(local_data_root=str(tmp_path), azure_data=False, azure_blob_mount_point=str(tmp_path))
     with pytest.raises(pd.errors.EmptyDataError):
         _ = cfg.metadata
 
@@ -66,7 +66,7 @@ def test_basedataconfig_success(tmp_path: Path) -> None:
     df = pd.DataFrame([{"a": 1, "b": 2}])
     csv_path = tmp_path / CSV_NAME
     df.to_csv(csv_path, index=False)
-    cfg = DummyConfig(local_data_root=str(tmp_path), azure_data=False)
+    cfg = DummyConfig(local_data_root=str(tmp_path), azure_data=False, azure_blob_mount_point=str(tmp_path))
     loaded = cfg.metadata
     assert set(loaded.columns) == {"a", "b"}
     assert loaded.iloc[0]["a"] == 1

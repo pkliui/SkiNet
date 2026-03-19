@@ -95,8 +95,6 @@ if ! command -v "$PYTHON_BIN" >/dev/null 2>&1; then
 fi
 "$PYTHON_BIN" --version
 
-
-
 # Mount Azure Blob Storage using blobfuse2
 echo "==> Mounting Azure Blob on host"
 mkdir -p "$AZURE_MOUNT_PATH"

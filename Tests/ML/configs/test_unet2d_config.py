@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from SkiNet.ML.configs.unet2d_config import UNet2DModelConfig
+from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 
 
 @pytest.mark.parametrize(
