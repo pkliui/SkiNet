@@ -53,6 +53,26 @@ PRIVATE_AZURE_SECRETS_YAML_NAME = "PrivateAzureSecrets.yaml"
 PRIVATE_AZURE_SECRETS_YAML = AZURE_DIR / PRIVATE_AZURE_SECRETS_YAML_NAME
 
 # ______________Data-related_____________
-# NB: For the dataset keys see SkiNet.ML.configs.datasets.dataset_keys.AzureDatasetKey class
+
+# PH2 dataset
+
+# NB: For the dataset keys see SkiNet.ML.configs.datasets.dataset_keys.DatasetKey class
 # Name of the CSV file containing metadata for the PH2 dataset, how it is saved or read from the disk
 PH2_CSV_NAME = "ph2_metadata.csv"
+
+# Name of the TXT file containing the PH2 dataset's metadata as it is originally provided by the dataset authors
+PH2_TXT_NAME = "PH2_dataset.txt"
+
+# Local image and mask patterns
+PH2_IMAGE_PATTERN_LOCAL = "**/*_Dermoscopic_Image/*.bmp"
+PH2_MASK_PATTERN_LOCAL = "**/*_lesion/*.bmp"
+PH2_IMAGE_PATTERN_AZURE = "**_Dermoscopic_Image/**.bmp"
+PH2_MASK_PATTERN_AZURE = "**_lesion/**.bmp"
+
+
+# ______________Data-related for Azure machine_____________
+# Path to a directory on Azure where data from Azure Blob Container is mounted
+AZURE_MOUNT_PATH: Path = Path("/mnt/azure_blob_data/")
+
+# Path to blobfuse2 configuration file
+BLOBFUSE2_CONFIG_PATH = AZURE_DIR / "blobfuse2.yaml"

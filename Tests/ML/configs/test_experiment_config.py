@@ -1,0 +1,69 @@
+from pathlib import Path
+
+import pytest
+from pydantic import ValidationError
+
+from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
+from SkiNet.ML.configs.experiment_config import ExperimentConfig
+from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
+from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
+
+
+def make_valid_experiment_config_kwargs() -> dict:
+    return {"experiment_type": "segmentation",
+            "experiment_name": "unet2d_ph2_experiment",
+            "description": "UNet2D on PH2 dataset",
+            # provide minimal placeholder values for required PH2DatasetConfig args
+            "dataconfig": PH2DatasetConfig(
+                azure_data=False,
+                local_data_root=str(Path("/tmp")),
+                kind="ph2"),
+            "modelconfig": UNet2DModelConfig(),
+            "trainconfig": BaseTrainConfig()}
+
+
+def test_experiment_config_valid() -> None:
+    """
+    ExperimentConfig should be created successfully with valid nested configs.
+    """
+    config = ExperimentConfig(**make_valid_experiment_config_kwargs())
+
+    assert config.experiment_type == "segmentation"
+    assert config.experiment_name == "unet2d_ph2_experiment"
+    assert config.description == "UNet2D on PH2 dataset"
+    assert isinstance(config.dataconfig, PH2DatasetConfig)
+    assert isinstance(config.modelconfig, UNet2DModelConfig)
+    assert isinstance(config.trainconfig, BaseTrainConfig)
+
+
+def test_experiment_config_forbids_extra_top_level_fields() -> None:
+    """
+    ExperimentConfig should reject unknown top-level fields.
+    """
+    kwargs = make_valid_experiment_config_kwargs()
+    kwargs["unexpected_field"] = "not allowed"
+
+    with pytest.raises(ValidationError, match="unexpected_field"):
+        ExperimentConfig(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "missing_field",
+    [
+        "experiment_type",
+        "experiment_name",
+        "description",
+        "dataconfig",
+        "modelconfig",
+        "trainconfig",
+    ],
+)
+def test_experiment_config_missing_required_fields(missing_field: str) -> None:
+    """
+    ExperimentConfig should raise ValidationError when required fields are missing.
+    """
+    kwargs = make_valid_experiment_config_kwargs()
+    del kwargs[missing_field]
+
+    with pytest.raises(ValidationError, match=missing_field):
+        ExperimentConfig(**kwargs)

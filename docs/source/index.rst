@@ -18,6 +18,7 @@ Contents
 
    documentation
    development
+   config
    data_handling
    dataloaders
    azure_setup

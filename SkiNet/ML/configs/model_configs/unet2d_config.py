@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from SkiNet.ML.configs.base_model_config import BaseModelConfig
+from SkiNet.ML.configs.model_configs.base_model_config import BaseModelConfig
 from SkiNet.ML.utils.sampling.encoder_sampling import validate_conv_inputs
 from SkiNet.ML.utils.typing_utils import IntOrTuple2d
 
