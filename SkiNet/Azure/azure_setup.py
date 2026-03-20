@@ -190,7 +190,7 @@ def service_principal_authentication() -> Any:
     os.environ["AZURE_CLIENT_ID"] = azure_config.AZURE_CLIENT_ID or ""
     logging.getLogger(__name__).info("Set environment variables AZURE_TENANT_ID, AZURE_CLIENT_ID")
 
-    if not os.environ["AZURE_CLIENT_SECRET"]:
+    if not os.environ.get("AZURE_CLIENT_SECRET"):
         azure_secrets = AzureSecrets(**get_config_from_yaml(project_paths.PRIVATE_AZURE_SECRETS_YAML))
         os.environ["AZURE_CLIENT_SECRET"] = azure_secrets.AZURE_CLIENT_SECRET or ""
         logging.getLogger(__name__).info(f"Loaded Azure secrets from {project_paths.PRIVATE_AZURE_SECRETS_YAML}")
