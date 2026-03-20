@@ -157,7 +157,7 @@ class AzureSetup(BaseModel):
         return data_root_on_azure
 
     @classmethod
-    def get_azureml_filesystem(cls, dataset_name: str) -> AzureMachineLearningFileSystem:
+    def get_azureml_filesystem(cls, dataset_name: str) -> Any:
         """
         Get AzureMachineLearningFileSystem for a dataset.
 
@@ -183,17 +183,17 @@ def service_principal_authentication() -> Any:
     """
     # import here to avoid module-level dependency for environments w/o Azure SDK
     from azure.identity import DefaultAzureCredential
+
     azure_config = AzureSetup.from_yaml(project_paths.AZURE_SETTINGS_YAML)
     logging.getLogger(__name__).info(f"Loaded Azure configuration from {project_paths.AZURE_SETTINGS_YAML}")
-
-    azure_secrets = AzureSecrets(**get_config_from_yaml(project_paths.PRIVATE_AZURE_SECRETS_YAML))
-    logging.getLogger(__name__).info(f"Loaded Azure secrets from {project_paths.PRIVATE_AZURE_SECRETS_YAML}")
-
-    # set environment variables needed to perform Azure authentication using DefaultAzureCredential
-    logging.getLogger(__name__).info("Setting environment variables AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET")
     os.environ["AZURE_TENANT_ID"] = azure_config.AZURE_TENANT_ID or ""
     os.environ["AZURE_CLIENT_ID"] = azure_config.AZURE_CLIENT_ID or ""
-    os.environ["AZURE_CLIENT_SECRET"] = azure_secrets.AZURE_CLIENT_SECRET or ""
+    logging.getLogger(__name__).info("Set environment variables AZURE_TENANT_ID, AZURE_CLIENT_ID")
+
+    if not os.environ["AZURE_CLIENT_SECRET"]:
+        azure_secrets = AzureSecrets(**get_config_from_yaml(project_paths.PRIVATE_AZURE_SECRETS_YAML))
+        os.environ["AZURE_CLIENT_SECRET"] = azure_secrets.AZURE_CLIENT_SECRET or ""
+        logging.getLogger(__name__).info(f"Loaded Azure secrets from {project_paths.PRIVATE_AZURE_SECRETS_YAML}")
 
     # The DefaultAzureCredential tries to infer what environment is being used and uses the most appropriate credential.
     # Env variables set above are its 1st choice and will be used along with Azure Active Directory to authenticate the connection.
