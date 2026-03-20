@@ -25,7 +25,7 @@ class PH2DatasetConfig(BaseDataConfig):
 
     Example usage for an Azure dataset:
     ```
-    cfg = PH2DatasetConfig(azure_data=True)
+    cfg = PH2DatasetConfig(azure_blob_mount_point="mnt/data", azure_data=True)
     df = cfg.metadata
     ```
 

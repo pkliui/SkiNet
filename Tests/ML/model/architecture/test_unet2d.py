@@ -132,7 +132,7 @@ def test_unet_layers_n4_forward() -> None:
 # --------------------------------------------------
 # UNet forward shape tests
 # --------------------------------------------------
-
+@pytest.mark.unet2d
 @pytest.mark.parametrize(
     "batch_size,in_channels,out_channels_layer1,num_layers,num_classes,input_size",
     [
@@ -177,7 +177,7 @@ def test_unet2d_forward_shape(batch_size: int,
 # --------------------------------------------------
 # UNet gradient, backward test
 # --------------------------------------------------
-
+@pytest.mark.unet2d
 @pytest.mark.parametrize(
     "batch_size,in_channels,out_channels_layer1,num_layers,num_classes,input_size",
     [
