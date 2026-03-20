@@ -21,7 +21,7 @@ DEFAULT_HOME="/home/azureuser"
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
 HOST_REPO="${HOST_REPO:-$DEFAULT_HOME/repos/SkiNet}"
 CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
-BRANCH="${BRANCH:-data_on_azure}"
+BRANCH="${BRANCH:-dev}"
 
 # Set Python binary
 PYTHON_BIN="${PYTHON_BIN:-python3}"
