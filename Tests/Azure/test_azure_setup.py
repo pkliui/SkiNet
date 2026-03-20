@@ -64,12 +64,12 @@ def private_azure_secrets_yaml_missing_key(tmp_path: Path) -> Tuple[Path, dict]:
 @pytest.fixture
 def mock_default_azure_credential(monkeypatch: pytest.MonkeyPatch) -> Type:
     """
-    Mock SkiNet.Azure.azure_setup.DefaultAzureCredential
+    Mock azure.identity.DefaultAzureCredential
     """
     class DummyCredential:
         pass
 
-    monkeypatch.setattr("SkiNet.Azure.azure_setup.DefaultAzureCredential", DummyCredential)
+    monkeypatch.setattr("azure.identity.DefaultAzureCredential", DummyCredential)
     return DummyCredential
 
 
@@ -264,7 +264,7 @@ def test_managed_identity_authentication_user_assigned(monkeypatch: pytest.Monke
     class DummyCredential:
         def __init__(self, client_id: str | None = None) -> None:
             self.client_id = client_id
-    monkeypatch.setattr("SkiNet.Azure.azure_setup.ManagedIdentityCredential", DummyCredential)
+    monkeypatch.setattr("azure.identity.ManagedIdentityCredential", DummyCredential)
     credential = managed_identity_authentication()
     assert isinstance(credential, DummyCredential)
     assert credential.client_id == "user_client_id"
@@ -280,7 +280,7 @@ def test_managed_identity_authentication_default_identity(monkeypatch: pytest.Mo
     class DummyCredential:
         def __init__(self, client_id: str | None = None) -> None:
             self.client_id = client_id
-    monkeypatch.setattr("SkiNet.Azure.azure_setup.ManagedIdentityCredential", DummyCredential)
+    monkeypatch.setattr("azure.identity.ManagedIdentityCredential", DummyCredential)
     credential = managed_identity_authentication()
     assert isinstance(credential, DummyCredential)
     assert credential.client_id == "default_client_id"
@@ -294,7 +294,7 @@ def test_managed_identity_authentication_system_assigned(monkeypatch: pytest.Mon
     class DummyCredential:
         def __init__(self, client_id: str | None = None) -> None:
             self.client_id = client_id
-    monkeypatch.setattr("SkiNet.Azure.azure_setup.ManagedIdentityCredential", DummyCredential)
+    monkeypatch.setattr("azure.identity.ManagedIdentityCredential", DummyCredential)
     credential = managed_identity_authentication()
     assert isinstance(credential, DummyCredential)
     assert credential.client_id is None

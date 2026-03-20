@@ -1,9 +1,8 @@
 import logging
 import os
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
 from azureml.fsspec import AzureMachineLearningFileSystem
 from pydantic import BaseModel, Field, model_validator
 
@@ -170,7 +169,7 @@ class AzureSetup(BaseModel):
         return fs
 
 
-def service_principal_authentication() -> DefaultAzureCredential:
+def service_principal_authentication() -> Any:
     """
     Perform service principal (SP) authentication.
     Used for local development and other environments where you can securely store SP credentials.
@@ -182,7 +181,8 @@ def service_principal_authentication() -> DefaultAzureCredential:
     2. https://learn.microsoft.com/en-us/azure/machine-learning/how-to-setup-authentication?view=azureml-api-2&tabs=sdk
     3. https://devblogs.microsoft.com/azure-sdk/authentication-and-the-azure-sdk/
     """
-
+    # import here to avoid module-level dependency for environments w/o Azure SDK
+    from azure.identity import DefaultAzureCredential
     azure_config = AzureSetup.from_yaml(project_paths.AZURE_SETTINGS_YAML)
     logging.getLogger(__name__).info(f"Loaded Azure configuration from {project_paths.AZURE_SETTINGS_YAML}")
 
@@ -205,12 +205,14 @@ def service_principal_authentication() -> DefaultAzureCredential:
 
     return DefaultAzureCredential()
 
-def managed_identity_authentication() -> ManagedIdentityCredential:
+def managed_identity_authentication() -> Any:
     """
     Authenticate using Azure Managed Identity.
     Used to access Azure resources like Azure Blob Storage without the need for explicit credentials.
     For example, in Azure Compute instances.
     """
+    # import here to avoid module-level dependency for environments w/o Azure SDK
+    from azure.identity import ManagedIdentityCredential
     client_id = (
         os.getenv("AZURE_MANAGED_IDENTITY_CLIENT_ID", "").strip()
         or os.getenv("DEFAULT_IDENTITY_CLIENT_ID", "").strip()
