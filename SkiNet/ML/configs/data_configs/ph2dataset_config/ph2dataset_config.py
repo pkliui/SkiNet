@@ -32,6 +32,8 @@ class PH2DatasetConfig(BaseDataConfig):
     """
     kind: Literal["ph2"] = Field("ph2", description="Dataset kind identifier for PH2. Used for config selection and validation.")
 
+    crop_size: tuple[int, int] = Field((256, 256), description="Size to which images will be cropped. Default is 256.")
+
     REQUIRED_COLUMNS: ClassVar[Set[str]] = {SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER}
     DATASET_KEY: ClassVar[DatasetKey] = DatasetKey.PH2
     METADATA_CSV_NAME: ClassVar[str] = PH2_CSV_NAME
