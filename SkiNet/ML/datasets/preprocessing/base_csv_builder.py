@@ -11,7 +11,7 @@ import pandas as pd
 from azureml.fsspec import AzureMachineLearningFileSystem
 from numpy.typing import NDArray
 
-from SkiNet.Azure.azure_setup import AzureSetup
+from SkiNet.Azure.azure_setup import AzureSetup, service_principal_authentication
 from SkiNet.ML.utils.data_utils import convert_to_numpy_bytes, filter_missing_images_and_masks
 from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_IMAGE, DATATYPE_MASK, SAMPLEID_HEADER
 
@@ -19,6 +19,9 @@ from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_
 class BaseCSVBuilder(ABC):
     """
     Generic abstract base class for building CSV metadata for datasets, supporting both local and Azure data sources.
+
+    Expected to be called on local due to service principal authentication in AzureMachineLearningFileSystem,
+    but the design allows for flexibility in supporting both environments if refactored.
     """
 
     @property
@@ -207,6 +210,9 @@ class LocalCSVBuilder(BaseCSVBuilder):
 class AzureCSVBuilder(BaseCSVBuilder):
     """
     Base class for building Azure CSV metadata.
+
+    Expected to be called on local due to service principal authentication in AzureMachineLearningFileSystem,
+    but the design allows for flexibility in supporting both environments if refactored.
     """
 
     def __init__(self, dataset_name: str):
@@ -214,9 +220,9 @@ class AzureCSVBuilder(BaseCSVBuilder):
         :param dataset_name: One of the dataset names from DatasetKey enum or a YAML file that maps to a dataset path on Azure.
             The value of the dataset name must match the key in the YAML config file under PATH_ON_DATASTORE.
         """
-        AzureSetup.service_principal_authentication()
+        service_principal_authentication()
         self.fs = AzureSetup.get_azureml_filesystem(dataset_name)
-        _, self._data_root_on_azure = AzureSetup.get_azure_uri(dataset_name)
+        self._data_root_on_azure = AzureSetup.get_rel_data_root_on_azure(dataset_name)
 
     @property
     def data_root_on_azure(self) -> str:

@@ -68,3 +68,11 @@ PH2_IMAGE_PATTERN_LOCAL = "**/*_Dermoscopic_Image/*.bmp"
 PH2_MASK_PATTERN_LOCAL = "**/*_lesion/*.bmp"
 PH2_IMAGE_PATTERN_AZURE = "**_Dermoscopic_Image/**.bmp"
 PH2_MASK_PATTERN_AZURE = "**_lesion/**.bmp"
+
+
+# ______________Data-related for Azure machine_____________
+# Path to a directory on Azure where data from Azure Blob Container is mounted
+AZURE_MOUNT_PATH: Path = Path("/mnt/azure_blob_data/")
+
+# Path to blobfuse2 configuration file
+BLOBFUSE2_CONFIG_PATH = AZURE_DIR / "blobfuse2.yaml"

@@ -117,22 +117,20 @@ def test_ph2datasetconfig_file_paths_exist_azure(monkeypatch: pytest.MonkeyPatch
     img_path.write_text("image data")
     mask_path.write_text("mask data")
 
-    # Expected data
+#    Create the expected metadata CSV file
+    metadata_csv_path = tmp_path / "ph2_metadata.csv"
     expected_rows = [
         {SAMPLEID_HEADER: "ID1", DATAPATH_HEADER: str(img_path), DATATYPE_HEADER: "image"},
         {SAMPLEID_HEADER: "ID1", DATAPATH_HEADER: str(mask_path), DATATYPE_HEADER: "mask"},
     ]
 
     df = pd.DataFrame(expected_rows)
-    csv_buffer = StringIO()
-    df.to_csv(csv_buffer, index=False)
-    csv_buffer.seek(0)
+    df.to_csv(metadata_csv_path, index=False)
 
     # Mock AzureSetup and fs.open to return our CSV buffer
     class MockFS:
         def open(self, *args: Any, **kwargs: Any) -> StringIO:
-            csv_buffer.seek(0)
-            return csv_buffer
+            return StringIO(metadata_csv_path.read_text())
 
     class MockAzureSetup:
         @staticmethod
@@ -147,10 +145,19 @@ def test_ph2datasetconfig_file_paths_exist_azure(monkeypatch: pytest.MonkeyPatch
         def get_azure_uri(dataset_name: str) -> tuple[str, str]:
             return ("unused", "mock/path/on/azure")
 
+        @staticmethod
+        def from_yaml(path: str) -> Any:
+            # Return a dummy config object with PATH_ON_DATASTORE attribute
+            class DummyConfig:
+                PATH_ON_DATASTORE = {"PH2_DATASET": ""}
+            return DummyConfig()
+
     # Mock the AzureSetup class in base_data_config
     monkeypatch.setattr(base_data_config, "AzureSetup", MockAzureSetup)
 
-    cfg = PH2DatasetConfig(azure_data=True)  # type: ignore
+    cfg = PH2DatasetConfig(azure_data=True,
+                           azure_blob_mount_point=str(tmp_path),
+                           kind="ph2")  # type: ignore
     df_loaded = cfg.metadata
 
     # Check that all paths exist and all columns match expected values
