@@ -1,23 +1,50 @@
-from SkiNet.ML.datasets.sample_specs import Sample
+import logging
 
+import torch
 
-def crop_2d_image(sample: Sample, crop_size: tuple[int, int]) -> list[slice]:
+logger = logging.getLogger(__name__)
+
+def crop_2d_image(image: torch.Tensor, crop_size: tuple[int, int]) -> list[slice]:
     """
-    Crops a 2D image around a specified center.
+    Returns slices for cropping spatial dimensions of a 2D image or 4D tensor.
+    Handles images with shape (1, H, W, C) or (1, H, W), or (H, W, C), (H, W).
 
     :param crop_size: (crop_height, crop_width).
-    :return: Cropped image.
+    :return: List of slice objects for spatial dimensions.
     """
-    sample_size = sample.image.shape
-    center = (crop_size[0] // 2, crop_size[1] // 2)
+    img_shape = image.shape
 
-    slices = []
-    for i in range(len(crop_size)):
-        if crop_size[i] > sample_size[i]:
-            raise ValueError(f"Crop size {crop_size[i]} exceeds image size {sample_size[i]} in dimension {i}")
-        start = max(center[i] - crop_size[i] // 2, 0)
-        end = min(start + crop_size[i], sample_size[i])
-        # Adjust start if end-start < crop_size (near boundary)
-        start = max(end - crop_size[i], 0)
-        slices.append(slice(start, end))
+    # Identify spatial dimensions (always height and width)
+    if len(img_shape) == 4:  # (batch, H, W, C)
+        h, w = img_shape[1], img_shape[2]
+        spatial_idxs = [1, 2]
+    elif len(img_shape) == 3 and img_shape[-1] <= 3:  # (H, W, C)
+        h, w = img_shape[0], img_shape[1]
+        spatial_idxs = [0, 1]
+    elif len(img_shape) == 3:  # (batch, H, W)
+        h, w = img_shape[1], img_shape[2]
+        spatial_idxs = [1, 2]
+    elif len(img_shape) == 2:  # (H, W)
+        h, w = img_shape[0], img_shape[1]
+        spatial_idxs = [0, 1]
+    else:
+        logger.error(f"Unsupported image shape: {img_shape}")
+        raise ValueError(f"Unsupported image shape: {img_shape}")
+
+    crop_h, crop_w = crop_size
+    if crop_h > h or crop_w > w:
+        logger.error(f"Crop size {crop_size} exceeds image size {(h, w)}")
+        raise ValueError(f"Crop size {crop_size} exceeds image size {(h, w)}")
+
+    center_h = h // 2
+    center_w = w // 2
+    start_h = max(center_h - crop_h // 2, 0)
+    end_h = start_h + crop_h
+    start_w = max(center_w - crop_w // 2, 0)
+    end_w = start_w + crop_w
+
+    # Build slices for all dimensions, cropping only spatial dims
+    slices = [slice(None)] * len(img_shape)
+    slices[spatial_idxs[0]] = slice(start_h, end_h)
+    slices[spatial_idxs[1]] = slice(start_w, end_w)
     return slices

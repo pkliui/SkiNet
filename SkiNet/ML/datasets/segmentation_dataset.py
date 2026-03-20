@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.datasets.sample_specs import create_valid_samplespecs, load_sample
+from SkiNet.ML.transformations.crop_data import crop_2d_image
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class SegmentationDataset(BaseDataset):
         :param config: The experiment configuration containing dataset metadata and data root information.
         """
         super().__init__(config=config)
+        self.config = config
         self.dataframe = config.dataconfig.metadata
         """A pandas DataFrame containing metadata for the dataset."""
         self.data_root = Path(config.dataconfig.data_root)
@@ -59,4 +61,8 @@ class SegmentationDataset(BaseDataset):
         specs_item = self.sample_specs[self.sample_ids[index]]
         sample = load_sample(specs_item,
                              data_root=self.data_root)
-        return {"image": sample.image, "mask": sample.mask, "specs": sample.specs.model_dump()}
+        # Apply cropping to the image and mask tensors based on the specified crop size in the experiment configuration.
+        slices_image = crop_2d_image(sample.image, self.config.dataconfig.crop_size)
+        slices_mask = crop_2d_image(sample.mask, self.config.dataconfig.crop_size)
+
+        return {"image": sample.image[slices_image], "mask": sample.mask[slices_mask], "specs": sample.specs.model_dump()}

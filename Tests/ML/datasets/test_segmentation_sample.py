@@ -9,6 +9,10 @@ import torch
 from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
 from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_IMAGE, DATATYPE_MASK, SAMPLEID_HEADER
 
+CROP_SIZE = (256, 256)  # as in main_config
+IMG_SIZE = (572, 765)  # as in main_run dummy sample
+IMG_CHANNELS = 3  # as in main_run dummy sample
+MASK_SIZE = (572, 765)  # as in main_run dummy sample
 
 def _make_config(df: pd.DataFrame, data_root: Path) -> Any:
     """
@@ -18,6 +22,7 @@ def _make_config(df: pd.DataFrame, data_root: Path) -> Any:
     cfg = SimpleNamespace(
         metadata=df,
         data_root=str(data_root),
+        crop_size=CROP_SIZE,
     )
     return SimpleNamespace(dataconfig=cfg)
 
@@ -105,8 +110,9 @@ def test_segmentation_dataset_getitem_returns_expected_payload(tmp_path: Path, m
 
     class DummySample:
         def __init__(self) -> None:
-            self.image = torch.tensor([[1, 2], [3, 4]])
-            self.mask = torch.tensor([[0, 1], [1, 0]])
+            # Realistic shapes: batch, height, width, channels for image; batch, height, width for mask
+            self.image = torch.rand(1, IMG_SIZE[0], IMG_SIZE[1], IMG_CHANNELS)  # float tensor, channels last
+            self.mask = torch.rand(1, MASK_SIZE[0], MASK_SIZE[1])  # float tensor, no explicit channels
             self.specs = DummySpecs()
 
     def fake_load_sample(specs_item: Any, data_root: Path) -> DummySample:
@@ -122,8 +128,8 @@ def test_segmentation_dataset_getitem_returns_expected_payload(tmp_path: Path, m
     item = dataset[0]
 
     assert set(item.keys()) == {"image", "mask", "specs"}
-    assert torch.equal(item["image"], torch.tensor([[1, 2], [3, 4]]))
-    assert torch.equal(item["mask"], torch.tensor([[0, 1], [1, 0]]))
+    assert item["image"].shape == (1, CROP_SIZE[0], CROP_SIZE[1], 3)
+    assert item["mask"].shape == (1, CROP_SIZE[0], CROP_SIZE[1])
     assert item["specs"]["sample_id"] == "sample-1"
 
 
