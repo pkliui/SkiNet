@@ -1,6 +1,7 @@
 import argparse
 import logging
 from pathlib import Path
+import shutil
 
 from SkiNet.Azure.azure_blob_mounter import AzureBlobMounter
 from SkiNet.Utils.project_paths import BLOBFUSE2_CONFIG_PATH
@@ -27,6 +28,11 @@ def mount_data(mount_path: Path, config_path: Path, is_azure_mount: bool) -> Non
     :param is_azure_mount: Whether this mount is for Azure Blob Storage.
             If True, managed identity will be used. If False, the mounter will do service principal authentication.
     """
+    # Ensure the mount directory is clean
+    if mount_path.exists():
+        logging.getLogger(__name__).info(f"Removing existing mount path: {mount_path}")
+        shutil.rmtree(mount_path)
+    mount_path.mkdir(parents=True, exist_ok=True)
     mounter = AzureBlobMounter(mount_path=mount_path, config_path=config_path, is_azure_mount=is_azure_mount)
     try:
         mounter.mount()
