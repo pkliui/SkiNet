@@ -12,7 +12,13 @@ from SkiNet.Azure.azure_setup import (AzureSecrets, AzureSetup, managed_identity
                                       service_principal_authentication)
 from SkiNet.Utils import project_paths
 
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_AZURE_TESTS") != "1",
+    reason="Set RUN_AZURE_TESTS=1 to run Azure integration tests",
+)
+
 """------------------------------------------------------------------FIXTURES---------------------------------------------------------------"""
+
 
 @pytest.fixture
 def azure_settings_yaml(tmp_path: Path) -> Tuple[Path, dict]:
@@ -103,6 +109,7 @@ def clear_managed_identity_env_vars() -> Generator[None, None, None]:
 
 """-----------------------------------------------TESTS for AzureSetup.from_yaml---------------------------------------------------------------"""
 
+
 def test_from_yaml_valid(azure_settings_yaml: Tuple[Path, dict]) -> None:
     """
     Test that from_yaml correctly loads a valid YAML configuration for AzureSetup
@@ -154,6 +161,7 @@ def test_azure_secrets_missing(private_azure_secrets_yaml_missing_key: Tuple[Pat
 
 """---------------------------------------------------TESTS for get_azureml_filesystem---------------------------------------------------------------"""
 
+
 def test_get_azureml_filesystem_success(monkeypatch: pytest.MonkeyPatch,
                                         azure_settings_yaml: Tuple[Path, dict],
                                         mock_default_azure_credential: Type) -> None:
@@ -200,6 +208,7 @@ def test_get_azure_uri_and_pathsuccess(monkeypatch: pytest.MonkeyPatch, azure_se
 
     uri = AzureSetup.get_azure_uri(dataset_name)
     assert expected_path_on_azure in uri  # Check that the expected path on Azure is in the Azure URI
+
 
 def test_get_azure_uri_dataset_not_found(monkeypatch: pytest.MonkeyPatch, azure_settings_yaml: Tuple[Path, dict]) -> None:
     """
@@ -269,6 +278,7 @@ def test_managed_identity_authentication_user_assigned(monkeypatch: pytest.Monke
     assert isinstance(credential, DummyCredential)
     assert credential.client_id == "user_client_id"
 
+
 def test_managed_identity_authentication_default_identity(monkeypatch: pytest.MonkeyPatch, clear_managed_identity_env_vars: None) -> None:
     """
     Test that managed_identity_authentication uses user-assigned managed identity when DEFAULT_IDENTITY_CLIENT_ID
@@ -284,6 +294,7 @@ def test_managed_identity_authentication_default_identity(monkeypatch: pytest.Mo
     credential = managed_identity_authentication()
     assert isinstance(credential, DummyCredential)
     assert credential.client_id == "default_client_id"
+
 
 def test_managed_identity_authentication_system_assigned(monkeypatch: pytest.MonkeyPatch, clear_managed_identity_env_vars: None) -> None:
     """

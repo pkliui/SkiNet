@@ -47,3 +47,13 @@ docker run --rm \
 ```
 
 If you do not need FUSE inside the container (recommended): mount blobfuse on the VM host and only bind the mounted directory into the container; then you can omit the SYS_ADMIN/device flags.
+
+## Lightning Studio
+
+### Login to Codex
+
+- Login wih ChatGPT credentials
+- Authenticate wih ChatGPT as required, it will open a new window in your local browser. Note the port number
+- Top right corner SSH, click on "Connect via SSH" and it will issue you with a connection string
+- Modify it by adding relevant ports as follows for e.g. port 1455:
+ssh -N -L 1455:localhost:1455 <user>@ssh.lightning.ai

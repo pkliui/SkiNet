@@ -7,7 +7,8 @@ from torch.utils.data import Dataset
 
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.datasets.sample_specs import create_valid_samplespecs, load_sample
-from SkiNet.ML.transformations.crop_data import crop_2d_image
+from SkiNet.ML.datasets.sample_specs import Sample
+from SkiNet.ML.transformations.transform_adapters import SampleTransformAdapter
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,8 @@ class SegmentationDataset(BaseDataset):
     """
 
     def __init__(self,
-                 config: ExperimentConfig) -> None:
+                 config: ExperimentConfig,
+                 transform: SampleTransformAdapter) -> None:
         """
         :param config: The experiment configuration containing dataset metadata and data root information.
         """
@@ -45,12 +47,22 @@ class SegmentationDataset(BaseDataset):
         """A dictionary containing the valid sample specifications."""
         self.sample_ids = list(self.sample_specs.keys())
         """A list of sample IDs corresponding to the valid samples in the dataset, derived from the sample specifications."""
+        self.transform = transform
+        logger.info("SegmentationDataset initialized with transform=%r", self.transform)
 
     def __getitem__(self, index: int) -> dict[str, Any]:
         return self.get_sample_item(index)
 
     def __len__(self) -> int:
         return len(self.sample_ids)
+
+    def get_raw_sample(self, index: int) -> Sample:
+        """
+        Load a raw sample from disk without applying any transforms.
+        Useful for visualization and debugging without mutating dataset.transform.
+        """
+        specs_item = self.sample_specs[self.sample_ids[index]]
+        return load_sample(specs_item, data_root=self.data_root)
 
     def get_sample_item(self, index: int) -> dict[str, Any]:
         """
@@ -61,8 +73,14 @@ class SegmentationDataset(BaseDataset):
         specs_item = self.sample_specs[self.sample_ids[index]]
         sample = load_sample(specs_item,
                              data_root=self.data_root)
-        # Apply cropping to the image and mask tensors based on the specified crop size in the experiment configuration.
-        slices_image = crop_2d_image(sample.image, self.config.dataconfig.crop_size)
-        slices_mask = crop_2d_image(sample.mask, self.config.dataconfig.crop_size)
 
-        return {"image": sample.image[slices_image], "mask": sample.mask[slices_mask], "specs": sample.specs.model_dump()}
+        transformed_sample = self.transform(sample=sample)
+
+        image_tensor = transformed_sample.image
+        mask_tensor = transformed_sample.mask
+
+        return {
+            "image": image_tensor,
+            "mask": mask_tensor,
+            "specs": sample.specs.model_dump(),
+        }

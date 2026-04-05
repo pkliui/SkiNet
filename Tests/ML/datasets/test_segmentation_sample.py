@@ -2,11 +2,16 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
+import albumentations as A
 import pandas as pd
 import pytest
 import torch
+import numpy as np
+from torchvision.io import write_png
 
 from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
+from SkiNet.ML.datasets.sample_specs import Sample
+from SkiNet.ML.transformations.transform_adapters import AlbumentationsSampleTransform
 from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_IMAGE, DATATYPE_MASK, SAMPLEID_HEADER
 
 CROP_SIZE = (256, 256)  # as in main_config
@@ -27,6 +32,41 @@ def _make_config(df: pd.DataFrame, data_root: Path) -> Any:
     return SimpleNamespace(dataconfig=cfg)
 
 
+class IdentityTransform:
+    """
+    Test transform that returns the input sample unchanged.
+    """
+
+    def __call__(self, sample: Sample) -> Sample:
+        return sample
+
+
+class ResizeToFloatTransform:
+    """
+    Test transform that returns tensors with controlled output shape and dtype.
+    """
+
+    def __init__(
+        self,
+        image_shape: tuple[int, ...] = (3, CROP_SIZE[0], CROP_SIZE[1]),
+        mask_shape: tuple[int, ...] = (1, CROP_SIZE[0], CROP_SIZE[1]),
+        image_dtype: torch.dtype = torch.float32,
+        mask_dtype: torch.dtype = torch.float32,
+    ) -> None:
+        self.image_shape = image_shape
+        self.mask_shape = mask_shape
+        self.image_dtype = image_dtype
+        self.mask_dtype = mask_dtype
+
+    def __call__(self, sample: Sample) -> Sample:
+        return sample.model_copy(
+            update={
+                "image": torch.ones(self.image_shape, dtype=self.image_dtype),
+                "mask": torch.ones(self.mask_shape, dtype=self.mask_dtype),
+            }
+        )
+
+
 def row_factory(sample_id: str, dtype: str, path: str, site: str) -> dict:
     """Row factory: keeps test cases concise."""
     return {
@@ -35,7 +75,34 @@ def row_factory(sample_id: str, dtype: str, path: str, site: str) -> dict:
         DATAPATH_HEADER: path,
         "site": site,
     }
-# ...existing code...
+
+
+def _write_png_sample_files(
+    data_root: Path,
+    image_rel_path: str = "images/img1.png",
+    mask_rel_path: str = "masks/mask1.png",
+) -> tuple[str, str]:
+    """
+    Write one RGB image PNG and one single-channel mask PNG under the dataset root for integration-style dataset tests.
+    """
+    image_path = data_root / image_rel_path
+    mask_path = data_root / mask_rel_path
+    image_path.parent.mkdir(parents=True, exist_ok=True)
+    mask_path.parent.mkdir(parents=True, exist_ok=True)
+
+    image_array = np.full((IMG_SIZE[0], IMG_SIZE[1], IMG_CHANNELS), 255, dtype=np.uint8)
+    mask_array = np.full((MASK_SIZE[0], MASK_SIZE[1]), 1, dtype=np.uint8)
+
+    write_png(
+        torch.from_numpy(image_array).permute(2, 0, 1).to(torch.uint8),
+        str(image_path),
+    )
+    write_png(
+        torch.from_numpy(mask_array).unsqueeze(0).to(torch.uint8),
+        str(mask_path),
+    )
+
+    return image_rel_path, mask_rel_path
 
 @pytest.mark.parametrize(
     ("rows", "expected_len"),
@@ -75,68 +142,122 @@ def test_segmentation_dataset_len(tmp_path: Path, rows: list[dict], expected_len
     df = pd.DataFrame(rows)
     config = _make_config(df, tmp_path)
 
-    dataset = SegmentationDataset(config=config)
+    dataset = SegmentationDataset(config=config, transform=IdentityTransform())
 
     assert len(dataset) == expected_len
 
 
-def test_segmentation_dataset_getitem_returns_expected_payload(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_segmentation_dataset_get_raw_sample_preserves_loaded_shape_and_dtype(tmp_path: Path) -> None:
     """
-    Test the __getitem__ method of the SegmentationDataset.
+    get_raw_sample() should return the untransformed sample with the original
+    tensor shapes and dtypes produced by the current disk loader.
     """
+    image_rel_path, mask_rel_path = _write_png_sample_files(tmp_path)
+
     df = pd.DataFrame(
         [
             {
                 SAMPLEID_HEADER: "sample-1",
                 DATATYPE_HEADER: DATATYPE_IMAGE,
-                DATAPATH_HEADER: "images/img1.png",
+                DATAPATH_HEADER: image_rel_path,
                 "site": "A",
             },
             {
                 SAMPLEID_HEADER: "sample-1",
                 DATATYPE_HEADER: DATATYPE_MASK,
-                DATAPATH_HEADER: "masks/mask1.png",
+                DATAPATH_HEADER: mask_rel_path,
                 "site": "A",
             },
         ]
     )
     config = _make_config(df, tmp_path)
     config = cast(Any, config)
-    dataset = SegmentationDataset(config=config)
+    dataset = SegmentationDataset(config=config, transform=IdentityTransform())
 
-    class DummySpecs:
-        def model_dump(self) -> dict[str, str]:
-            return {"sample_id": "sample-1", "image_path": "images/img1.png", "mask_path": "masks/mask1.png"}
+    raw_sample = dataset.get_raw_sample(0)
 
-    class DummySample:
-        def __init__(self) -> None:
-            # Realistic shapes: batch, height, width, channels for image; batch, height, width for mask
-            self.image = torch.rand(1, IMG_SIZE[0], IMG_SIZE[1], IMG_CHANNELS)  # float tensor, channels last
-            self.mask = torch.rand(1, MASK_SIZE[0], MASK_SIZE[1])  # float tensor, no explicit channels
-            self.specs = DummySpecs()
+    assert raw_sample.image.shape == (IMG_SIZE[0], IMG_SIZE[1], IMG_CHANNELS)
+    assert raw_sample.mask.shape == (MASK_SIZE[0], MASK_SIZE[1])
+    assert raw_sample.image.dtype == torch.uint8
+    assert raw_sample.mask.dtype == torch.uint8
+    assert raw_sample.specs.sample_id == "sample-1"
 
-    def fake_load_sample(specs_item: Any, data_root: Path) -> DummySample:
-        """
-        Fake load_sample function for testing.
-        """
-        assert specs_item.sample_id == "sample-1"
-        assert data_root == Path(tmp_path)
-        return DummySample()
 
-    monkeypatch.setattr("SkiNet.ML.datasets.segmentation_dataset.load_sample", fake_load_sample)
+@pytest.mark.parametrize(
+    "transform,image_shape,mask_shape,image_type,mask_type",
+    [
+        (
+            AlbumentationsSampleTransform(
+                pipeline=A.Compose([A.CenterCrop(height=CROP_SIZE[0], width=CROP_SIZE[1])]),
+                expects_tensor_output=False,
+            ),
+            (CROP_SIZE[0], CROP_SIZE[1], IMG_CHANNELS),
+            (CROP_SIZE[0], CROP_SIZE[1], 1),
+            np.ndarray,
+            np.ndarray,
+        ),
+        (
+            AlbumentationsSampleTransform(
+                pipeline=A.Compose(
+                    [A.CenterCrop(height=CROP_SIZE[0], width=CROP_SIZE[1]), A.ToTensorV2(transpose_mask=True)]
+                ),
+                expects_tensor_output=True,
+            ),
+            (IMG_CHANNELS, CROP_SIZE[0], CROP_SIZE[1]),
+            (1, CROP_SIZE[0], CROP_SIZE[1]),
+            torch.Tensor,
+            torch.Tensor,
+        ),
+    ],
+)
+def test_segmentation_dataset_getitem_returns_expected_shapes_and_dtypes_after_transform(
+    tmp_path: Path,
+    transform: AlbumentationsSampleTransform,
+    image_shape: tuple[int, ...],
+    mask_shape: tuple[int, ...],
+    image_type: type[np.ndarray] | type[torch.Tensor],
+    mask_type: type[np.ndarray] | type[torch.Tensor],
+) -> None:
+    """
+    __getitem__() should preserve the transform output layout:
+    Albumentations without ToTensorV2 returns numpy HWC/HW data, while pipelines
+    ending in ToTensorV2 return torch tensors in CHW layout.
+    """
+    image_rel_path, mask_rel_path = _write_png_sample_files(tmp_path)
+
+    df = pd.DataFrame(
+        [
+            {
+                SAMPLEID_HEADER: "sample-1",
+                DATATYPE_HEADER: DATATYPE_IMAGE,
+                DATAPATH_HEADER: image_rel_path,
+                "site": "A",
+            },
+            {
+                SAMPLEID_HEADER: "sample-1",
+                DATATYPE_HEADER: DATATYPE_MASK,
+                DATAPATH_HEADER: mask_rel_path,
+                "site": "A",
+            },
+        ]
+    )
+    config = _make_config(df, tmp_path)
+    config = cast(Any, config)
+    dataset = SegmentationDataset(config=config, transform=transform)
 
     item = dataset[0]
 
     assert set(item.keys()) == {"image", "mask", "specs"}
-    assert item["image"].shape == (1, CROP_SIZE[0], CROP_SIZE[1], 3)
-    assert item["mask"].shape == (1, CROP_SIZE[0], CROP_SIZE[1])
+    assert isinstance(item["image"], image_type)
+    assert isinstance(item["mask"], mask_type)
+    assert item["image"].shape == image_shape
+    assert item["mask"].shape == mask_shape
     assert item["specs"]["sample_id"] == "sample-1"
 
 
 @pytest.mark.parametrize("bad_index", [1, 5, -2])
 def test_segmentation_dataset_getitem_bad_index_raises(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
     bad_index: int,
 ) -> None:
     """
@@ -159,7 +280,7 @@ def test_segmentation_dataset_getitem_bad_index_raises(
         ]
     )
     config = _make_config(df, tmp_path)
-    dataset = SegmentationDataset(config=config)
+    dataset = SegmentationDataset(config=config, transform=IdentityTransform())
 
     with pytest.raises(IndexError):
         _ = dataset[bad_index]
@@ -205,7 +326,7 @@ def test_segmentation_dataset_preserves_sample_id_order(tmp_path: Path, preserve
         ]
     )
     config = _make_config(df, tmp_path)
-    dataset = SegmentationDataset(config=config)
+    dataset = SegmentationDataset(config=config, transform=IdentityTransform())
 
     # rebuild sample_specs using the module helper with the chosen ordering,
     # then set dataset fields so the test verifies both modes without changing production code.
