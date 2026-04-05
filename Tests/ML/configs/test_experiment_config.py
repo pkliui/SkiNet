@@ -7,6 +7,8 @@ from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import P
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
+from SkiNet.ML.configs.transform_configs.crop_config import CropConfig
+from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 
 
 def make_valid_experiment_config_kwargs() -> dict:
@@ -16,8 +18,11 @@ def make_valid_experiment_config_kwargs() -> dict:
             # provide minimal placeholder values for required PH2DatasetConfig args
             "dataconfig": PH2DatasetConfig(
                 azure_data=False,
+                azure_blob_mount_point=None,
                 local_data_root=str(Path("/tmp")),
+                crop_size=(256, 256),
                 kind="ph2"),
+            "transformconfig": TransformConfig(),
             "modelconfig": UNet2DModelConfig(),
             "trainconfig": BaseTrainConfig()}
 
@@ -32,6 +37,7 @@ def test_experiment_config_valid() -> None:
     assert config.experiment_name == "unet2d_ph2_experiment"
     assert config.description == "UNet2D on PH2 dataset"
     assert isinstance(config.dataconfig, PH2DatasetConfig)
+    assert isinstance(config.transformconfig, TransformConfig)
     assert isinstance(config.modelconfig, UNet2DModelConfig)
     assert isinstance(config.trainconfig, BaseTrainConfig)
 
@@ -54,6 +60,7 @@ def test_experiment_config_forbids_extra_top_level_fields() -> None:
         "experiment_name",
         "description",
         "dataconfig",
+        "transformconfig",
         "modelconfig",
         "trainconfig",
     ],
@@ -67,3 +74,23 @@ def test_experiment_config_missing_required_fields(missing_field: str) -> None:
 
     with pytest.raises(ValidationError, match=missing_field):
         ExperimentConfig(**kwargs)
+
+
+def test_experiment_config_accepts_valid_nested_transform_override() -> None:
+    """
+    ExperimentConfig should keep a provided TransformConfig instance and expose its nested override values.
+    """
+    kwargs = make_valid_experiment_config_kwargs()
+    kwargs["transformconfig"] = TransformConfig(
+        augmentation_required=False,
+        seed_value=13,
+        crop=CropConfig(crop_type="center_crop", size=(64, 48)),
+    )
+
+    config = ExperimentConfig(**kwargs)
+
+    assert isinstance(config.transformconfig, TransformConfig)
+    assert config.transformconfig.augmentation_required is False
+    assert config.transformconfig.seed_value == 13
+    assert config.transformconfig.crop.crop_type == "center_crop"
+    assert config.transformconfig.crop.size == (64, 48)

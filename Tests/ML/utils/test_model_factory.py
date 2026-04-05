@@ -9,6 +9,7 @@ from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
 from SkiNet.ML.model.architecture.unet2d import UNet2D
 from SkiNet.ML.utils.model_factory import create_model
+from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 
 
 @pytest.fixture
@@ -17,15 +18,18 @@ def mock_dataconfig() -> PH2DatasetConfig:
     cfg.kind = "ph2"
     return cfg
 
+
 @pytest.fixture
 def mock_trainconfig() -> BaseTrainConfig:
     return MagicMock(spec=BaseTrainConfig)
+
 
 @pytest.fixture
 def mock_modelconfig() -> UNet2DModelConfig:
     cfg = MagicMock(spec=UNet2DModelConfig)
     cfg.kind = "unet2d"
     return cfg
+
 
 @pytest.mark.parametrize(
     "model_cfg, expected_type, expected_attrs",
@@ -87,14 +91,13 @@ def test_create_model(model_cfg: UNet2DModelConfig,
     Test the model creation factory function with various UNet2D model configurations.
     """
     # Bypass ExperimentConfig validation: we only want to test the factory logic.
-    cfg = ExperimentConfig(
-        experiment_type="classification",
-        experiment_name="test_experiment",
-        description="Test experiment",
-        dataconfig=mock_dataconfig,
-        trainconfig=mock_trainconfig,
-        modelconfig=model_cfg
-    )
+    cfg = ExperimentConfig(experiment_type="classification",
+                           experiment_name="test_experiment",
+                           description="Test experiment",
+                           dataconfig=mock_dataconfig,
+                           trainconfig=mock_trainconfig,
+                           modelconfig=model_cfg,
+                           transformconfig=TransformConfig())
     model = create_model(cfg)
 
     assert isinstance(model, expected_type)
@@ -113,12 +116,11 @@ def test_create_model_raises_for_unsupported_model_config_type(bad_model_cfg: An
     """
     with pytest.raises(ValueError, match="validation error"):
 
-        cfg = ExperimentConfig(
-            experiment_type="classification",
-            experiment_name="test_experiment",
-            description="Test experiment",
-            dataconfig=mock_dataconfig,
-            trainconfig=mock_trainconfig,
-            modelconfig=bad_model_cfg
-        )
+        cfg = ExperimentConfig(experiment_type="classification",
+                               experiment_name="test_experiment",
+                               description="Test experiment",
+                               dataconfig=mock_dataconfig,
+                               trainconfig=mock_trainconfig,
+                               modelconfig=bad_model_cfg,
+                               transformconfig=TransformConfig())
         create_model(cfg)
