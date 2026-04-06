@@ -23,7 +23,7 @@
 
 ########################################################################################################
 
-# NOTE: It is assumed that you uploaded your data into the Lightning Storage and that it is in folders 
+# NOTE: It is assumed that you uploaded your data into the Lightning Storage and that it is in folders
 # specified under PATH_ON_DATASTORE in repos/SkiNet/SkiNet/Azure/azure_settings.yaml
 
 ########################################################################################################
@@ -33,7 +33,7 @@ set -Eeuo pipefail
 # Set default values for environment variables if they are not already set
 
 # Image name on Docker Hub
-IMAGE="pkliui/skinet:v2cpu"
+IMAGE="pkliui/skinet:v5cpu"
 
 # Determine a safe default for the home directory
 DEFAULT_HOME="$HOME"
