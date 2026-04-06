@@ -23,7 +23,7 @@ def _make_sample(height: int = 64, width: int = 48) -> Sample:
             True,
             torch.Tensor,
             torch.Tensor,
-            (3, 32, 24),  # CHW format for tensors after ToTensorV2
+            (3, 32, 24),  # CHW format for tensors after ToTensorV2 (default)
             (1, 32, 24),  # CHW format for tensors after ToTensorV2
         ),
         (

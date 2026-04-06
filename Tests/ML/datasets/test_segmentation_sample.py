@@ -3,14 +3,14 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 import albumentations as A
+import numpy as np
 import pandas as pd
 import pytest
 import torch
-import numpy as np
 from torchvision.io import write_png
 
-from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
 from SkiNet.ML.datasets.sample_specs import Sample
+from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
 from SkiNet.ML.transformations.transform_adapters import AlbumentationsSampleTransform
 from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_IMAGE, DATATYPE_MASK, SAMPLEID_HEADER
 
@@ -150,8 +150,9 @@ def test_segmentation_dataset_len(tmp_path: Path, rows: list[dict], expected_len
 def test_segmentation_dataset_get_raw_sample_preserves_loaded_shape_and_dtype(tmp_path: Path) -> None:
     """
     get_raw_sample() should return the untransformed sample with the original
-    tensor shapes and dtypes produced by the current disk loader.
-    """
+    tensor shapes and dtypes produced by the current disk loader (CHW, uint8 for both image and mask).
+
+    For decode_image used to load data items, this is CHW and uint8"""
     image_rel_path, mask_rel_path = _write_png_sample_files(tmp_path)
 
     df = pd.DataFrame(
@@ -174,39 +175,61 @@ def test_segmentation_dataset_get_raw_sample_preserves_loaded_shape_and_dtype(tm
     config = cast(Any, config)
     dataset = SegmentationDataset(config=config, transform=IdentityTransform())
 
-    raw_sample = dataset.get_raw_sample(0)
+    raw_sample = dataset.get_raw_sample(0)  # CHW, uint8
 
-    assert raw_sample.image.shape == (IMG_SIZE[0], IMG_SIZE[1], IMG_CHANNELS)
-    assert raw_sample.mask.shape == (MASK_SIZE[0], MASK_SIZE[1])
+    # decode_image returns (C, H, W) where C=3 for RGB imagesß
+    assert raw_sample.image.shape == (IMG_CHANNELS, IMG_SIZE[0], IMG_SIZE[1])
+    # decode_image returns (C, H, W) where C=1 for grayscale masks
+    assert raw_sample.mask.shape == (1, MASK_SIZE[0], MASK_SIZE[1])
     assert raw_sample.image.dtype == torch.uint8
     assert raw_sample.mask.dtype == torch.uint8
     assert raw_sample.specs.sample_id == "sample-1"
 
 
 @pytest.mark.parametrize(
-    "transform,image_shape,mask_shape,image_type,mask_type",
+    "transform,image_shape,mask_shape,image_type,mask_type,dtype_image,dtype_mask",
     [
         (
             AlbumentationsSampleTransform(
                 pipeline=A.Compose([A.CenterCrop(height=CROP_SIZE[0], width=CROP_SIZE[1])]),
-                expects_tensor_output=False,
+                expects_tensor_output=False,  # no ToTensorV2, so output should be numpy arrays in HWC/HW format as below
             ),
             (CROP_SIZE[0], CROP_SIZE[1], IMG_CHANNELS),
             (CROP_SIZE[0], CROP_SIZE[1], 1),
             np.ndarray,
             np.ndarray,
+            np.uint8,
+            np.uint8,
         ),
         (
             AlbumentationsSampleTransform(
                 pipeline=A.Compose(
-                    [A.CenterCrop(height=CROP_SIZE[0], width=CROP_SIZE[1]), A.ToTensorV2(transpose_mask=True)]
+                    [A.CenterCrop(height=CROP_SIZE[0], width=CROP_SIZE[1]),
+                     A.ToTensorV2(transpose_mask=True)]
                 ),
-                expects_tensor_output=True,
+                expects_tensor_output=True,  # ToTensorV2 with transpose_mask=True should produce torch tensors in CHW format
             ),
             (IMG_CHANNELS, CROP_SIZE[0], CROP_SIZE[1]),
             (1, CROP_SIZE[0], CROP_SIZE[1]),
             torch.Tensor,
             torch.Tensor,
+            torch.uint8,  # no Normalize is used, hence images remain uint8
+            torch.uint8,
+        ),
+        (
+            AlbumentationsSampleTransform(
+                pipeline=A.Compose(
+                    [A.CenterCrop(height=CROP_SIZE[0], width=CROP_SIZE[1]),
+                     A.Normalize(), A.ToTensorV2(transpose_mask=True)]
+                ),
+                expects_tensor_output=True,  # ToTensorV2 with transpose_mask=True should produce torch tensors in CHW format
+            ),
+            (IMG_CHANNELS, CROP_SIZE[0], CROP_SIZE[1]),
+            (1, CROP_SIZE[0], CROP_SIZE[1]),
+            torch.Tensor,
+            torch.Tensor,
+            torch.float32,  # Normalize produces float32 images, but masks remain uint8 even after ToTensorV2 with transpose_mask=True
+            torch.uint8,
         ),
     ],
 )
@@ -217,11 +240,17 @@ def test_segmentation_dataset_getitem_returns_expected_shapes_and_dtypes_after_t
     mask_shape: tuple[int, ...],
     image_type: type[np.ndarray] | type[torch.Tensor],
     mask_type: type[np.ndarray] | type[torch.Tensor],
+    dtype_image: torch.dtype | np.dtype,
+    dtype_mask: torch.dtype | np.dtype
 ) -> None:
     """
-    __getitem__() should preserve the transform output layout:
-    Albumentations without ToTensorV2 returns numpy HWC/HW data, while pipelines
-    ending in ToTensorV2 return torch tensors in CHW layout.
+    Test if SegmentationDataset.__getitem__()  preserves the transform output layout:
+
+    - Albumentations without ToTensorV2 returns numpy HWC/HW data
+    - Pipelines ending in ToTensorV2 return torch tensors in CHW layout
+    - Images should have 3 channels and masks should have 1 channel
+    - Data type depends on whether Normalize is used in the transform pipeline or not
+    - The shape is set by the CenterCrop in the transform pipeline
     """
     image_rel_path, mask_rel_path = _write_png_sample_files(tmp_path)
 
@@ -252,6 +281,8 @@ def test_segmentation_dataset_getitem_returns_expected_shapes_and_dtypes_after_t
     assert isinstance(item["mask"], mask_type)
     assert item["image"].shape == image_shape
     assert item["mask"].shape == mask_shape
+    assert item["image"].dtype == dtype_image
+    assert item["mask"].dtype == dtype_mask
     assert item["specs"]["sample_id"] == "sample-1"
 
 

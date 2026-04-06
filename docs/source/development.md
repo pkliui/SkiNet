@@ -35,15 +35,14 @@ docker build --target gpu -t skinet:gpu .
 ```
 
 Run container (example, bind-mount repo and host Azure mount):
+
 ```bash
-docker run --rm \
-  --cap-add=SYS_ADMIN \
-  --device=/dev/fuse \
-  --security-opt apparmor:unconfined \
-  -v /path/on/host/repos/SkiNet:/workplace/SkiNet \
-  -v /path/on/host/azure_blob_data:/mnt/data \
-  -w /workplace/SkiNet \
-  skinet:cpu
+docker run -it --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/workplace/SkiNet skinet:cpu bash
+```
+
+to enable Azure Blob Fuse mounts, add
+```
+  --cap-add=SYS_ADMIN --device=/dev/fuse --security-opt apparmor:unconfined
 ```
 
 If you do not need FUSE inside the container (recommended): mount blobfuse on the VM host and only bind the mounted directory into the container; then you can omit the SYS_ADMIN/device flags.
