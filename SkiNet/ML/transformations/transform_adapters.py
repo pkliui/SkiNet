@@ -36,6 +36,12 @@ class AlbumentationsSampleTransform:
         """
         Returns a transformed Sample by applying the Albumentations pipeline
         to the input Sample's image and mask.
+
+        :param sample: A Sample object containing the image and mask to be transformed.
+            Image and mask are in CHW, uint8 format as loaded from disk and are converted to HWC numpy arrays for compatibility with Albumentations.
+        :return: A new Sample object with the transformed image and mask.
+        The output format depends on the final transforms in the Albumentations pipeline, and as long as ToTensorV2(transpose_mask=True) is included,
+         the output will be torch tensors CHW for both image (float32) and mask (uint8).
         """
         out = self.pipeline(image=convert_to_hwc_numpy(sample.image),
                             mask=convert_to_hwc_numpy(sample.mask))

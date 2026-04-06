@@ -1,24 +1,54 @@
 # Datasets
 
 - This document describes Datasets used in SkiNet
-  
+
+# Datasets
+
+## Dataset classes
+
+`SkiNet.ML.datasets.segmentation_dataset`  implements a PyTorch `Dataset` for **semantic segmentation**, where each training example is a pair:
+
+- **image**: input raster (grayscale or RGB)
+- **mask**: target raster (binary mask)
+
+### Example usage
+
+```python
+from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
+from SkiNet.ML.transformations.transform_data import get_transform_from_config
+from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
+
+# load config
+cfg = load_config_from_yaml(cfg_path)
+# load transforms
+transform = get_transform_from_config(cfg)
+
+# make a dataset
+dataset = SegmentationDataset(config=my_config, transform=my_transform)
+
+# access specs metadata, images and masks as follows
+item = dataset[0]
+image = item["image"]
+mask = item["mask"]
+specs = item["specs"]
+```
+
+
 ## Modifications to the default Dataset class
 
 The following describes a few modifications to PyTorch's default Dataset class used in SkiNet in order to prevent the so-called "Memory-on_copy" problem that was observed
 - in https://github.com/pytorch/pytorch/issues/13246#issuecomment-905703662
 
-
-### Background and Motivation 
+### Background and Motivation
 
 Jupyter notebook is here: (MemoryUsage_Dataset.ipynb)[SkiNet/ML/datasets/experiments/MemoryUsage_Dataset.ipynb]
 
-
-Whilst employing num_workers>0 in DalaLoader, the memory usage is increasing with each epoch for some users. 
+Whilst employing num_workers>0 in DalaLoader, the memory usage is increasing with each epoch for some users.
 
 - There is a warning in Pytorch documentation: https://pytorch.org/docs/stable/data.html#single-and-multi-process-data-loading with a reference to an issue on Github: https://github.com/pytorch/pytorch/issues/13246#issuecomment-905703662
 
 
-Citing the commentator on Github, "If your Dataloaders iterate across a list of filenames, the references to that list add up over time, occupying memory. Strictly speaking this is not a memory leak, but a copy-on-access problem of forked python processes due to changing refcounts. It isn't a Pytorch issue either, but simply is due to how Python is structured. 
+Citing the commentator on Github, "If your Dataloaders iterate across a list of filenames, the references to that list add up over time, occupying memory. Strictly speaking this is not a memory leak, but a copy-on-access problem of forked python processes due to changing refcounts. It isn't a Pytorch issue either, but simply is due to how Python is structured.
 
 [..]
 
@@ -37,8 +67,6 @@ Add torch.cuda.empty_cache() at end of each iteration
 Workaround by setting num_workers=0, but training will be slow"
 
 Example jupyter notebook showing this problem (from the authors on Github) https://gist.github.com/mprostock/2850f3cd465155689052f0fa3a177a50
-
-
 
 ## Augmentation of data
 
@@ -84,7 +112,7 @@ config = transformations_config.get_default_config()
 
 
 # import yaml settings
-from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH 
+from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH
 config.merge_from_file(TRANSFORMATION_CONFIGS_YAML_PATH) # override from YAML
 config.freeze() #  to prevent further modification
 
@@ -126,6 +154,3 @@ dataset = PH2Dataset(
   data_root="/workplace/SkiNet/PH2_Dataset_images",
   transform=transform)
 ```
-
-
-

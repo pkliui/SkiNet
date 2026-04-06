@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 import numpy as np
 import pandas as pd
 import torch
-from PIL import Image
 from pydantic import BaseModel, ConfigDict, Field
+from torchvision.io import decode_image
 
 from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_IMAGE, DATATYPE_MASK, SAMPLEID_HEADER
 
 logger = logging.getLogger(__name__)
+
 
 class SampleSpecs(BaseModel):
     """
@@ -36,14 +37,14 @@ class Sample(BaseModel):
     Represents a single training sample consisting of an image and a mask.
 
     :attributes:
-    - image: The image tensor for the sample.
-    - mask: The mask tensor for the sample.
+    - image: The image tensor for the sample or, after augmentation, a numpy array that can be converted to a tensor.
+    - mask: The mask tensor for the sample or, after augmentation, a numpy array that can be converted to a tensor.
     - specs: The SampleSpecs object containing metadata and paths for the sample.
     """
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    image: torch.Tensor
-    mask: torch.Tensor
+    image: Union[torch.Tensor, np.ndarray]
+    mask: Union[torch.Tensor, np.ndarray]
     specs: SampleSpecs
 
 
@@ -54,6 +55,10 @@ def load_data_item(item_rel_path: str,
 
     :param item_rel_path: Path to the data item relative to data root
     :param data_root: Root directory location, it is assumed to be a local path.
+
+    :return A torch.Tensor containing the loaded image or mask data.
+      - shape: (C, H, W)
+      - dtype: torch.uint8
     """
     if not data_root.exists():
         raise FileNotFoundError(f"Data root does not exist: '{data_root}'")
@@ -62,10 +67,12 @@ def load_data_item(item_rel_path: str,
     if not full_path.exists():
         raise FileNotFoundError(f"Data item not found: '{full_path}'")
 
-    with Image.open(full_path) as img:
-        image = img.copy()
+    image: torch.Tensor = decode_image(str(full_path))  # CHW, usually uint8
 
-    return torch.from_numpy(np.array(image))
+    if image.dtype != torch.uint8:
+        image = image.to(torch.uint8)
+
+    return image  # CHW, uint8
 
 
 def load_sample(specs: SampleSpecs,
@@ -76,11 +83,12 @@ def load_sample(specs: SampleSpecs,
     :param specs: SampleSpecs object containing metadata and paths for the sample.
     :param data_root: The root directory where the data is stored, it is assumed to be a local path.
 
-    :return: A Sample object containing the loaded image and mask tensors, along with the sample specifications.
+    :return: A Sample object containing the loaded image and mask tensors (CHW, uint8), along with the sample specifications.
     """
-    image = load_data_item(specs.image_path, data_root=data_root)
-    mask = load_data_item(specs.mask_path, data_root=data_root)
-    return Sample(image=image, mask=mask, specs=specs)
+    image = load_data_item(specs.image_path, data_root=data_root)  # torch.Tensor CHW uint8
+    mask = load_data_item(specs.mask_path, data_root=data_root)  # torch.Tensor CHW uint8
+
+    return Sample(image=image, mask=mask, specs=specs)  # CHW, uint8
 
 
 def create_valid_samplespecs(df: pd.DataFrame, preserve_original_order: bool = False) -> dict[str, SampleSpecs]:
@@ -122,7 +130,8 @@ def create_valid_samplespecs(df: pd.DataFrame, preserve_original_order: bool = F
             mask_path = mask_rows[DATAPATH_HEADER].iloc[0]
 
             # extract additional metadata columns
-            metadata_columns = [col for col in df.columns if col not in [SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER]]
+            metadata_columns = [col for col in df.columns if col not in [
+                SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER]]
 
             image_meta_df = image_rows[metadata_columns].iloc[0]
             mask_meta_df = mask_rows[metadata_columns].iloc[0]

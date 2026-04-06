@@ -6,8 +6,7 @@ from typing import Any
 from torch.utils.data import Dataset
 
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
-from SkiNet.ML.datasets.sample_specs import create_valid_samplespecs, load_sample
-from SkiNet.ML.datasets.sample_specs import Sample
+from SkiNet.ML.datasets.sample_specs import Sample, create_valid_samplespecs, load_sample
 from SkiNet.ML.transformations.transform_adapters import SampleTransformAdapter
 
 logger = logging.getLogger(__name__)
@@ -44,7 +43,7 @@ class SegmentationDataset(BaseDataset):
         """Data root path where images and masks are stored, derived from the experiment configuration."""
         logger.debug("Data root in SegmentationDataset: %s", self.data_root)
         self.sample_specs = create_valid_samplespecs(self.dataframe)
-        """A dictionary containing the valid sample specifications."""
+        """A dictionary containing the valid sample specifications, derived from the DataFrame, such as image and mask paths and metadata."""
         self.sample_ids = list(self.sample_specs.keys())
         """A list of sample IDs corresponding to the valid samples in the dataset, derived from the sample specifications."""
         self.transform = transform
@@ -62,7 +61,7 @@ class SegmentationDataset(BaseDataset):
         Useful for visualization and debugging without mutating dataset.transform.
         """
         specs_item = self.sample_specs[self.sample_ids[index]]
-        return load_sample(specs_item, data_root=self.data_root)
+        return load_sample(specs_item, data_root=self.data_root)  # image and mask should be CHW, uint8
 
     def get_sample_item(self, index: int) -> dict[str, Any]:
         """
@@ -72,7 +71,7 @@ class SegmentationDataset(BaseDataset):
         """
         specs_item = self.sample_specs[self.sample_ids[index]]
         sample = load_sample(specs_item,
-                             data_root=self.data_root)
+                             data_root=self.data_root)  # image and mask should be CHW, uint8
 
         transformed_sample = self.transform(sample=sample)
 
