@@ -8,7 +8,7 @@ from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 @pytest.mark.parametrize(
     "config,expected_apply,expected_type,expected_size,expected_scale",
     [
-        (CropConfig(), True, "random_resized_crop", (500, 500), (0.8, 1.0)),
+        (CropConfig(), True, "random_resized_crop", (512, 512), (0.8, 1.0)),
         (
             CropConfig(crop_apply=False, crop_type="center_crop", size=(64, 48), scale=(0.6, 0.9)),
             False,
@@ -37,7 +37,7 @@ def test_crop_config_uses_defaults_and_accepts_overrides(
 @pytest.mark.parametrize(
     "config,expected_flip_p,expected_affine_scale,expected_perspective_p,expected_shear_x",
     [
-        (SpatialAugmentConfig(), 0.5, (0.9, 1.1), 0.5, (0, 20)),
+        (SpatialAugmentConfig(), 0.5, (0.5, 1.0), 0.2, (-15, 15)),
         (
             SpatialAugmentConfig(
                 horizontal_flip_p=0.2,
@@ -71,7 +71,7 @@ def test_spatial_augment_config_uses_defaults_and_accepts_overrides(
 @pytest.mark.parametrize(
     "config,expected_apply,expected_brightness,expected_contrast,expected_saturation,expected_p",
     [
-        (PhotoAugmentConfig(), True, 0.2, 0.2, 0.2, 0.5),
+        (PhotoAugmentConfig(), True, 0.2, 0.2, 0.0, 0.5),
         (
             PhotoAugmentConfig(
                 color_jitter_apply=False,
@@ -118,6 +118,7 @@ def test_transform_config_builds_nested_defaults() -> None:
     assert config.crop.crop_type == "random_resized_crop"
     assert config.spatial_augmentation.horizontal_flip_p == 0.5
     assert config.photometric_augmentation.color_jitter_p == 0.5
+    assert config.compose_kwargs == {}
 
 
 def test_transform_config_applies_nested_overrides() -> None:
@@ -136,3 +137,13 @@ def test_transform_config_applies_nested_overrides() -> None:
     assert config.spatial_augmentation.perspective_apply is False
     assert config.photometric_augmentation.color_jitter_apply is False
     assert config.photometric_augmentation.color_jitter_p == 0.8
+
+
+def test_transform_config_accepts_compose_overrides() -> None:
+    config = TransformConfig(
+        seed_value=17,
+        compose_kwargs={"save_applied_params": True, "strict": True},
+    )
+
+    assert config.seed_value == 17
+    assert config.compose_kwargs == {"save_applied_params": True, "strict": True}

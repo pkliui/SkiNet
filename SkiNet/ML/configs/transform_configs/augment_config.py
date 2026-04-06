@@ -52,22 +52,22 @@ class SpatialAugmentConfig(BaseModel):
     affine_apply: bool = Field(
         default=True, description="Apply affine transformations.")
     affine_scale: Tuple[float, float] = Field(default=(
-        0.9, 1.1), description="Scaling (zoom) factor for affine transformation.")
+        0.5, 1.0), description="Scaling (zoom) factor for affine transformation.")
     affine_translate_percent: dict[str, float | Tuple[float, float]] = Field(default={"x": (
-        0.0, 0.2), "y": (0.0, 0.2)}, description="Translation as a fraction of the image size.")
+        -0.05, 0.05), "y": (-0.05, 0.05)}, description="Translation as a fraction of the image size.")
     affine_rotate: Tuple[float, float] = Field(
-        default=(-15, 15), description="Rotation angle in degrees.")
+        default=(-45, 45), description="Rotation angle in degrees.")
     affine_shear: dict[str, float | Tuple[float, float]] = Field(
-        default={"x": (0, 20), "y": (0, 20)}, description="Shear angle in degrees.")
+        default={"x": (-15, 15), "y": (-15, 15)}, description="Shear angle in degrees.")
 
     # Perspective transformations
     # albumentations.Perspective
     perspective_apply: bool = Field(
         default=True, description="Apply perspective transformations.")
     perspective_scale: Tuple[float, float] = Field(default=(
-        0.9, 1.1), description="Scaling factor for perspective transformation.")
+        0.05, 0.1), description="Scaling factor for perspective transformation.")
     perspective_p: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Probability of applying perspective transformation.")
+        default=0.2, ge=0.0, le=1.0, description="Probability of applying perspective transformation.")
 
 
 class PhotoAugmentConfig(BaseModel):
@@ -107,6 +107,8 @@ class PhotoAugmentConfig(BaseModel):
     color_jitter_contrast: float = Field(
         default=0.2, description="Contrast adjustment factor.")
     color_jitter_saturation: float = Field(
-        default=0.2, description="Saturation adjustment factor.")
+        default=0.0, description="Saturation adjustment factor.")
+    color_jitter_hue: float = Field(
+        default=0.0, description="Hue adjustment factor.")
     color_jitter_p: float = Field(
         default=0.5, ge=0.0, le=1.0, description="Probability of applying color jitter.")

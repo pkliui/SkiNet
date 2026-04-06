@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
@@ -19,4 +19,8 @@ class BaseTransformConfig(BaseModel):
     )
     seed_value: Optional[int] = Field(
         default=None, description="Seed value for reproducibility."
+    )
+    compose_kwargs: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Additional keyword arguments forwarded to albumentations.Compose.",
     )

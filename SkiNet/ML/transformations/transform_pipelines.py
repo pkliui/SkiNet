@@ -73,6 +73,7 @@ def get_photometric_transforms(config: PhotoAugmentConfig) -> list[A.BasicTransf
         transforms_list.append(A.ColorJitter(brightness=config.color_jitter_brightness,
                                              contrast=config.color_jitter_contrast,
                                              saturation=config.color_jitter_saturation,
+                                             hue=config.color_jitter_hue,
                                              p=config.color_jitter_p))
 
     return transforms_list

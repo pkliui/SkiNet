@@ -13,12 +13,12 @@ from SkiNet.ML.datasets.sample_specs import Sample
 def visualize_augmented_data(dataset: Any,
                              idx: int = 0,
                              samples: int = 2,
-                             save_dir: str | Path | None = ".",
+                             save_dir: str | Path | None = "./augmented_data_vis",
                              prefix: str = "vis",
                              save_overlay: bool = True,
-                             show: bool = True) -> None:
+                             show: bool = False) -> None:
     """
-    Visualize one raw sample and multiple transformed variants from the dataset.
+    Visualize one raw sample at index idx and its multiple transformed variants from the dataset.
 
     :param dataset: The dataset to visualize from, expected to have a
         get_raw_sample method and sample_specs attribute.
