@@ -57,6 +57,22 @@ def test_build_transform_flattens_groups_and_excludes_postprocess_from_visualiza
     assert transform.expects_tensor_output is True
 
 
+def test_build_transform_passes_compose_kwargs_to_main_and_visualization_pipelines() -> None:
+    transform = _build_transform(
+        [
+            [A.CenterCrop(height=32, width=32)],
+            [A.Normalize(), A.ToTensorV2(transpose_mask=True)],
+        ],
+        compose_kwargs={"seed": 7, "save_applied_params": True},
+    )
+
+    assert transform.pipeline.seed == 7
+    assert transform.pipeline.save_applied_params is True
+    assert transform.visualization_pipeline is not None
+    assert transform.visualization_pipeline.seed == 7
+    assert transform.visualization_pipeline.save_applied_params is True
+
+
 @pytest.mark.parametrize(
     "transformconfig_kwargs,split_name,expected_pipeline_len,expected_visualization_len",
     [
@@ -101,6 +117,22 @@ def test_get_transform_from_config_builds_expected_split_pipelines(
     assert split_transform.visualization_pipeline is not None
     assert len(split_transform.visualization_pipeline.transforms) == expected_visualization_len
     assert type(split_transform.pipeline.transforms[-1]).__name__ == "ToTensorV2"
+
+
+def test_get_transform_from_config_forwards_seed_and_compose_kwargs() -> None:
+    cfg = PH2_UNet_ConfigCreator().create_config(
+        transformconfig_kwargs={
+            "seed_value": 13,
+            "compose_kwargs": {"save_applied_params": True, "strict": True},
+        }
+    )
+
+    transforms = get_transform_from_config(cfg)
+
+    assert transforms.train.pipeline.seed == 13
+    assert transforms.train.pipeline.save_applied_params is True
+    assert transforms.train.visualization_pipeline is not None
+    assert transforms.train.visualization_pipeline.seed == 13
 
 
 @pytest.mark.parametrize("split_name", ["train", "val", "test"])

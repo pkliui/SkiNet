@@ -13,6 +13,18 @@ class SampleTransformAdapter(Protocol):
     Protocol for transforming a Sample object.
     """
 
+    @property
+    def pipeline(self) -> A.BaseCompose:
+        ...
+
+    @property
+    def visualization_pipeline(self) -> A.BaseCompose | None:
+        ...
+
+    @property
+    def expects_tensor_output(self) -> bool:
+        ...
+
     def __call__(self, sample: Sample) -> Sample:
         ...
 

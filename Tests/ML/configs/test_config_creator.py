@@ -124,7 +124,7 @@ def test_ph2_unet_config_creator_uses_default_transformconfig_when_not_overridde
     assert config.transformconfig.seed_value is None
     assert config.transformconfig.crop.crop_apply is True
     assert config.transformconfig.crop.crop_type == "random_resized_crop"
-    assert config.transformconfig.crop.size == (500, 500)
+    assert config.transformconfig.crop.size == (512, 512)
     assert config.transformconfig.crop.scale == (0.8, 1.0)
     assert config.transformconfig.spatial_augmentation.horizontal_flip_apply is True
     assert config.transformconfig.spatial_augmentation.horizontal_flip_p == 0.5

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any, cast
 
 import albumentations as A
 
@@ -33,7 +34,25 @@ def _flatten(transform_groups: list[list[A.BasicTransform]]) -> list[A.BasicTran
     return [transform for group in transform_groups for transform in group]
 
 
-def _build_transform(transform_groups: list[list[A.BasicTransform]]) -> AlbumentationsSampleTransform:
+def _resolve_compose_kwargs(cfg: ExperimentConfig) -> dict[str, Any]:
+    """
+    Resolve the keyword arguments for the Albumentations Compose function based on the experiment configuration.
+
+    :param cfg: The experiment configuration containing the transformation settings, including any additional keyword arguments
+    for the Compose function.
+    :return: A dictionary containing the keyword arguments for the transformation pipelines.
+    """
+    compose_kwargs = dict(cfg.transformconfig.compose_kwargs)
+    # If a seed value is provided in the configuration and not already included in the compose_kwargs,
+    # add it to compose kwargs to ensure reproducibility of the transformations.
+    if cfg.transformconfig.seed_value is not None and "seed" not in compose_kwargs:
+        compose_kwargs["seed"] = cfg.transformconfig.seed_value
+
+    return compose_kwargs
+
+
+def _build_transform(transform_groups: list[list[A.BasicTransform]],
+                     compose_kwargs: dict[str, Any] | None = None) -> AlbumentationsSampleTransform:
     """
     Build an AlbumentationsSampleTransform from the provided transform groups.
     The visualization pipeline includes all transforms except the last group,
@@ -46,9 +65,14 @@ def _build_transform(transform_groups: list[list[A.BasicTransform]]) -> Albument
     """
     visualisation_transforms = _flatten(transform_groups[:-1])
     all_transforms = _flatten(transform_groups)
+    compose_kwargs = compose_kwargs or {}
 
-    return AlbumentationsSampleTransform(pipeline=A.Compose(all_transforms),
-                                         visualization_pipeline=A.Compose(visualisation_transforms),
+    # Albumentations typing: Compose expects list[BasicTransform | BaseCompose]
+    all_transforms_typed = cast(list[A.BasicTransform | A.BaseCompose], all_transforms)
+    vis_transforms_typed = cast(list[A.BasicTransform | A.BaseCompose], visualisation_transforms)
+
+    return AlbumentationsSampleTransform(pipeline=A.Compose(all_transforms_typed, **compose_kwargs),
+                                         visualization_pipeline=A.Compose(vis_transforms_typed, **compose_kwargs),
                                          expects_tensor_output=True)
 
 
@@ -72,6 +96,7 @@ def get_transform_from_config(cfg: ExperimentConfig) -> TransformsContainer:
     photometric_transforms = get_photometric_transforms(
         cfg.transformconfig.photometric_augmentation)
     postprocess_transforms = get_postprocess_transforms()
+    compose_kwargs = _resolve_compose_kwargs(cfg)
 
     train_pipeline = _build_transform(
         [
@@ -79,7 +104,8 @@ def get_transform_from_config(cfg: ExperimentConfig) -> TransformsContainer:
             spatial_transforms,
             photometric_transforms,
             postprocess_transforms,
-        ]
+        ],
+        compose_kwargs=compose_kwargs,
     )
     val_pipeline = _build_transform(
         [
@@ -87,7 +113,8 @@ def get_transform_from_config(cfg: ExperimentConfig) -> TransformsContainer:
             [],
             [],
             postprocess_transforms,
-        ]
+        ],
+        compose_kwargs=compose_kwargs,
     )
     test_pipeline = _build_transform(
         [
@@ -95,7 +122,8 @@ def get_transform_from_config(cfg: ExperimentConfig) -> TransformsContainer:
             [],
             [],
             postprocess_transforms,
-        ]
+        ],
+        compose_kwargs=compose_kwargs,
     )
 
     return TransformsContainer(train=train_pipeline,
