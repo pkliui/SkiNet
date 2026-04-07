@@ -19,6 +19,7 @@ IMG_SIZE = (572, 765)  # as in main_run dummy sample
 IMG_CHANNELS = 3  # as in main_run dummy sample
 MASK_SIZE = (572, 765)  # as in main_run dummy sample
 
+
 def _make_config(df: pd.DataFrame, data_root: Path) -> Any:
     """
     Create a configuration object for the dataset mimicking
@@ -33,9 +34,9 @@ def _make_config(df: pd.DataFrame, data_root: Path) -> Any:
 
 
 class IdentityTransform:
-    """
-    Test transform that returns the input sample unchanged.
-    """
+    pipeline = A.Compose([])
+    visualization_pipeline = None
+    expects_tensor_output = True
 
     def __call__(self, sample: Sample) -> Sample:
         return sample
@@ -103,6 +104,7 @@ def _write_png_sample_files(
     )
 
     return image_rel_path, mask_rel_path
+
 
 @pytest.mark.parametrize(
     ("rows", "expected_len"),
@@ -220,7 +222,7 @@ def test_segmentation_dataset_get_raw_sample_preserves_loaded_shape_and_dtype(tm
             AlbumentationsSampleTransform(
                 pipeline=A.Compose(
                     [A.CenterCrop(height=CROP_SIZE[0], width=CROP_SIZE[1]),
-                     A.Normalize(), A.ToTensorV2(transpose_mask=True)]
+                     A.Normalize(normalization="image_per_channel", p=1.0), A.ToTensorV2(transpose_mask=True)]
                 ),
                 expects_tensor_output=True,  # ToTensorV2 with transpose_mask=True should produce torch tensors in CHW format
             ),
@@ -315,6 +317,7 @@ def test_segmentation_dataset_getitem_bad_index_raises(
 
     with pytest.raises(IndexError):
         _ = dataset[bad_index]
+
 
 @pytest.mark.parametrize(
     ("preserve_original_order", "expected_order"),

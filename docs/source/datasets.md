@@ -70,87 +70,98 @@ Example jupyter notebook showing this problem (from the authors on Github) https
 
 ## Augmentation of data
 
-Data augmentation is performed using the ```TransformData``` class in ```transform_data.py```. The transformation pipeline is constructed by the ```make_transform_from_config``` function, which adds transformations from Albumentations library, based on conditional checks of a provided configuration object (```config```). The resulting pipeline can then be passed to the "transform" argument of a dataset.
+Augmentation of data is done using (Albumenations library)[https://albumentations.ai]. For training, the process is split into four stages such as:
+- cropping dataset to a pre-defined size
+- spatial transformations (applied both to image and mask)
+- photometric tranformations (only image)
+- normalisation and convertion to tensor
+At present, augmentation is applied uniformly across all samples with an option to assign a specific probability to each augmentation operation.
 
-### Configuration for transformation
-- The configuration options for transformations are defined using (YASC library)[https://github.com/rbgirshick/yacs].
-- ```SkiNet/ML/configs/transformations_config.py``` is the project’s default configuration file for transformations in SkiNet.
-- For each experiment, a dedicated YAML configuration file is typically created, specifying only the options that differ from the defaults. For example:
+### Transformation pipelines
 
-```yaml
-augmentation:
-  horizontal_flip_apply: True
-  horizontal_flip:
-    p: 0.5
-  vertical_flip_apply: True
-  vertical_flip:
-    p: 0.5
-  affine_apply: True
-  affine:
-    rotate: (-90, 90)
-    translate_percent: (0.1, 0.1)
-    shear: (-20, 20)
-  colorjitter_apply: True
-  colorjitter:
-    brightness: 0.1
-    contrast: 0.1
-    saturation: 0.1
-    p: 0.5
-  center_crop_apply: True
-  center_crop:
-    height: 400
-    width: 400
-```
+- Default transformation pipelines for cropping, spatial and photometric transformed are specified in ```SkiNet/ML/transformations/transform_pipelines.py``` as optional sequences of transformations, each applied with a certain probability. Every time the data loader serves an image, the pipeline generates a fresh random variant.
+- By default, all transformations, except the noramlisation, are DISABLED and must be turned ON in the main YAML config
 
-- A config object is created by overriding the defaults from an experiment-specific YAML and freezing the modified config.
-- The configuration object can now be used to make a transformation pipeline using ```make_transform_from_config```:
+- As per default Albumentations settings, affine rotation uses nearest neighbor interpolation (Albumentations defaults to cv2.INTER_NEAREST for targets passed via the mask argument). The resulting pixel values are therefore preserved
+and are 0 or 255 for uint8 images.
+- Normalisation uses *mean and std computed for each individual augmened image*. Each image is normalised by its own statistics:
 
 ```python
-# import default config
-from SkiNet.ML.configs import transformations_config
-config = transformations_config.get_default_config()
+A.Normalize(normalization="image_per_channel", p=1.0)
+```yaml
 
+- ```seed```can be used to ensure reproducibility.
+- **Critical Note: Using the same seed with different num_workers settings will produce different augmentation sequences**. This is by design to ensure:
+    - Each worker produces unique augmentations (no duplicates)
+    - Maximum augmentation diversity in parallel processing
+    - Reproducibility when using the SAME num_workers configuration
+- **Key insight:**  The augmentation sequence depends on BOTH the seed AND num_workers. To get identical results, you must use the same seed AND the same num_workers.
+- Each worker gets a unique, reproducible seed based on base_seed + torch.initial_seed()
+- Seeds are automatically updated on worker respawn
 
-# import yaml settings
-from SkiNet.Utils.project_paths_tests import TRANSFORMATION_CONFIGS_YAML_PATH
-config.merge_from_file(TRANSFORMATION_CONFIGS_YAML_PATH) # override from YAML
-config.freeze() #  to prevent further modification
-
-# obtain the transform
-from SkiNet.ML.transformations.transform_data import make_transform_from_config
-transform = make_transform_from_config(
-    config,
-    augmentation_required=True)
+### Configuration for transformation
+- The configuration options for transformations are defined in the main configuration YAML file. If some of the fields required by transformation are missing,
+  the default values from relevant cropping and augmentation classes are used.
+- Users are expected to create their own configuration in the main config file. For example:
+```yaml
+TRANSFORM_CONFIG:
+  crop:
+    crop_apply: True
+    crop_type: "random_resized_crop"
+    size: [512, 512]
+    scale: [0.8, 1.0]
+  spatial_augmentation:
+    affine_apply: True
+    affine_scale: [0.5, 1.0]
+    affine_translate_percent: {"x": [-0.05, 0.05], "y": [-0.05, 0.05]}
+    affine_rotate: [-45, 45]
+    affine_shear: {"x": [-15, 15], "y": [-15, 15]}
+  photometric_augmentation:
+    color_jitter_apply: True
+    color_jitter_brightness: 0.2
+    color_jitter_contrast: 0.2
+    color_jitter_p: 0.5
 ```
 
-- The pipeline can now be queried to display the transformations using .pipeline argument:
+- The crop size is expected to be a multiple of the number of downsampling layers times the downsampling stride
+(e.g. for a model with 4 downsampling layers and stride=2 downsampling, this factor is 16)
+- At present, the requirement is enforced on the {py:class}`SkiNet.ML.configs.experiment_config.ExperimentConfig`
+ level
+
+### Train, val and test pipelines
+- The pipelines defined above provide a cenralized source of transformations in each of the stages (crop, spatial, photometric and normalisation)
+- Training augmentations are kept strictly separate from validation and test preprocessing.
+- For each execution mode (train/val/test),  ```TransformsContainer```  stores the pipeline that applies to that mode.
+- ```get_transform_from_config``` builds these mode-specific pipelines: the training pipeline can include stochastic spatial and photometric augmentations,
+while the validation and test pipelines use only deterministic steps such as resize, padding, and normalization (no geometric or photometric transformations):
+
+**Example**
+```python
+from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
+from SkiNet.ML.transformations.transform_data import get_transform_from_config, TransformsContainer
+
+
+# load config
+cfg = load_config_from_yaml(cfg_path)
+# load transforms
+transform: TransformsContainer = get_transform_from_config(cfg)
+
+print("train pipeline: ", transform.train)
+print("val pipeline: ", transform.val)
+print("test pipeline: ", transform.test)
+
+# make a dataset
+dataset = SegmentationDataset(config=cfg, transform=transform)
 ```
-transform.pipeline,
+- This construct prevents augmentation from leaking into validation and test  modes.
+- The transformation pipeline is constructed by the ```get_transform_from_config``` function,
+which and can then be passed to the "transform" argument of a dataset:
+
+### Verify the pipeline by visual inspection
+To plot augmented samples use
+
+```python
+from SkiNet.ML.transformations.plot_transformed_data import visualize_augmented_data
+visualize_augmented_data(dataset=dataset, samples=20)
 ```
-which prints out the following:
-
-```
-Compose([
-  HorizontalFlip(p=0.5),
-  VerticalFlip(p=0.5),
-  Affine(p=0.5, balanced_scale=False, border_mode=0, fill=0.0, fill_mask=0.0, fit_output=False, interpolation=1, keep_ratio=False, mask_interpolation=0, rotate=(-90.0, 90.0), rotate_method='largest_box', scale={'x': (1.0, 1.0), 'y': (1.0, 1.0)}, shear={'x': (-20.0, 20.0), 'y': (-20.0, 20.0)}, translate_percent={'x': (0.1, 0.1), 'y': (0.1, 0.1)}, translate_px=None),
-  ColorJitter(p=0.5, brightness=(0.9, 1.1), contrast=(0.9, 1.1), hue=(-0.5, 0.5), saturation=(0.9, 1.1)),
-  CenterCrop(p=1.0, border_mode=0, fill=0.0, fill_mask=0.0, height=400, pad_if_needed=False, pad_position='center', width=400),
-  ToTensorV2(p=1.0, transpose_mask=False),
-], p=1.0, bbox_params=None, keypoint_params=None, additional_targets={}, is_check_shapes=True)
-```
-
-Note, "ToTensorV2(p=1.0, transpose_mask=False)" at the end.
-
-
-
-### Transforming data in datasets
-
-Datasets accept this transformation pipeline via "transform" argument:
-
-```
-from SkiNet.ML.datasets.ph2dataset import PH2Dataset
-dataset = PH2Dataset(
-  data_root="/workplace/SkiNet/PH2_Dataset_images",
-  transform=transform)
-```
+- This will save individual images and a grid of augmented samples into a specified directory (can be disabled in arguments)

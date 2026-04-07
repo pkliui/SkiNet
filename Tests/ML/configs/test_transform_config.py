@@ -35,17 +35,17 @@ def test_crop_config_uses_defaults_and_accepts_overrides(
 
 
 @pytest.mark.parametrize(
-    "config,expected_flip_p,expected_affine_scale,expected_perspective_p,expected_shear_x",
+    "config,expected_affine_scale,expected_perspective_p,expected_shear_x",
     [
-        (SpatialAugmentConfig(), 0.5, (0.5, 1.0), 0.2, (-15, 15)),
+        (SpatialAugmentConfig(), (0.5, 1.0), 0.2, (-15, 15)),
         (
             SpatialAugmentConfig(
-                horizontal_flip_p=0.2,
+                affine_apply=True,
                 affine_scale=(0.8, 1.2),
+                perspective_apply=True,
                 perspective_p=0.9,
                 affine_shear={"x": (1, 3), "y": (4, 6)},
             ),
-            0.2,
             (0.8, 1.2),
             0.9,
             (1, 3),
@@ -54,7 +54,6 @@ def test_crop_config_uses_defaults_and_accepts_overrides(
 )
 def test_spatial_augment_config_uses_defaults_and_accepts_overrides(
     config: SpatialAugmentConfig,
-    expected_flip_p: float,
     expected_affine_scale: tuple[float, float],
     expected_perspective_p: float,
     expected_shear_x: tuple[int, int],
@@ -62,7 +61,6 @@ def test_spatial_augment_config_uses_defaults_and_accepts_overrides(
     """
     SpatialAugmentConfig should use model defaults unless explicit augmentation values are provided.
     """
-    assert config.horizontal_flip_p == expected_flip_p
     assert config.affine_scale == expected_affine_scale
     assert config.perspective_p == expected_perspective_p
     assert config.affine_shear["x"] == expected_shear_x
@@ -71,16 +69,16 @@ def test_spatial_augment_config_uses_defaults_and_accepts_overrides(
 @pytest.mark.parametrize(
     "config,expected_apply,expected_brightness,expected_contrast,expected_saturation,expected_p",
     [
-        (PhotoAugmentConfig(), True, 0.2, 0.2, 0.0, 0.5),
+        (PhotoAugmentConfig(), False, 0.2, 0.2, 0.0, 0.5),
         (
             PhotoAugmentConfig(
-                color_jitter_apply=False,
+                color_jitter_apply=True,
                 color_jitter_brightness=0.1,
                 color_jitter_contrast=0.3,
                 color_jitter_saturation=0.4,
                 color_jitter_p=0.8,
             ),
-            False,
+            True,
             0.1,
             0.3,
             0.4,
@@ -115,9 +113,12 @@ def test_transform_config_builds_nested_defaults() -> None:
     assert isinstance(config.crop, CropConfig)
     assert isinstance(config.spatial_augmentation, SpatialAugmentConfig)
     assert isinstance(config.photometric_augmentation, PhotoAugmentConfig)
+    assert config.crop.crop_apply is True
     assert config.crop.crop_type == "random_resized_crop"
-    assert config.spatial_augmentation.horizontal_flip_p == 0.5
-    assert config.photometric_augmentation.color_jitter_p == 0.5
+    assert config.spatial_augmentation.affine_apply is False
+    assert config.spatial_augmentation.perspective_apply is False
+    assert config.spatial_augmentation.square_symmetry_apply is False
+    assert config.photometric_augmentation.color_jitter_apply is False
     assert config.compose_kwargs == {}
 
 
@@ -127,13 +128,12 @@ def test_transform_config_applies_nested_overrides() -> None:
     """
     config = TransformConfig(
         crop=CropConfig(crop_type="center_crop", size=(64, 48)),
-        spatial_augmentation=SpatialAugmentConfig(horizontal_flip_p=0.2, perspective_apply=False),
+        spatial_augmentation=SpatialAugmentConfig(perspective_apply=False),
         photometric_augmentation=PhotoAugmentConfig(color_jitter_apply=False, color_jitter_p=0.8),
     )
 
     assert config.crop.crop_type == "center_crop"
     assert config.crop.size == (64, 48)
-    assert config.spatial_augmentation.horizontal_flip_p == 0.2
     assert config.spatial_augmentation.perspective_apply is False
     assert config.photometric_augmentation.color_jitter_apply is False
     assert config.photometric_augmentation.color_jitter_p == 0.8

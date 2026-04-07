@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
+from SkiNet.ML.utils.typing_utils import IntOrTuple2d
 
 
 @pytest.mark.parametrize(
@@ -24,6 +25,7 @@ def test_unet2dmodelconfig_valid(kwargs: dict, expected: dict) -> None:
     cfg = UNet2DModelConfig(**kwargs)
     for k, v in expected.items():
         assert getattr(cfg, k) == v
+
 
 @pytest.mark.parametrize(
     "kwargs, error_field",
@@ -49,3 +51,24 @@ def test_unet2dmodelconfig_invalid(kwargs: dict, error_field: str) -> None:
     with pytest.raises(ValidationError) as e:
         UNet2DModelConfig(**kwargs)
     assert error_field in str(e.value)
+
+
+@pytest.mark.parametrize(
+    "kwargs, expected_down_layers, expected_required_multiple",
+    [
+        ({}, 4, 16),  # number_of_layers=5 => down=4, stride=2 => 2**4=16
+        ({"number_of_layers": 4}, 3, 8),  # down=3 => 2**3=8
+        ({"number_of_layers": 6, "stride": 2}, 5, 32),  # down=5 => 2**5=32
+        ({"number_of_layers": 5, "stride": (2, 2)}, 4, (16, 16)),
+        ({"number_of_layers": 5, "stride": (2, 4)}, 4, (16, 256)),
+    ],
+)
+def test_unet2dmodelconfig_derived_properties(kwargs: dict,
+                                              expected_down_layers: int,
+                                              expected_required_multiple: IntOrTuple2d) -> None:
+    """
+    Test derived properties of UNet2DModelConfig.
+    """
+    cfg = UNet2DModelConfig(**kwargs)
+    assert cfg.number_of_downsampling_layers == expected_down_layers
+    assert cfg.required_input_multiple == expected_required_multiple

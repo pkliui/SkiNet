@@ -30,27 +30,17 @@ class SpatialAugmentConfig(BaseModel):
         - statistical shape models
     """
     # Geometric transformations
-    # albumentations.HorizontalFlip and albumentations.VerticalFlip
-    horizontal_flip_apply: bool = Field(
-        default=True, description="Apply horizontal flip.")
-    horizontal_flip_p: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Probability of horizontal flip.")
-    #
-    vertical_flip_apply: bool = Field(
-        default=True, description="Apply vertical flip.")
-    vertical_flip_p: float = Field(
-        default=0.5, ge=0.0, le=1.0, description="Probability of vertical flip.")
 
-    # Square symmetry (Vertical Flip & 90/180/270 Rotations)
+    # Square symmetry (Horizontal, Vertical Flip & 90/180/270 Rotations)
     square_symmetry_apply: bool = Field(
-        default=True, description="Apply square symmetry transformations.")
+        default=False, description="Apply square symmetry transformations.")
     square_symmetry_p: float = Field(
         default=0.5, ge=0.0, le=1.0, description="Probability of square symmetry transformations.")
 
     # Affine transformations
     # albumentations.Affine
     affine_apply: bool = Field(
-        default=True, description="Apply affine transformations.")
+        default=False, description="Apply affine transformations.")
     affine_scale: Tuple[float, float] = Field(default=(
         0.5, 1.0), description="Scaling (zoom) factor for affine transformation.")
     affine_translate_percent: dict[str, float | Tuple[float, float]] = Field(default={"x": (
@@ -63,7 +53,7 @@ class SpatialAugmentConfig(BaseModel):
     # Perspective transformations
     # albumentations.Perspective
     perspective_apply: bool = Field(
-        default=True, description="Apply perspective transformations.")
+        default=False, description="Apply perspective transformations.")
     perspective_scale: Tuple[float, float] = Field(default=(
         0.05, 0.1), description="Scaling factor for perspective transformation.")
     perspective_p: float = Field(
@@ -101,7 +91,7 @@ class PhotoAugmentConfig(BaseModel):
 
     # albumentations.ColorJitter
     color_jitter_apply: bool = Field(
-        default=True, description="Apply color jitter.")
+        default=False, description="Apply color jitter.")
     color_jitter_brightness: float = Field(
         default=0.2, description="Brightness adjustment factor.")
     color_jitter_contrast: float = Field(

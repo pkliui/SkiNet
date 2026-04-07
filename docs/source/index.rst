@@ -23,3 +23,4 @@ Contents
    dataloaders
    azure_setup
    plotting
+   api_config

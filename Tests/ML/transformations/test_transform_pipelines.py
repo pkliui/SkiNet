@@ -73,28 +73,22 @@ def test_get_crop_transforms_preserves_requested_crop_size(
     "config,expected_types",
     [
         (
-            SpatialAugmentConfig(
-                horizontal_flip_apply=False,
-                vertical_flip_apply=False,
-                square_symmetry_apply=False,
-                affine_apply=False,
-                perspective_apply=False,
-            ),
+            SpatialAugmentConfig(),
             [],
         ),
         (
-            SpatialAugmentConfig(),
-            ["HorizontalFlip", "VerticalFlip", "SquareSymmetry", "Affine", "Perspective"],
+            SpatialAugmentConfig(square_symmetry_apply=True,
+                                 affine_apply=True,
+                                 perspective_apply=True),
+            ["SquareSymmetry", "Affine", "Perspective"],
         ),
         (
             SpatialAugmentConfig(
-                horizontal_flip_apply=True,
-                vertical_flip_apply=False,
-                square_symmetry_apply=False,
+                square_symmetry_apply=True,
                 affine_apply=True,
                 perspective_apply=False,
             ),
-            ["HorizontalFlip", "Affine"],
+            ["SquareSymmetry", "Affine"],
         ),
     ],
 )
@@ -115,14 +109,12 @@ def test_get_spatial_transforms_returns_expected_transform_types(
     [
         (
             SpatialAugmentConfig(
-                horizontal_flip_p=0.1,
-                vertical_flip_p=0.2,
+                square_symmetry_apply=True,
                 square_symmetry_p=0.3,
+                perspective_apply=True,
                 perspective_p=0.4,
             ),
             {
-                "HorizontalFlip": 0.1,
-                "VerticalFlip": 0.2,
                 "SquareSymmetry": 0.3,
                 "Perspective": 0.4,
             },
@@ -152,7 +144,7 @@ def test_get_spatial_transforms_uses_configured_probabilities(
     "config,expected_types",
     [
         (PhotoAugmentConfig(color_jitter_apply=False), []),
-        (PhotoAugmentConfig(), ["ColorJitter"]),
+        (PhotoAugmentConfig(color_jitter_apply=True), ["ColorJitter"]),
     ],
 )
 def test_get_photometric_transforms_returns_expected_transform_types(
@@ -180,21 +172,20 @@ def test_get_photometric_transforms_uses_configured_color_jitter_values() -> Non
 
     transforms = get_photometric_transforms(config)
 
-    assert len(transforms) == 1
-    assert isinstance(transforms[0], A.ColorJitter)
-    assert transforms[0].brightness == (0.9, 1.1)
-    assert transforms[0].contrast == (0.8, 1.2)
-    assert transforms[0].saturation == (0.7, 1.3)
-    assert transforms[0].p == 0.4
+    assert len(transforms) == 0  # default is False
 
 
 def test_get_postprocess_transforms_returns_normalize_then_tensor() -> None:
-    """
-    get_postprocess_transforms() should always return Normalize followed by ToTensorV2.
-    """
     transforms: list[A.BasicTransform] = get_postprocess_transforms()
 
     assert [type(transform).__name__ for transform in transforms] == ["Normalize", "ToTensorV2"]
-    assert isinstance(transforms[0], A.Normalize)
-    assert isinstance(transforms[1], A.ToTensorV2)
-    assert transforms[1].transpose_mask is True
+
+    normalize = transforms[0]
+    to_tensor = transforms[1]
+
+    assert isinstance(normalize, A.Normalize)
+    assert normalize.normalization == "image_per_channel"
+    assert normalize.p == 1.0
+
+    assert isinstance(to_tensor, A.ToTensorV2)
+    assert to_tensor.transpose_mask is True

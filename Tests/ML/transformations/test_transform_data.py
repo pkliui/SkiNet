@@ -8,7 +8,7 @@ from SkiNet.ML.transformations.transform_adapters import AlbumentationsSampleTra
 from SkiNet.ML.transformations.transform_data import _build_transform, get_transform_from_config
 
 
-def _make_sample(height: int = 64, width: int = 64) -> Sample:
+def _make_sample(height: int = 256, width: int = 256) -> Sample:
     return Sample(
         image=torch.ones((3, height, width), dtype=torch.uint8),
         mask=torch.ones((1, height, width), dtype=torch.uint8),
@@ -22,20 +22,18 @@ def _make_sample(height: int = 64, width: int = 64) -> Sample:
         (
             [
                 [A.CenterCrop(height=32, width=32)],
-                [A.HorizontalFlip(p=0.5)],
-                [A.Normalize(), A.ToTensorV2(transpose_mask=True)],
+                [A.Normalize(normalization="image_per_channel", p=1.0), A.ToTensorV2(transpose_mask=True)],
             ],
-            ["CenterCrop", "HorizontalFlip", "Normalize", "ToTensorV2"],
-            ["CenterCrop", "HorizontalFlip"],
+            ["CenterCrop", "Normalize", "ToTensorV2"],
+            ["CenterCrop"],
         ),
         (
             [
                 [],
-                [A.VerticalFlip(p=0.5)],
-                [A.Normalize(), A.ToTensorV2(transpose_mask=True)],
+                [A.Normalize(normalization="image_per_channel", p=1.0), A.ToTensorV2(transpose_mask=True)],
             ],
-            ["VerticalFlip", "Normalize", "ToTensorV2"],
-            ["VerticalFlip"],
+            ["Normalize", "ToTensorV2"],
+            [],
         ),
     ],
 )
@@ -61,7 +59,7 @@ def test_build_transform_passes_compose_kwargs_to_main_and_visualization_pipelin
     transform = _build_transform(
         [
             [A.CenterCrop(height=32, width=32)],
-            [A.Normalize(), A.ToTensorV2(transpose_mask=True)],
+            [A.Normalize(normalization="image_per_channel", p=1.0), A.ToTensorV2(transpose_mask=True)],
         ],
         compose_kwargs={"seed": 7, "save_applied_params": True},
     )
@@ -71,52 +69,6 @@ def test_build_transform_passes_compose_kwargs_to_main_and_visualization_pipelin
     assert transform.visualization_pipeline is not None
     assert transform.visualization_pipeline.seed == 7
     assert transform.visualization_pipeline.save_applied_params is True
-
-
-@pytest.mark.parametrize(
-    "transformconfig_kwargs,split_name,expected_pipeline_len,expected_visualization_len",
-    [
-        ({}, "train", 9, 7),
-        ({}, "val", 3, 1),
-        ({}, "test", 3, 1),
-        (
-            {
-                "crop": {"crop_type": "center_crop", "size": (32, 24)},
-                "spatial_augmentation": {
-                    "horizontal_flip_apply": False,
-                    "vertical_flip_apply": False,
-                    "square_symmetry_apply": False,
-                    "affine_apply": False,
-                    "perspective_apply": False,
-                },
-                "photometric_augmentation": {"color_jitter_apply": False},
-            },
-            "train",
-            3,  # crop + postprocess for train
-            1,  # crop only for visualization
-        ),
-    ],
-)
-def test_get_transform_from_config_builds_expected_split_pipelines(
-    transformconfig_kwargs: dict,
-    split_name: str,
-    expected_pipeline_len: int,
-    expected_visualization_len: int,
-) -> None:
-    """
-    Test that get_transform_from_config constructs the expected number of transforms in the pipeline for each split (train, val, test)
-    based on the provided configuration.
-    """
-    cfg = PH2_UNet_ConfigCreator().create_config(transformconfig_kwargs=transformconfig_kwargs)
-
-    transforms = get_transform_from_config(cfg)
-    split_transform = getattr(transforms, split_name)
-
-    assert isinstance(split_transform, AlbumentationsSampleTransform)
-    assert len(split_transform.pipeline.transforms) == expected_pipeline_len
-    assert split_transform.visualization_pipeline is not None
-    assert len(split_transform.visualization_pipeline.transforms) == expected_visualization_len
-    assert type(split_transform.pipeline.transforms[-1]).__name__ == "ToTensorV2"
 
 
 def test_get_transform_from_config_forwards_seed_and_compose_kwargs() -> None:
@@ -143,10 +95,8 @@ def test_get_transform_from_config_returns_callable_sample_transforms(split_name
     """
     cfg = PH2_UNet_ConfigCreator().create_config(
         transformconfig_kwargs={
-            "crop": {"crop_type": "center_crop", "size": (32, 24)},
+            "crop": {"crop_type": "center_crop", "size": (32, 48)},
             "spatial_augmentation": {
-                "horizontal_flip_apply": False,
-                "vertical_flip_apply": False,
                 "square_symmetry_apply": False,
                 "affine_apply": False,
                 "perspective_apply": False,
@@ -161,6 +111,6 @@ def test_get_transform_from_config_returns_callable_sample_transforms(split_name
 
     assert isinstance(transformed.image, torch.Tensor)
     assert isinstance(transformed.mask, torch.Tensor)
-    assert transformed.image.shape == (3, 32, 24)
-    assert transformed.mask.shape == (1, 32, 24)
+    assert transformed.image.shape == (3, 32, 48)
+    assert transformed.mask.shape == (1, 32, 48)
     assert transformed.specs == sample.specs

@@ -17,10 +17,12 @@ def get_crop_transforms(config: CropConfig) -> list[A.BasicTransform]:
 
     if config.crop_type == "center_crop":
         transforms_list.append(A.CenterCrop(height=config.size[0],
-                                            width=config.size[1]))
+                                            width=config.size[1],
+                                            p=1.0))
     elif config.crop_type == "random_crop":
         transforms_list.append(A.RandomCrop(height=config.size[0],
-                                            width=config.size[1]))
+                                            width=config.size[1],
+                                            p=1.0))
     elif config.crop_type == "random_resized_crop":
         transforms_list.append(A.RandomResizedCrop(size=(config.size[0],
                                                          config.size[1]),
@@ -37,12 +39,6 @@ def get_spatial_transforms(config: SpatialAugmentConfig) -> list[A.BasicTransfor
     :return: List of spatial transformations.
     """
     transforms_list: list[A.BasicTransform] = []
-
-    if config.horizontal_flip_apply:
-        transforms_list.append(A.HorizontalFlip(p=config.horizontal_flip_p))
-
-    if config.vertical_flip_apply:
-        transforms_list.append(A.VerticalFlip(p=config.vertical_flip_p))
 
     if config.square_symmetry_apply:
         transforms_list.append(A.SquareSymmetry(p=config.square_symmetry_p))
@@ -84,4 +80,4 @@ def get_postprocess_transforms() -> list[A.BasicTransform]:
     Returns a list of post-processing transformations to be applied after all augmentations.
     This typically includes normalization and conversion to tensor format.
     """
-    return [A.Normalize(), A.ToTensorV2(transpose_mask=True)]
+    return [A.Normalize(normalization="image_per_channel", p=1.0), A.ToTensorV2(transpose_mask=True)]
