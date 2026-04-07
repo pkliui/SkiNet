@@ -94,3 +94,23 @@ def test_experiment_config_accepts_valid_nested_transform_override() -> None:
     assert config.transformconfig.seed_value == 13
     assert config.transformconfig.crop.crop_type == "center_crop"
     assert config.transformconfig.crop.size == (64, 48)
+
+
+def test_experiment_config_validates_crop_multiple_against_model_ok() -> None:
+    kwargs = make_valid_experiment_config_kwargs()
+    kwargs["modelconfig"] = UNet2DModelConfig(number_of_layers=5, stride=2)
+    kwargs["transformconfig"] = TransformConfig(
+        crop=CropConfig(crop_apply=True, crop_type="center_crop", size=(64, 48))
+    )
+    cfg = ExperimentConfig(**kwargs)
+    assert cfg.transformconfig.crop.size == (64, 48)
+
+
+def test_experiment_config_validates_crop_multiple_against_model_raises() -> None:
+    kwargs = make_valid_experiment_config_kwargs()
+    kwargs["modelconfig"] = UNet2DModelConfig(number_of_layers=5, stride=2)  # multiple=16
+    kwargs["transformconfig"] = TransformConfig(
+        crop=CropConfig(crop_apply=True, crop_type="center_crop", size=(62, 48))
+    )
+    with pytest.raises(ValidationError):
+        ExperimentConfig(**kwargs)

@@ -4,13 +4,14 @@ from pathlib import Path
 import yaml
 
 from SkiNet.ML.config_keys import (DATA_CONFIG, DATASET, EXPERIMENT_TYPE, GENERAL_CONFIG, MODEL, MODEL_CONFIG,
-                                   SEGMENTATION, TRAIN_CONFIG)
+                                   SEGMENTATION, TRAIN_CONFIG, TRANSFORM_CONFIG)
 from SkiNet.ML.configs.config_factory import ConfigFactory, get_config_factory
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.Utils.experiment_keys import DatasetKey, ModelKey
 
 # Allowed experiment types
 ALLOWED_EXPERIMENT_TYPES = {SEGMENTATION}
+
 
 def load_config_from_yaml(yaml_path: Path) -> ExperimentConfig:
     """
@@ -35,12 +36,14 @@ def load_config_from_yaml(yaml_path: Path) -> ExperimentConfig:
     factory: ConfigFactory = get_config_factory(model_key, dataset_key)
 
     dataconfig_kwargs = yaml_config.get(DATA_CONFIG, {})
+    transformconfig_kwargs = yaml_config.get(TRANSFORM_CONFIG, {})
     modelconfig_kwargs = yaml_config.get(MODEL_CONFIG, {})
     trainconfig_kwargs = yaml_config.get(TRAIN_CONFIG, {})
 
     if experiment_type == SEGMENTATION:
         config_creator = factory.get_config_creator()
         experiment_config = config_creator.create_config(dataconfig_kwargs=dataconfig_kwargs,
+                                                         transformconfig_kwargs=transformconfig_kwargs,
                                                          modelconfig_kwargs=modelconfig_kwargs,
                                                          trainconfig_kwargs=trainconfig_kwargs)
     else:
@@ -57,7 +60,7 @@ def _validate_yaml_config(yaml_config: dict) -> None:
     """
 
     # Check for required top-level keys
-    required_keys = [GENERAL_CONFIG, DATA_CONFIG, MODEL_CONFIG, TRAIN_CONFIG]
+    required_keys = [GENERAL_CONFIG, DATA_CONFIG, TRANSFORM_CONFIG, MODEL_CONFIG, TRAIN_CONFIG]
     # Check for required keys under GENERAL_CONFIG
     required_general_keys = [EXPERIMENT_TYPE, MODEL, DATASET]
 
@@ -80,11 +83,13 @@ def _validate_yaml_config(yaml_config: dict) -> None:
     try:
         ModelKey(general[MODEL])
     except ValueError:
-        raise ValueError(f"Invalid model name: {general[MODEL]}. Available models: {[model.value for model in ModelKey]}")
+        raise ValueError(
+            f"Invalid model name: {general[MODEL]}. Available models: {[model.value for model in ModelKey]}")
     try:
         DatasetKey(general[DATASET])
     except ValueError:
-        raise ValueError(f"Invalid dataset name: {general[DATASET]}. Available datasets: {[dataset.value for dataset in DatasetKey]}")
+        raise ValueError(
+            f"Invalid dataset name: {general[DATASET]}. Available datasets: {[dataset.value for dataset in DatasetKey]}")
 
 
 def _get_model_and_dataset_keys(yaml_config: dict) -> tuple[ModelKey, DatasetKey]:

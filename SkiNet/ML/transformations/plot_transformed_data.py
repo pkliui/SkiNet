@@ -38,7 +38,7 @@ def visualize_augmented_data(dataset: Any,
     sample_id = dataset.sample_ids[idx] if hasattr(dataset, "sample_ids") else str(idx)
     base = f"{prefix}_{sample_id}_idx{idx}"
 
-    figure, ax = plt.subplots(samples + 1, 2, figsize=(8, 4 * (samples + 1)))
+    figure, ax = plt.subplots(samples + 1, 3, figsize=(8, 4 * (samples + 1)))
 
     raw = dataset.get_raw_sample(idx)
     image_t = raw.image
@@ -72,6 +72,10 @@ def visualize_augmented_data(dataset: Any,
         aug_image = _to_numpy_hwc_for_plot(transformed.image)
         aug_mask = _to_numpy_hw_for_plot(transformed.mask)
 
+        # where aug_mask is NOT 0/255, else 0
+        aug_mask_not_binary = (~np.isin(aug_mask, [0, 255])).astype(np.uint8)
+        print(aug_mask_not_binary[250:260, 250:260])
+
         ax[i + 1, 0].imshow(_img_for_overlay(aug_image))
         ax[i + 1, 0].set_title(f"Augmented Image {i + 1}")
         ax[i + 1, 0].axis("off")
@@ -80,9 +84,14 @@ def visualize_augmented_data(dataset: Any,
         ax[i + 1, 1].set_title(f"Augmented Mask {i + 1}")
         ax[i + 1, 1].axis("off")
 
+        ax[i + 1, 2].imshow(aug_mask_not_binary, cmap="gray")
+        ax[i + 1, 2].set_title(f"Mask with Pixel values other than 0 or 1 {i + 1}")
+        ax[i + 1, 2].axis("off")
+
         if save_path is not None:
             plt.imsave(save_path / f"{base}_aug{i + 1}_image.png", _img_for_imsave(aug_image))
             plt.imsave(save_path / f"{base}_aug{i + 1}_mask.png", aug_mask, cmap="gray")
+            plt.imsave(save_path / f"{base}_aug{i + 1}_mask_not_binary.png", aug_mask_not_binary, cmap="gray")
             if save_overlay:
                 plt.imsave(save_path / f"{base}_aug{i + 1}_overlay.png",
                            overlay_mask(_img_for_overlay(aug_image), aug_mask))

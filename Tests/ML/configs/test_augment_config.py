@@ -1,0 +1,29 @@
+from SkiNet.ML.configs.transform_configs.augment_config import SpatialAugmentConfig
+from pydantic import ValidationError
+import pytest
+
+
+def test_spatialaugmentconfig_defaults() -> None:
+    cfg = SpatialAugmentConfig()
+    assert cfg.square_symmetry_p == 0.5
+    assert cfg.affine_scale == (0.5, 1.0)
+    assert cfg.affine_rotate == (-45, 45)
+    assert cfg.affine_shear["x"] == (-15, 15)
+    assert cfg.perspective_p == 0.2
+
+
+def test_spatialaugmentconfig_overrides() -> None:
+    cfg = SpatialAugmentConfig(
+        affine_scale=(0.8, 1.2),
+        perspective_p=0.9,
+        affine_shear={"x": (1, 3), "y": (4, 6)},
+    )
+    assert cfg.affine_scale == (0.8, 1.2)
+    assert cfg.perspective_p == 0.9
+    assert cfg.affine_shear["x"] == (1, 3)
+
+
+@pytest.mark.parametrize("p", [-0.1, 1.1])
+def test_spatialaugmentconfig_probability_out_of_range_raises(p: float) -> None:
+    with pytest.raises(ValidationError):
+        SpatialAugmentConfig(square_symmetry_p=p)

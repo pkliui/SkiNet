@@ -51,3 +51,31 @@ class UNet2DModelConfig(BaseModelConfig):
         """
         validate_conv_inputs(kernel=self.kernel, dilation=self.dilation, stride=self.stride)
         return self
+
+    @property
+    def number_of_downsampling_layers(self) -> int:
+        """
+        The number of downsampling layers in the encoder path as per model design in UNet2D._build_encoders
+        """
+        return self.number_of_layers - 1
+
+    @property
+    def required_input_multiple(self) -> IntOrTuple2d:
+        """
+        Required input height/width must be divisible by the cumulative
+        downsampling factor of the encoder. For a model with stride=2
+        downsampling applied `n_downsampling_layers` times, this is
+        `2 ** n_downsampling_layers`.
+        """
+        n = self.number_of_downsampling_layers
+        s = self.stride
+
+        if isinstance(s, tuple):
+            stride_h, stride_w = s
+            return (stride_h ** n, stride_w ** n)
+
+        # mypy: s is int here
+        if isinstance(s, int):
+            return s ** n  # type: ignore[no-any-return]
+        # mypy
+        raise TypeError(f"stride must be int or tuple[int, int], got {type(s).__name__}")
