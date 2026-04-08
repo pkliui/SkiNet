@@ -3,10 +3,16 @@ from enum import Enum
 from typing import Any
 
 import pytest
+import os
 
 from SkiNet.ML.datasets.preprocessing.metadata_csv_factory import PH2MetadataFactory, get_factory, main
 from SkiNet.ML.datasets.preprocessing.ph2_csv_builder import PH2AzureCSVBuilder, PH2LocalCSVBuilder
 from SkiNet.Utils.experiment_keys import DatasetKey
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("RUN_AZURE_TESTS") != "1",
+    reason="Set RUN_AZURE_TESTS=1 to run Azure integration tests",
+)
 
 
 @pytest.fixture
@@ -14,10 +20,12 @@ def local_arg_ph2(tmp_path: pytest.TempPathFactory) -> argparse.Namespace:
     """Simulate argparse.Namespace for local"""
     return argparse.Namespace(local_data_root=str(tmp_path), dataset_key_str="PH2", azure_data=False)
 
+
 @pytest.fixture
 def azure_arg_ph2() -> argparse.Namespace:
     """Simulate argparse.Namespace for Azure"""
     return argparse.Namespace(local_data_root=None, dataset_key_str="PH2", azure_data=True)
+
 
 @pytest.mark.parametrize("factory_cls, builder_cls, arg_fixture", [
     (PH2MetadataFactory, PH2LocalCSVBuilder, "local_arg_ph2"),
@@ -33,10 +41,12 @@ def test_factory_returns_correct_builder(factory_cls: type, builder_cls: type, a
         builder = factory.get_azure_csv_builder()  # factory should return a PH2AzureCSVBuilder
     assert isinstance(builder, builder_cls)
 
+
 def test_get_factory_returns_ph2_factory() -> None:
     """Confirm that the factory returns a PH2MetadataFactory instance for the PH2 dataset key"""
     factory = get_factory(DatasetKey.PH2)
     assert isinstance(factory, PH2MetadataFactory)
+
 
 def test_get_factory_raises_on_invalid_key() -> None:
     """Confirm that the factory raises a ValueError for invalid dataset keys"""
@@ -44,6 +54,7 @@ def test_get_factory_raises_on_invalid_key() -> None:
         class FakeDatasetKey(Enum):
             ANOTHER_DATASET = "ANOTHER_DATASET"
         get_factory(FakeDatasetKey.ANOTHER_DATASET)  # type: ignore[arg-type]
+
 
 def test_main_local(monkeypatch: pytest.MonkeyPatch, local_arg_ph2: argparse.Namespace) -> None:
     """ Test the main function for local environment, ensuring it runs without errors and calls the correct builder method."""
@@ -60,8 +71,10 @@ def test_main_local(monkeypatch: pytest.MonkeyPatch, local_arg_ph2: argparse.Nam
         def get_azure_csv_builder(self) -> Any:
             return DummyBuilder()
 
-    monkeypatch.setattr("SkiNet.ML.datasets.preprocessing.metadata_csv_factory.get_factory", lambda dataset_key_str: DummyFactory())
+    monkeypatch.setattr("SkiNet.ML.datasets.preprocessing.metadata_csv_factory.get_factory",
+                        lambda dataset_key_str: DummyFactory())
     main(local_arg_ph2)  # Should not raise
+
 
 def test_main_azure(monkeypatch: pytest.MonkeyPatch, azure_arg_ph2: argparse.Namespace) -> None:
     """ Test the main function for Azure environment, ensuring it runs without errors and calls the correct builder method."""
@@ -78,8 +91,10 @@ def test_main_azure(monkeypatch: pytest.MonkeyPatch, azure_arg_ph2: argparse.Nam
         def get_azure_csv_builder(self) -> Any:
             return DummyBuilder()
 
-    monkeypatch.setattr("SkiNet.ML.datasets.preprocessing.metadata_csv_factory.get_factory", lambda dataset_key_str: DummyFactory())
+    monkeypatch.setattr("SkiNet.ML.datasets.preprocessing.metadata_csv_factory.get_factory",
+                        lambda dataset_key_str: DummyFactory())
     main(azure_arg_ph2)  # Should not raise
+
 
 @pytest.mark.parametrize("arg", [
     argparse.Namespace(local_data_root="some/path", dataset_key_str="PH2", azure_data=True),
@@ -99,4 +114,5 @@ def test_enum_conversion_invalid_key() -> None:
         try:
             _ = DatasetKey[args.dataset_key_str.upper()]
         except KeyError:
-            raise ValueError(f"Unknown dataset key string: {args.dataset_key_str}. Valid options: {[k.name for k in DatasetKey]}")
+            raise ValueError(
+                f"Unknown dataset key string: {args.dataset_key_str}. Valid options: {[k.name for k in DatasetKey]}")
