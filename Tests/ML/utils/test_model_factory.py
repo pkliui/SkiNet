@@ -35,7 +35,7 @@ def mock_modelconfig() -> UNet2DModelConfig:
     "model_cfg, expected_type, expected_attrs",
     [
         (
-            UNet2DModelConfig(in_channels=1,
+            UNet2DModelConfig(in_channels=3,
                               out_channels_layer1=4,
                               kernel=3,
                               stride=2,
@@ -46,7 +46,7 @@ def mock_modelconfig() -> UNet2DModelConfig:
                               validate_forward=False),
             UNet2D,
             {
-                "in_channels": 1,
+                "in_channels": 3,
                 "out_channels_layer1": 4,
                 "kernel": 3,
                 "stride": 2,
