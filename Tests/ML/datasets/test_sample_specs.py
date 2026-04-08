@@ -10,33 +10,88 @@ from SkiNet.ML.datasets.sample_specs import SampleSpecs, create_valid_samplespec
 from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_IMAGE, DATATYPE_MASK, SAMPLEID_HEADER
 
 
-def _write_image(path: Path, array: np.ndarray) -> None:
-    """
-    Write a numpy array as an image to the specified path. The parent directory will be created if it does not exist.
-    """
+def _write_png(path: Path, array: np.ndarray) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(array).save(path)
 
 
 @pytest.mark.parametrize(
-    ("filename", "shape"),
+    "img_rel,mask_rel,img_array,mask_array,expected_img_shape,expected_mask_shape",
     [
-        ("img.png", (4, 4)),
-        ("nested/mask.png", (3, 5)),
+        (
+            Path("images/img_gray.png"),
+            Path("masks/mask_gray.png"),
+            np.random.randint(0, 256, (8, 6), dtype=np.uint8),  # grayscale (H, W)
+            np.random.randint(0, 256, (8, 6), dtype=np.uint8),  # grayscale mask (H, W)
+            (1, 8, 6),  # decode_image returns (C, H, W) where C=1 for grayscale images
+            (1, 8, 6),
+        ),
+        (
+            Path("images/img_rgb.png"),
+            Path("masks/mask_gray.png"),
+            np.random.randint(0, 256, (7, 9, 3), dtype=np.uint8),  # RGB (H, W, C)
+            np.random.randint(0, 256, (7, 9), dtype=np.uint8),  # grayscale mask (H, W)
+            (3, 7, 9),  # decode_image returns (C, H, W) where C=3 for RGB images
+            (1, 7, 9),
+        ),
+        (
+            Path("nested/images/img_gray.png"),
+            Path("nested/masks/mask_gray.png"),
+            np.random.randint(0, 256, (4, 5), dtype=np.uint8),
+            np.random.randint(0, 256, (4, 5), dtype=np.uint8),
+            (1, 4, 5),  # decode_image returns (C, H, W) where C=1 for grayscale images
+            (1, 4, 5),
+        ),
     ],
 )
-def test_load_data_item_returns_tensor(tmp_path: Path, filename: str, shape: tuple[int, int]) -> None:
-    """
-    Test that load_data_item returns a tensor with the expected shape and values
-    """
-    array = np.arange(shape[0] * shape[1], dtype=np.uint8).reshape(shape)
-    _write_image(tmp_path / filename, array)
+def test_load_sample_reads_image_and_mask_and_preserves_specs(
+    tmp_path: Path,
+    img_rel: Path,
+    mask_rel: Path,
+    img_array: np.ndarray,
+    mask_array: np.ndarray,
+    expected_img_shape: tuple[int, int, int],
+    expected_mask_shape: tuple[int, int, int],
+) -> None:
+    data_root = tmp_path
+    _write_png(data_root / img_rel, img_array)
+    _write_png(data_root / mask_rel, mask_array)
 
-    tensor = load_data_item(filename, tmp_path)
+    specs = SampleSpecs(sample_id="sample-1", image_path=str(img_rel), mask_path=str(mask_rel))
 
-    assert isinstance(tensor, torch.Tensor)
-    assert tensor.shape == torch.Size(shape)
-    assert torch.equal(tensor, torch.from_numpy(array))
+    sample = load_sample(specs, data_root=data_root)
+
+    assert isinstance(sample.image, torch.Tensor)
+    assert isinstance(sample.mask, torch.Tensor)
+    assert sample.image.dtype == torch.uint8
+    assert sample.mask.dtype == torch.uint8
+    assert tuple(sample.image.shape) == expected_img_shape
+    assert tuple(sample.mask.shape) == expected_mask_shape
+    assert sample.specs == specs
+
+
+@pytest.mark.parametrize(
+    "rel_path,array,expected_shape",
+    [
+        (Path("img_gray.png"), np.random.randint(0, 256, (8, 6), dtype=np.uint8), (1, 8, 6)),
+        (Path("img_rgb.png"), np.random.randint(0, 256, (7, 9, 3), dtype=np.uint8), (3, 7, 9)),
+        (Path("nested/mask_gray.png"), np.random.randint(0, 256, (4, 5), dtype=np.uint8), (1, 4, 5)),
+    ],
+)
+def test_load_data_item_returns_chw_uint8(
+    tmp_path: Path,
+    rel_path: Path,
+    array: np.ndarray,
+    expected_shape: tuple[int, int, int],
+) -> None:
+    _write_png(tmp_path / rel_path, array)
+
+    out = load_data_item(str(rel_path), tmp_path)
+
+    assert isinstance(out, torch.Tensor)
+    assert out.dtype == torch.uint8
+    assert out.ndim == 3
+    assert tuple(out.shape) == expected_shape
 
 
 def test_load_data_item_raises_when_data_root_missing(tmp_path: Path) -> None:
@@ -62,30 +117,6 @@ def test_load_data_item_raises_when_file_missing(tmp_path: Path, filename: str) 
     """
     with pytest.raises(FileNotFoundError, match="Data item not found"):
         load_data_item(filename, tmp_path)
-
-
-def test_load_sample_loads_image_and_mask(tmp_path: Path) -> None:
-    """
-    Test that load_sample loads the image and mask tensors correctly.
-    """
-    image_array = np.array([[1, 2], [3, 4]], dtype=np.uint8)
-    mask_array = np.array([[0, 1], [1, 0]], dtype=np.uint8)
-
-    _write_image(tmp_path / "images/img.png", image_array)
-    _write_image(tmp_path / "masks/mask.png", mask_array)
-
-    specs = SampleSpecs(
-        sample_id="sample-1",
-        image_path="images/img.png",
-        mask_path="masks/mask.png",
-        metadata={"site": "A"},
-    )
-
-    sample = load_sample(specs, tmp_path)
-
-    assert torch.equal(sample.image, torch.from_numpy(image_array))
-    assert torch.equal(sample.mask, torch.from_numpy(mask_array))
-    assert sample.specs == specs
 
 
 def test_create_valid_samplespecs_returns_expected_sample(tmp_path: Path) -> None:
@@ -156,6 +187,7 @@ def test_create_valid_samplespecs_parameterized(rows: list[dict], expected_keys:
     result = create_valid_samplespecs(df)
 
     assert list(result.keys()) == expected_keys
+
 
 def test_create_valid_samplespecs_uses_first_image_and_mask_when_duplicates(caplog: pytest.LogCaptureFixture) -> None:
     """

@@ -197,6 +197,10 @@ python mount_data.py --mount-path="SOME_LOCAL_MOUNT_PATH" --config-path=BLOBFUSE
 # If you do not specify --config-path, the script will use the default value (BLOBFUSE2_CONFIG_PATH) automatically.
 ```
 
+```python
+ python mount_data.py --mount-path /mnt/data --config-path SkiNet/Azure/blobfuse2.yaml
+ ```
+
 ## Running experiments on Azure
 
 ### Create a new Azure compute and set it up using run_on_azure.sh

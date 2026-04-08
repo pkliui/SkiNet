@@ -6,6 +6,33 @@ DATA_CONFIG:
   local_data_root:
   azure_data: True
   azure_blob_mount_point: "/mnt/data/"
+  crop_size: [256, 256]
+TRANSFORM_CONFIG:
+  crop:
+    crop_apply: True
+    crop_type: "random_resized_crop"
+    size: [512, 512]
+    scale: [0.8, 1.0]
+  spatial_augmentation:
+    square_symmetry_apply: True
+    square_symmetry_p: 0.5
+    affine_apply: True
+    affine_scale: [0.5, 1.0]
+    affine_translate_percent: {"x": [-0.05, 0.05], "y": [-0.05, 0.05]}
+    affine_rotate: [-45, 45]
+    affine_shear: {"x": [-15, 15], "y": [-15, 15]}
+    perspective_apply: True
+    perspective_scale: [0.05, 0.1]
+    perspective_p: 0.2
+  photometric_augmentation:
+    color_jitter_apply: True
+    color_jitter_brightness: 0.2
+    color_jitter_contrast: 0.2
+    color_jitter_saturation: 0.0
+    color_jitter_hue: 0.0
+    color_jitter_p: 0.5
+  compose_kwargs:
+    seed: 100
 MODEL_CONFIG:
 
 TRAIN_CONFIG:

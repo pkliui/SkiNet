@@ -5,13 +5,14 @@ import pytest
 import yaml
 
 from SkiNet.ML.config_keys import (DATA_CONFIG, DATASET, EXPERIMENT_TYPE, GENERAL_CONFIG, MODEL, MODEL_CONFIG,
-                                   SEGMENTATION, TRAIN_CONFIG)
+                                   SEGMENTATION, TRAIN_CONFIG, TRANSFORM_CONFIG)
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.load_config_from_yaml import (_get_model_and_dataset_keys, _validate_yaml_config,
                                                      load_config_from_yaml)
 from SkiNet.Utils.experiment_keys import DatasetKey, ModelKey
 
 # --------------------------------Tests for _validate_yaml_config -----------------------------------
+
 
 def make_valid_yaml_dict() -> dict:
     """
@@ -24,15 +25,17 @@ def make_valid_yaml_dict() -> dict:
             EXPERIMENT_TYPE: SEGMENTATION,
         },
         DATA_CONFIG: {},
+        TRANSFORM_CONFIG: {},
         MODEL_CONFIG: {},
         TRAIN_CONFIG: {},
     }
+
 
 def missing_top_level_key_cases() -> list[tuple[dict, str]]:
     """
     Generate test cases for missing top-level keys in the YAML config.
     """
-    required_keys = [GENERAL_CONFIG, DATA_CONFIG, MODEL_CONFIG, TRAIN_CONFIG]
+    required_keys = [GENERAL_CONFIG, DATA_CONFIG, MODEL_CONFIG, TRAIN_CONFIG, TRANSFORM_CONFIG]
     cases = []
     for key in required_keys:
         d = make_valid_yaml_dict()
@@ -66,6 +69,7 @@ def missing_general_key_cases() -> list[tuple[dict, str, bool]]:
         msg = f"Missing key in YAML config under {GENERAL_CONFIG}: {key}"
         cases.append((d, msg, True))
     return cases
+
 
 @pytest.mark.parametrize(
     "yaml_dict,message,should_raise",
@@ -208,6 +212,7 @@ def test_load_config_from_yaml_valid(tmp_path: Path) -> None:
     assert config.experiment_type == "segmentation"
     assert config.description == "UNet2D on PH2 dataset"
 
+
 @pytest.mark.parametrize("yaml_content", ["[]", "null", '"just a string"', "123"])
 def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_content: str) -> None:
     """
@@ -218,6 +223,7 @@ def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_cont
 
     with pytest.raises(ValueError, match=r"did not load to a mapping"):
         load_config_from_yaml(yaml_path)
+
 
 @pytest.mark.parametrize(
     "yaml_dict,expected_exception,expected_pattern",
@@ -230,6 +236,7 @@ def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_cont
                     DATASET: DatasetKey.PH2.value,
                 },
                 DATA_CONFIG: {},
+                TRANSFORM_CONFIG: {},
                 MODEL_CONFIG: {},
                 TRAIN_CONFIG: {},
             },
@@ -245,6 +252,7 @@ def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_cont
                     EXPERIMENT_TYPE: SEGMENTATION,
                 },
                 DATA_CONFIG: {},
+                TRANSFORM_CONFIG: {},
                 MODEL_CONFIG: {},
                 TRAIN_CONFIG: {},
             },
@@ -260,6 +268,7 @@ def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_cont
                     EXPERIMENT_TYPE: SEGMENTATION,
                 },
                 DATA_CONFIG: {},
+                TRANSFORM_CONFIG: {},
                 MODEL_CONFIG: {},
                 TRAIN_CONFIG: {},
             },
@@ -275,6 +284,7 @@ def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_cont
                     EXPERIMENT_TYPE: "CLASSIFICATION",
                 },
                 DATA_CONFIG: {},
+                TRANSFORM_CONFIG: {},
                 MODEL_CONFIG: {},
                 TRAIN_CONFIG: {},
             },
@@ -292,3 +302,13 @@ def test_load_config_from_yaml_invalid(tmp_path: Path, yaml_dict: dict, expected
 
     with pytest.raises(expected_exception, match=expected_pattern):
         load_config_from_yaml(yaml_path)
+
+
+def test_validate_yaml_config_missing_transform_config_raises() -> None:
+    """
+    Test that _validate_yaml_config raises KeyError for missing TRANSFORM_CONFIG
+    """
+    d = make_valid_yaml_dict()
+    del d[TRANSFORM_CONFIG]
+    with pytest.raises(KeyError, match=rf"Missing key in YAML config: {TRANSFORM_CONFIG}"):
+        _validate_yaml_config(d)

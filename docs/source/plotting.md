@@ -125,3 +125,19 @@ plot_segmentations(mode = "dataloader",
                    default_transform_visualisation=True,
                    alpha=0.5)
 ```
+
+# Plot augmented data
+
+## Given a dataset 
+
+Example:
+```python
+from SkiNet.ML.transformations.plot_transformed_data import visualize_augmented_data
+
+cfg = load_config_from_yaml(cfg_path)
+transform = get_transform_from_config(cfg)
+
+dataset = SegmentationDataset(config=cfg, transform=transform.train)
+
+visualize_augmented_data(dataset, samples=2)
+```
