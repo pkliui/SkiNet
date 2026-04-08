@@ -9,7 +9,7 @@ from SkiNet.ML.utils.typing_utils import IntOrTuple2d
     "kwargs, expected",
     [
         # Valid config, all defaults
-        ({}, {"in_channels": 1, "out_channels_layer1": 16, "number_of_layers": 5, "num_output_classes": 1,
+        ({}, {"in_channels": 3, "out_channels_layer1": 16, "number_of_layers": 5, "num_output_classes": 1,
               "kernel": 3, "stride": 2, "dilation": 1, "model_name": "UNet2D", "validate_forward": False, "kind": "unet2d"}),
         # Valid config, custom values
         ({"in_channels": 3, "out_channels_layer1": 8, "number_of_layers": 4, "num_output_classes": 2,
@@ -30,8 +30,8 @@ def test_unet2dmodelconfig_valid(kwargs: dict, expected: dict) -> None:
 @pytest.mark.parametrize(
     "kwargs, error_field",
     [
-        # Invalid: in_channels < 1
-        ({"in_channels": 0}, "in_channels"),
+        # Invalid: in_channels must be 3 for RGB images
+        ({"in_channels": 1}, "in_channels"),
         # Invalid: out_channels_layer1 < 1
         ({"out_channels_layer1": 0}, "out_channels_layer1"),
         # Invalid: number_of_layers < 2

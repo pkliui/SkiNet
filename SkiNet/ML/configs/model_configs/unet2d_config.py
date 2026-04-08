@@ -30,7 +30,7 @@ class UNet2DModelConfig(BaseModelConfig):
     kind: Literal["unet2d"] = "unet2d"
 
     # required architecture params
-    in_channels: int = Field(default=1, ge=1)
+    in_channels: int = Field(default=3, le=3, ge=3)
     out_channels_layer1: int = Field(default=16, ge=1)
     number_of_layers: int = Field(default=5, ge=2)
     num_output_classes: int = Field(default=1, ge=1)
