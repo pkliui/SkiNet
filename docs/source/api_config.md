@@ -14,3 +14,12 @@
 :member-order: bysource:
 ```
 
+# Metadata factory classes
+
+## PH2MetadataFactory
+
+```{autoclass} SkiNet.ML.datasets.preprocessing.PH2MetadataFactory
+:members:
+:member-order: bysource:
+```
+
