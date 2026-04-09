@@ -64,10 +64,10 @@ PH2_CSV_NAME = "ph2_metadata.csv"
 PH2_TXT_NAME = "PH2_dataset.txt"
 
 # Local image and mask patterns
-PH2_IMAGE_PATTERN_LOCAL = "**/*_Dermoscopic_Image/*.bmp"
-PH2_MASK_PATTERN_LOCAL = "**/*_lesion/*.bmp"
-PH2_IMAGE_PATTERN_AZURE = "**_Dermoscopic_Image/**.bmp"
-PH2_MASK_PATTERN_AZURE = "**_lesion/**.bmp"
+PH2_IMAGE_PATTERN_LOCAL = "**/*_Dermoscopic_Image/*.png"
+PH2_MASK_PATTERN_LOCAL = "**/*_lesion/*.png"
+PH2_IMAGE_PATTERN_AZURE = "**_Dermoscopic_Image/**.png"
+PH2_MASK_PATTERN_AZURE = "**_lesion/**.png"
 
 
 # ______________Data-related for Azure machine_____________
