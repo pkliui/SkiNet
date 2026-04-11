@@ -14,6 +14,7 @@ class DatasetKey(Enum):
     """
     PH2 = "PH2_DATASET"
 
+
 @unique
 class ModelKey(Enum):
     """
@@ -25,3 +26,14 @@ class ModelKey(Enum):
     The `model_name` is the string value that should appear under the "MODEL" key in your YAML config (e.g., Azure settings).
     """
     UNET2D = "UNET2D_MODEL"
+
+
+@unique
+class ExperimentType(Enum):
+    """
+    Enum for experiment types.
+
+    For example, they are used in dataset factories for identification of experiment type and for retrieving the correct dataset factory.
+    """
+    SEGMENTATION = "segmentation"
+    CLASSIFICATION = "classification"
