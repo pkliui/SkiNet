@@ -33,6 +33,28 @@ mask = item["mask"]
 specs = item["specs"]
 ```
 
+## Dataset splits and stratification
+
+Splitting a dataset into training, validation, and test subsets is performed by the helper function split_segmentation_metadata.
+It returns a DataFrameSplits object with three DataFrame attributes: train, val and test.
+Each DataFrame contains the metadata rows for samples assigned to that split.
+
+Example usage:
+
+```python
+from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
+from SkiNet.Utils.data.split_data import split_segmentation_metadata, SplitConfig
+
+# read main config and retrieve split config and full dataframe from it
+main_config: ExperimentConfig = load_config_from_yaml(cfg_path)
+split_config: SplitConfig = main_config.dataconfig.get_split_config()
+complete_metadata_df = main_config.dataconfig.metadata
+
+splits = split_segmentation_metadata(df=complete_metadata_df, split_config=split_config)
+train_df = splits.train   # DataFrame with training metadata rows
+val_df = splits.val       # DataFrame with validation metadata rows
+test_df = splits.test     # DataFrame with test metadata rows
+
 
 ## Modifications to the default Dataset class
 
