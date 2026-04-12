@@ -7,6 +7,7 @@ from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
+from SkiNet.Utils.experiment_keys import ExperimentType
 
 
 def test_ph2_unet_config_creator_returns_experiment_config_default() -> None:
@@ -19,7 +20,7 @@ def test_ph2_unet_config_creator_returns_experiment_config_default() -> None:
 
     assert isinstance(config, ExperimentConfig)
     assert config.experiment_name == "unet2d_ph2_experiment"
-    assert config.experiment_type == "segmentation"
+    assert config.experiment_type == ExperimentType.SEGMENTATION
     assert config.description == "UNet2D on PH2 dataset"
 
     assert isinstance(config.dataconfig, PH2DatasetConfig)
