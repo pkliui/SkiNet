@@ -1,60 +1,70 @@
 # Datasets
 
-- This document describes Datasets used in SkiNet
+This document describes the dataset system used in SkiNet.
+See the [API reference](api/dataset_factory.md) for full parameter documentation.
 
-# Datasets
+---
 
-## Dataset classes
+## Quickstart
 
-`SkiNet.ML.datasets.segmentation_dataset`  implements a PyTorch `Dataset` for **semantic segmentation**, where each training example is a pair:
-
-- **image**: input raster (grayscale or RGB)
-- **mask**: target raster (binary mask)
-
-### Example usage
+The recommended way to create datasets is through the factory, which handles
+splitting, transform construction, and dataset instantiation in one call:
 
 ```python
 from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
-from SkiNet.ML.transformations.transform_data import get_transform_from_config
-from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
+from SkiNet.ML.datasets.dataset_factory import create_pytorch_datasets_from_config
+from torch.utils.data import DataLoader
 
-# load config
 cfg = load_config_from_yaml(cfg_path)
-# load transforms
-transform = get_transform_from_config(cfg)
+bundle = create_pytorch_datasets_from_config(cfg)
 
-# make a dataset
-dataset = SegmentationDataset(config=my_config, transform=my_transform)
-
-# access specs metadata, images and masks as follows
-item = dataset[0]
-image = item["image"]
-mask = item["mask"]
-specs = item["specs"]
+train_loader = DataLoader(bundle.train, batch_size=8, shuffle=True,  num_workers=4)
+val_loader   = DataLoader(bundle.val,   batch_size=8, shuffle=False, num_workers=4)
 ```
 
-## Dataset splits and stratification
+See [dataset_factory.md](dataset_factory.md) for factory internals and how to extend it.
 
-Splitting a dataset into training, validation, and test subsets is performed by the helper function split_segmentation_metadata.
-It returns a DataFrameSplits object with three DataFrame attributes: train, val and test.
-Each DataFrame contains the metadata rows for samples assigned to that split.
+---
 
-Example usage:
+## Dataset Classes
+
+`SkiNet.ML.datasets.segmentation_dataset` implements a PyTorch `Dataset` for
+**semantic segmentation**. Each sample is a pair:
+
+- **image**: input raster (grayscale or RGB)
+- **mask**: target binary raster
+
+Each item returned by the dataset is a dict:
 
 ```python
-from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
-from SkiNet.Utils.data.split_data import split_segmentation_metadata, SplitConfig
+item  = dataset[0]
+image = item["image"]   # transformed image tensor
+mask  = item["mask"]    # transformed mask tensor
+specs = item["specs"]   # sample metadata dict
+```
 
-# read main config and retrieve split config and full dataframe from it
-main_config: ExperimentConfig = load_config_from_yaml(cfg_path)
-split_config: SplitConfig = main_config.dataconfig.get_split_config()
-complete_metadata_df = main_config.dataconfig.metadata
+---
 
-splits = split_segmentation_metadata(df=complete_metadata_df, split_config=split_config)
-train_df = splits.train   # DataFrame with training metadata rows
-val_df = splits.val       # DataFrame with validation metadata rows
-test_df = splits.test     # DataFrame with test metadata rows
+## Dataset Splits
 
+Splitting into train/val/test subsets is handled by `split_segmentation_metadata`,
+which returns a `DataFrameSplits` object. In normal usage this is called internally
+by the factory, but it can be called directly if needed:
+
+```python
+from SkiNet.Utils.data.split_data import split_segmentation_metadata
+
+main_config  = load_config_from_yaml(cfg_path)
+split_config = main_config.dataconfig.get_split_config()
+metadata_df  = main_config.dataconfig.metadata
+
+splits   = split_segmentation_metadata(df=metadata_df, split_config=split_config)
+train_df = splits.train
+val_df   = splits.val
+test_df  = splits.test
+```
+
+---
 
 ## Modifications to the default Dataset class
 
