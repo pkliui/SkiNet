@@ -1,7 +1,7 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import cast
+from typing import Generic, TypeVar, cast
 
 
 from SkiNet.ML.configs.data_configs.base_data_config import BaseDataConfig
@@ -15,52 +15,69 @@ from SkiNet.Utils.data.split_data import DataFrameSplits, split_segmentation_met
 
 logger = logging.getLogger(__name__)
 
-
-@dataclass
-class DatasetBundle:
-    """
-    Generic container for datasets produced by a factory.
-    """
-    train: BaseDataset
-    val: BaseDataset
-    test: BaseDataset
-    splits: DataFrameSplits
+# use covariance to allow DatasetFactory[SegmentationDataset] to be treated as a subtype of DatasetFactory[BaseDataset]
+# DatasetFactory is read-only with respect to the dataset type it produces, so covariance is appropriate here
+TDataset_co = TypeVar("TDataset_co", bound=BaseDataset, covariant=True)
 
 
 @dataclass
-class SegmentationDatasets(DatasetBundle):
-    train: SegmentationDataset
-    val: SegmentationDataset
-    test: SegmentationDataset
+class DatasetSplit(Generic[TDataset_co]):
+    """
+    Group of train/validation/test datasets created from one split operation.
+
+    The container is generic so orchestration code can use the common shape while
+    experiment-specific code can preserve concrete dataset types
+
+    Attributes:
+        train: Dataset for model training.
+        val: Dataset for validation and early stopping.
+        test: Dataset for final held-out evaluation.
+        splits: Raw dataframe splits used to construct the train, val, test datasets.
+    """
+    train: TDataset_co
+    val: TDataset_co
+    test: TDataset_co
     splits: DataFrameSplits
 
 
-class DatasetFactory(ABC):
+class DatasetFactory(ABC, Generic[TDataset_co]):
     """
-    Abstract base class for dataset factories. Each factory is responsible for creating datasets for a specific
-    experiment type (e.g., segmentation, classification, etc.) based on the provided experiment configuration.
+    Base class for experiment-specific dataset factories.
+
+    A concrete factory is responsible for deriving the split dataframes,
+    selecting the transforms for each workflow stage, and returning a typed
+    ``DatasetSplit`` for the requested experiment type.
     """
     @abstractmethod
-    def create_datasets(self, config: ExperimentConfig) -> DatasetBundle:
+    def create_datasets(self, config: ExperimentConfig) -> DatasetSplit[TDataset_co]:
+        """
+        Build the full train/val/test dataset container for ``config``.
+
+        Implementations are responsible for:
+        - splitting the source metadata into train/val/test dataframes
+        - resolving the appropriate transforms per split
+        - constructing and returning a typed ``DatasetSplit``
+
+        :param config: Fully resolved experiment configuration.
+        :return: A ``DatasetSplit`` typed to this factory's dataset type.
+        """
         pass
 
-    def create_train_dataset(self, config: ExperimentConfig) -> BaseDataset:
-        return self.create_datasets(config).train
 
-    def create_val_dataset(self, config: ExperimentConfig) -> BaseDataset:
-        return self.create_datasets(config).val
+class SegmentationDatasetFactory(DatasetFactory[SegmentationDataset]):
+    """
+    Factory that creates ``SegmentationDataset`` objects for each workflow split.
+    Use ``create_segmentation_datasets_from_config`` for the typed public entry point.
+    """
 
-    def create_test_dataset(self, config: ExperimentConfig) -> BaseDataset:
-        return self.create_datasets(config).test
-
-
-class SegmentationDatasetFactory(DatasetFactory):
-    def create_datasets(self, config: ExperimentConfig) -> DatasetBundle:
+    def create_datasets(self, config: ExperimentConfig) -> DatasetSplit[SegmentationDataset]:
         """
-        Create train, validation, and test datasets based on the provided experiment configuration.
+        Create the segmentation train/validation/test datasets for ``config``.
 
-        :param config: The experiment configuration containing dataset metadata, split configuration, and transformation configuration.
-        :return: A DatasetBundle containing the created train, validation, and test datasets, along with the splits information.
+        :param config: Experiment configuration containing segmentation metadata,
+            split configuration, transform configuration, and data root.
+        :return: A ``DatasetSplit[SegmentationDataset]`` containing typed train, val,
+            and test splits alongside the raw ``DataFrameSplits`` used to construct them.
         """
         data_config = cast(BaseDataConfig, config.dataconfig)
         metadata_df = data_config.metadata
@@ -68,50 +85,73 @@ class SegmentationDatasetFactory(DatasetFactory):
 
         splits = split_segmentation_metadata(df=metadata_df,
                                              split_config=split_config)
-        tranformation = get_transform_from_config(config)
+        transformations = get_transform_from_config(config)
         train_dataset = SegmentationDataset(config,
                                             splits.train,
-                                            tranformation.train,
+                                            transformations.train,
                                             MLWorkflowState.TRAIN)
         val_dataset = SegmentationDataset(config,
                                           splits.val,
-                                          tranformation.val,
+                                          transformations.val,
                                           MLWorkflowState.VAL)
         test_dataset = SegmentationDataset(config,
                                            splits.test,
-                                           tranformation.test,
+                                           transformations.test,
                                            MLWorkflowState.TEST)
 
-        return SegmentationDatasets(train=train_dataset,
-                                    val=val_dataset,
-                                    test=test_dataset,
-                                    splits=splits)
+        # log basic info for observability
+        try:
+            logger.info(
+                "Segmentation datasets created: train=%d, val=%d, test=%d",
+                len(splits.train), len(splits.val), len(splits.test)
+            )
+        except Exception:
+            logger.debug("Segmentation datasets created (counts unavailable)", exc_info=True)
+
+        return DatasetSplit(train=train_dataset,
+                            val=val_dataset,
+                            test=test_dataset,
+                            splits=splits)
 
 
-def _get_dataset_factory(config: ExperimentConfig) -> DatasetFactory:
+# Registry mapping experiment types to their factories.
+# Add new experiment types here as they are introduced.
+_DATASET_FACTORIES: dict[ExperimentType, DatasetFactory[BaseDataset]] = {
+    ExperimentType.SEGMENTATION: SegmentationDatasetFactory(),
+}
+
+
+def _get_dataset_factory(config: ExperimentConfig) -> DatasetFactory[BaseDataset]:
     """
-    Get the appropriate dataset factory based on the experiment type specified in the configuration.
-    The returned factory can then be used to create datasets for the experiment.
+    Resolve the factory for the experiment type in ``config``.
+    To add a new experiment type, register its factory in ``_DATASET_FACTORIES``.
 
-    :param config: The experiment configuration containing the experiment type.
-    :return: The dataset factory corresponding to the experiment type.
+    :param config: Experiment configuration containing the experiment type.
+    :return: The factory corresponding to ``config.experiment_type``.
+    :raises ValueError: If the experiment type has no registered factory.
     """
-    dataset_factories = {
-        ExperimentType.SEGMENTATION: SegmentationDatasetFactory(),
-    }
-    exp_type = config.experiment_type
-    if exp_type in dataset_factories:
-        return dataset_factories[exp_type]
-    else:
-        raise ValueError(f"Unsupported experiment type: {exp_type}")
+    factory = _DATASET_FACTORIES.get(config.experiment_type)
+    if factory is None:
+        supported = ", ".join(str(k) for k in _DATASET_FACTORIES)
+        raise ValueError(
+            f"Unsupported experiment type '{config.experiment_type}'. "
+            f"Supported: {supported}."
+        )
+    return factory
 
 
-def create_pytorch_datasets_from_config(config: ExperimentConfig) -> DatasetBundle:
+def create_segmentation_datasets_from_config(
+    config: ExperimentConfig,
+) -> DatasetSplit[SegmentationDataset]:
     """
-    Factory method to create PyTorch datasets based on the experiment configuration.
+    Typed entry point for segmentation experiments.
 
-    :param config: The experiment configuration containing dataset metadata, split configuration, and transformation configuration.
-    :return: A DatasetBundle containing the created train, validation, and test datasets, along with the splits information.
+    Example::
+
+        dataset_splits = create_segmentation_datasets_from_config(config)
+        loader = DataLoader(dataset_splits.train, batch_size=8, shuffle=True)
+
+    :param config: Experiment configuration for a segmentation experiment.
+    :return: A ``DatasetSplit[SegmentationDataset]`` with typed train/val/test splits.
     """
-    factory = _get_dataset_factory(config)
-    return factory.create_datasets(config)
+    return SegmentationDatasetFactory().create_datasets(config)
