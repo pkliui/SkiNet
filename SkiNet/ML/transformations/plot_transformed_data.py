@@ -74,7 +74,6 @@ def visualize_augmented_data(dataset: Any,
 
         # where aug_mask is NOT 0/255, else 0
         aug_mask_not_binary = (~np.isin(aug_mask, [0, 255])).astype(np.uint8)
-        print(aug_mask_not_binary[250:260, 250:260])
 
         ax[i + 1, 0].imshow(_img_for_overlay(aug_image))
         ax[i + 1, 0].set_title(f"Augmented Image {i + 1}")
