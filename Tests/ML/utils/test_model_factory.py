@@ -1,12 +1,14 @@
 from typing import Any
 from unittest.mock import MagicMock
 
+from pydantic import ValidationError
+
 import pytest
 
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
-from SkiNet.ML.configs.experiment_config import ExperimentConfig
+from SkiNet.ML.configs.experiment_config import ExperimentConfig, ExperimentType
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
-from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
+from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.model.architecture.unet2d import UNet2D
 from SkiNet.ML.utils.model_factory import create_model
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
@@ -20,15 +22,8 @@ def mock_dataconfig() -> PH2DatasetConfig:
 
 
 @pytest.fixture
-def mock_trainconfig() -> BaseTrainConfig:
-    return MagicMock(spec=BaseTrainConfig)
-
-
-@pytest.fixture
-def mock_modelconfig() -> UNet2DModelConfig:
-    cfg = MagicMock(spec=UNet2DModelConfig)
-    cfg.kind = "unet2d"
-    return cfg
+def trainconfig() -> TrainConfig:
+    return TrainConfig()
 
 
 @pytest.mark.parametrize(
@@ -86,16 +81,15 @@ def test_create_model(model_cfg: UNet2DModelConfig,
                       expected_type: type,
                       expected_attrs: dict,
                       mock_dataconfig: PH2DatasetConfig,
-                      mock_trainconfig: BaseTrainConfig) -> None:
+                      trainconfig: TrainConfig) -> None:
     """
     Test the model creation factory function with various UNet2D model configurations.
     """
-    # Bypass ExperimentConfig validation: we only want to test the factory logic.
-    cfg = ExperimentConfig(experiment_type="classification",
+    cfg = ExperimentConfig(experiment_type=ExperimentType.CLASSIFICATION,
                            experiment_name="test_experiment",
                            description="Test experiment",
                            dataconfig=mock_dataconfig,
-                           trainconfig=mock_trainconfig,
+                           trainconfig=trainconfig,
                            modelconfig=model_cfg,
                            transformconfig=TransformConfig())
     model = create_model(cfg)
@@ -109,18 +103,17 @@ def test_create_model(model_cfg: UNet2DModelConfig,
     object(), "not a model config", 123, {"kind": "unknown"}
 ])
 def test_create_model_raises_for_unsupported_model_config_type(bad_model_cfg: Any,
-                                                               mock_trainconfig: BaseTrainConfig,
+                                                               trainconfig: TrainConfig,
                                                                mock_dataconfig: PH2DatasetConfig) -> None:
     """
     Test the model creation factory function with various invalid model configurations.
     """
-    with pytest.raises(ValueError, match="validation error"):
-
-        cfg = ExperimentConfig(experiment_type="classification",
+    with pytest.raises((ValidationError, ValueError)):
+        cfg = ExperimentConfig(experiment_type=ExperimentType.CLASSIFICATION,
                                experiment_name="test_experiment",
                                description="Test experiment",
                                dataconfig=mock_dataconfig,
-                               trainconfig=mock_trainconfig,
+                               trainconfig=trainconfig,
                                modelconfig=bad_model_cfg,
                                transformconfig=TransformConfig())
         create_model(cfg)

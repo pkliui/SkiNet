@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
 from SkiNet.ML.configs.experiment_config import ExperimentConfig, ExperimentType
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
-from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
+from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.configs.transform_configs.crop_config import CropConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 
@@ -28,7 +28,7 @@ def make_valid_experiment_config_kwargs() -> dict:
                 split_random_seed=42),
             "transformconfig": TransformConfig(),
             "modelconfig": UNet2DModelConfig(),
-            "trainconfig": BaseTrainConfig()}
+            "trainconfig": TrainConfig()}
 
 
 def test_experiment_config_valid() -> None:
@@ -43,7 +43,7 @@ def test_experiment_config_valid() -> None:
     assert isinstance(config.dataconfig, PH2DatasetConfig)
     assert isinstance(config.transformconfig, TransformConfig)
     assert isinstance(config.modelconfig, UNet2DModelConfig)
-    assert isinstance(config.trainconfig, BaseTrainConfig)
+    assert isinstance(config.trainconfig, TrainConfig)
 
 
 def test_experiment_config_forbids_extra_top_level_fields() -> None:
