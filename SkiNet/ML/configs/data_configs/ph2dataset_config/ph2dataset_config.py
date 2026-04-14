@@ -63,8 +63,8 @@ class PH2DatasetConfig(BaseDataConfig):
 
         :returns: SplitConfig for the PH2 dataset, where the stratify_column is PH2-specific when enabled
         """
-        return SplitConfig(train_size=super().split_train_size,
-                           val_size=super().split_val_size,
-                           test_size=super().split_test_size,
+        return SplitConfig(train_size=self.split_train_size,
+                           val_size=self.split_val_size,
+                           test_size=self.split_test_size,
                            stratify_column=self.split_stratify_column.value if self.split_stratify_column is not None else None,
-                           random_seed=super().split_random_seed)
+                           random_seed=self.split_random_seed)
