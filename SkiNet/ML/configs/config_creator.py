@@ -4,8 +4,9 @@ from typing import Any, Dict, Optional
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
-from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
+from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
+from SkiNet.Utils.experiment_keys import ExperimentType
 
 """
 ConfigCreator: produce ExperimentConfig instances
@@ -62,9 +63,9 @@ class PH2_UNet_ConfigCreator(ConfigCreator):
         modelconfig_kwargs = modelconfig_kwargs or {}
         trainconfig_kwargs = trainconfig_kwargs or {}
         return ExperimentConfig(experiment_name="unet2d_ph2_experiment",
-                                experiment_type="segmentation",
+                                experiment_type=ExperimentType.SEGMENTATION,
                                 description="UNet2D on PH2 dataset",
                                 dataconfig=PH2DatasetConfig(**dataconfig_kwargs),
                                 transformconfig=TransformConfig(**transformconfig_kwargs),
                                 modelconfig=UNet2DModelConfig(**modelconfig_kwargs),
-                                trainconfig=BaseTrainConfig(**trainconfig_kwargs))
+                                trainconfig=TrainConfig(**trainconfig_kwargs))

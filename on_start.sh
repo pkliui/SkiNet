@@ -33,7 +33,7 @@ set -Eeuo pipefail
 # Set default values for environment variables if they are not already set
 
 # Image name on Docker Hub
-IMAGE="pkliui/skinet:v5cpu"
+IMAGE="pkliui/skinet:v7cpu"
 
 # Determine a safe default for the home directory
 DEFAULT_HOME="$HOME"
@@ -42,14 +42,14 @@ DEFAULT_HOME="$HOME"
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
 HOST_REPO="${HOST_REPO:-$DEFAULT_HOME/repos/SkiNet}"
 CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
-BRANCH="${BRANCH:-dev}"
+BRANCH="${BRANCH:-mlops}"
 
 # Set Python binary
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 
 # Data mount path on Lightning Storage
-LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/"
+LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2_002-032/"
 # Data mount path inside the container
 CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"
 
@@ -97,11 +97,30 @@ fi
 echo "==> Pulling Docker image $IMAGE"
 docker pull "$IMAGE"
 
+echo "Setting up Lightning"
+LIGHTNING_ENV_FILE="$(mktemp)"
+env | grep '^LIGHTNING_' > "$LIGHTNING_ENV_FILE" || true
+
+
 echo "==> Running fresh container"
+
+echo "Tensorboard port mapping host:container 6006:6006"
+echo "Run on host to start tensorboard in the container and make it accessible from the host:"
+echo "tensorboard --logdir /workplace/SkiNet/lightning_logs --port 6006 --host 0.0.0.0 --reload_interval 1"
+echo "MLflow port mapping host:container 5000:5000"
+echo "Run in the container to start the MLflow tracking server:"
+echo "mlflow server --backend-store-uri sqlite:////workplace/SkiNet/mlflow.db --default-artifact-root file:///workplace/SkiNet/mlruns --host 0.0.0.0 --port 5000"
+echo
+
 docker run --rm -it\
+  -p 5000:5000 \
+  -p 6006:6006 \
+  --ipc=host \
+  --env-file "$LIGHTNING_ENV_FILE" \
+  -v "$HOME/.lightning:/root/.lightning:ro" \
   --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
   --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
   -w "$CONTAINER_REPO" \
   "$IMAGE"
-
+rm -f "$LIGHTNING_ENV_FILE"
 echo "==> Done. Docker is running. Attach Shell to the running container"

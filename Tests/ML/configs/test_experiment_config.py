@@ -4,15 +4,15 @@ import pytest
 from pydantic import ValidationError
 
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
-from SkiNet.ML.configs.experiment_config import ExperimentConfig
+from SkiNet.ML.configs.experiment_config import ExperimentConfig, ExperimentType
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
-from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
+from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.configs.transform_configs.crop_config import CropConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 
 
 def make_valid_experiment_config_kwargs() -> dict:
-    return {"experiment_type": "segmentation",
+    return {"experiment_type": ExperimentType.SEGMENTATION,
             "experiment_name": "unet2d_ph2_experiment",
             "description": "UNet2D on PH2 dataset",
             # provide minimal placeholder values for required PH2DatasetConfig args
@@ -21,10 +21,14 @@ def make_valid_experiment_config_kwargs() -> dict:
                 azure_blob_mount_point=None,
                 local_data_root=str(Path("/tmp")),
                 crop_size=(256, 256),
-                kind="ph2"),
+                kind="ph2",
+                split_train_size=0.7,
+                split_val_size=0.15,
+                split_test_size=0.15,
+                split_random_seed=42),
             "transformconfig": TransformConfig(),
             "modelconfig": UNet2DModelConfig(),
-            "trainconfig": BaseTrainConfig()}
+            "trainconfig": TrainConfig()}
 
 
 def test_experiment_config_valid() -> None:
@@ -33,13 +37,13 @@ def test_experiment_config_valid() -> None:
     """
     config = ExperimentConfig(**make_valid_experiment_config_kwargs())
 
-    assert config.experiment_type == "segmentation"
+    assert config.experiment_type == ExperimentType.SEGMENTATION
     assert config.experiment_name == "unet2d_ph2_experiment"
     assert config.description == "UNet2D on PH2 dataset"
     assert isinstance(config.dataconfig, PH2DatasetConfig)
     assert isinstance(config.transformconfig, TransformConfig)
     assert isinstance(config.modelconfig, UNet2DModelConfig)
-    assert isinstance(config.trainconfig, BaseTrainConfig)
+    assert isinstance(config.trainconfig, TrainConfig)
 
 
 def test_experiment_config_forbids_extra_top_level_fields() -> None:

@@ -9,7 +9,7 @@ from SkiNet.ML.config_keys import (DATA_CONFIG, DATASET, EXPERIMENT_TYPE, GENERA
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.load_config_from_yaml import (_get_model_and_dataset_keys, _validate_yaml_config,
                                                      load_config_from_yaml)
-from SkiNet.Utils.experiment_keys import DatasetKey, ModelKey
+from SkiNet.Utils.experiment_keys import DatasetKey, ExperimentType, ModelKey
 
 # --------------------------------Tests for _validate_yaml_config -----------------------------------
 
@@ -209,7 +209,7 @@ def test_load_config_from_yaml_valid(tmp_path: Path) -> None:
     config = load_config_from_yaml(yaml_path)
     assert isinstance(config, ExperimentConfig)
     assert config.experiment_name == "unet2d_ph2_experiment"
-    assert config.experiment_type == "segmentation"
+    assert config.experiment_type == ExperimentType.SEGMENTATION
     assert config.description == "UNet2D on PH2 dataset"
 
 

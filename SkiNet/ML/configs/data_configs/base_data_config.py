@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
 from SkiNet.Azure.azure_setup import AzureSetup
 from SkiNet.Utils import project_paths
 from SkiNet.Utils.experiment_keys import DatasetKey
+from SkiNet.Utils.data.split_data import SplitConfig
 
 
 class BaseDataConfig(BaseModel):
@@ -55,6 +56,13 @@ class BaseDataConfig(BaseModel):
         None, description="The mount point for the Azure Blob Storage. Required if azure_data is True. Ignored if azure_data is False.")
     local_data_root: Optional[str] = Field(None, description="The root path to data and metadata locally. The path should point to a directory that contains"
                                            " folders with samples of data uniquely identifiable by their ID. Only used when no azure_data argument is set.")
+    split_train_size: float = Field(0.7, ge=0.0, le=1.0, description="Proportion of the dataset in the train split.")
+    split_val_size: float = Field(0.1, ge=0.0, le=1.0, description="Proportion of the dataset in the validation split.")
+    split_test_size: float = Field(0.2, ge=0.0, le=1.0, description="Proportion of the dataset in the test split.")
+    split_random_seed: int = Field(42, ge=0, description="Random seed of the train/val/test splits.")
+    split_stratify_column: str | None = Field(default=None, description="Column name in the metadata CSV to use for"
+                                              "stratified splitting into train/val/test splits. Should be a column  "
+                                              "in the metadata CSV that has categorical labels for stratification. ")
 
     METADATA_CSV_NAME: ClassVar[str]
     REQUIRED_COLUMNS: ClassVar[Set[str]] = set()
@@ -110,7 +118,8 @@ class BaseDataConfig(BaseModel):
         # Authentication and access to Azure Blob Storage are assumed to be handled externally,
         # e.g. through appropriate Managed Identity permissions and Azure setup.
         if self.azure_data and self.local_data_root is not None:
-            logging.getLogger(__name__).warning("Both azure_data is True and local_data_root is provided. local_data_root will be ignored.")
+            logging.getLogger(__name__).warning(
+                "Both azure_data is True and local_data_root is provided. local_data_root will be ignored.")
         if not self.azure_data and self.local_data_root is None:
             raise ValueError("Provide local_data_root argument pointing to a local dataset root")
 
@@ -155,3 +164,14 @@ class BaseDataConfig(BaseModel):
         else:
             assert self.local_data_root is not None
             return Path(self.local_data_root)
+
+    def get_split_config(self) -> SplitConfig:
+        """
+        Return a SplitConfig object containing the train/val/test split proportions,
+        random seed, and stratification column as per the configuraion
+        """
+        return SplitConfig(train_size=self.split_train_size,
+                           val_size=self.split_val_size,
+                           test_size=self.split_test_size,
+                           stratify_column=self.split_stratify_column,
+                           random_seed=self.split_random_seed)

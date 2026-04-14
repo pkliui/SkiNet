@@ -36,3 +36,44 @@ TRANSFORM_CONFIG:
 MODEL_CONFIG:
 
 TRAIN_CONFIG:
+  log_dir: "lightning_logs"
+  experiment_name: "unet2d_ph2_debug"
+  run_test_after_fit: true
+  test_on_val_split: true
+  batch_size: 4
+  num_workers: 0
+  optimizer_name: "adam"
+  lr: 0.1
+  max_epochs: 5
+  accelerator: "auto"
+  devices: "auto"
+  log_every_n_steps: 1
+  use_mlflow_logger: true
+  use_litlogger_logger: true
+  use_early_stopping: true
+  use_checkpoint: true
+  early_stopping_config:
+    monitor: "val_loss"
+    mode: "min"
+    min_delta: 0.0
+    patience: 5
+    strict: true
+    check_finite: true
+    stopping_threshold:
+    divergence_threshold:
+  checkpoint_config:
+    monitor: "val_loss"
+    mode: "min"
+    save_top_k: 3
+    save_last: true
+    filename: "epoch{epoch:03d}"
+  litlogger_config:
+    teamspace: "l-pkliui"
+    log_model: false
+    save_logs: false
+    checkpoint_name:
+  mlflow_config:
+    fallback_to_local_mlflow: false
+    tracking_uri: "http://127.0.0.1:5000" # OK
+    log_model: "all"
+    log_model_summary: true

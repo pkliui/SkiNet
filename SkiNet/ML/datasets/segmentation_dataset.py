@@ -4,12 +4,15 @@ from pathlib import Path
 from typing import Any
 
 from torch.utils.data import Dataset
+import pandas as pd
 
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.datasets.sample_specs import Sample, create_valid_samplespecs, load_sample
 from SkiNet.ML.transformations.transform_adapters import SampleTransformAdapter
+from SkiNet.ML.utils.model_utils import MLWorkflowState
 
 logger = logging.getLogger(__name__)
+
 
 class BaseDataset(Dataset, ABC):
     def __init__(self, config: ExperimentConfig) -> None:
@@ -31,14 +34,17 @@ class SegmentationDataset(BaseDataset):
 
     def __init__(self,
                  config: ExperimentConfig,
-                 transform: SampleTransformAdapter) -> None:
+                 dataframe: pd.DataFrame,
+                 transform: SampleTransformAdapter,
+                 mode: MLWorkflowState) -> None:
         """
         :param config: The experiment configuration containing dataset metadata and data root information.
         """
         super().__init__(config=config)
         self.config = config
-        self.dataframe = config.dataconfig.metadata
-        """A pandas DataFrame containing metadata for the dataset."""
+        self.dataframe = dataframe
+        """A pandas DataFrame containing metadata for the dataset. It should be provided directly
+        for train, val and test modes of operation after deriving it as a respective subset of the full dataframe."""
         self.data_root = Path(config.dataconfig.data_root)
         """Data root path where images and masks are stored, derived from the experiment configuration."""
         logger.debug("Data root in SegmentationDataset: %s", self.data_root)
@@ -47,7 +53,7 @@ class SegmentationDataset(BaseDataset):
         self.sample_ids = list(self.sample_specs.keys())
         """A list of sample IDs corresponding to the valid samples in the dataset, derived from the sample specifications."""
         self.transform = transform
-        logger.info("SegmentationDataset initialized with transform=%r", self.transform)
+        self.mode = mode
 
     def __getitem__(self, index: int) -> dict[str, Any]:
         return self.get_sample_item(index)
