@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
-from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
+from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 from SkiNet.Utils.experiment_keys import ExperimentType
 
@@ -31,7 +31,7 @@ class ExperimentConfig(BaseModel):
     transformconfig: TransformConfig = Field(...,
                                              description="Transformation configuration for ML experiments,"
                                              "including cropping and augmentations.")
-    trainconfig: BaseTrainConfig = Field(..., description="Training configuration for ML experiments")
+    trainconfig: TrainConfig = Field(..., description="Training configuration for ML experiments")
     modelconfig: ModelConfig = Field(..., description="Model configuration for ML experiments. "
                                      "Discriminated by 'kind' field to select the appropriate model configuration.")
 
