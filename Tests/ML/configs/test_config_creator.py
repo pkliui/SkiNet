@@ -5,8 +5,9 @@ from SkiNet.ML.configs.config_creator import PH2_UNet_ConfigCreator
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
-from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
+from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
+from SkiNet.Utils.experiment_keys import ExperimentType
 
 
 def test_ph2_unet_config_creator_returns_experiment_config_default() -> None:
@@ -19,12 +20,12 @@ def test_ph2_unet_config_creator_returns_experiment_config_default() -> None:
 
     assert isinstance(config, ExperimentConfig)
     assert config.experiment_name == "unet2d_ph2_experiment"
-    assert config.experiment_type == "segmentation"
+    assert config.experiment_type == ExperimentType.SEGMENTATION
     assert config.description == "UNet2D on PH2 dataset"
 
     assert isinstance(config.dataconfig, PH2DatasetConfig)
     assert isinstance(config.modelconfig, UNet2DModelConfig)
-    assert isinstance(config.trainconfig, BaseTrainConfig)
+    assert isinstance(config.trainconfig, TrainConfig)
 
 
 @pytest.mark.parametrize(
@@ -55,16 +56,16 @@ def test_ph2_unet_config_creator_accepts_empty_or_none_kwargs(
     assert isinstance(config.dataconfig, PH2DatasetConfig)
     assert isinstance(config.transformconfig, TransformConfig)
     assert isinstance(config.modelconfig, UNet2DModelConfig)
-    assert isinstance(config.trainconfig, BaseTrainConfig)
+    assert isinstance(config.trainconfig, TrainConfig)
 
 
 @pytest.mark.parametrize(
     "kwargs_type,extra_kwargs,should_raise",
     [
-        ("dataconfig", {"__invalid_arg__": 1}, False),  # PH2DatasetConfig allows extra fields
+        ("dataconfig", {"__invalid_arg__": 1}, False),   # PH2DatasetConfig ignores extra fields
         ("transformconfig", {"__invalid_arg__": 1}, False),  # TransformConfig ignores extra fields
         ("modelconfig", {"__invalid_arg__": 1}, True),   # UNet2DModelConfig forbids extra fields
-        ("trainconfig", {"__invalid_arg__": 1}, False),  # BaseTrainConfig allows extra fields
+        ("trainconfig", {"__invalid_arg__": 1}, True),   # TrainConfig forbids extra fields
     ],
 )
 def test_ph2_unet_config_creator_unknown_kwargs_behavior(
@@ -73,7 +74,8 @@ def test_ph2_unet_config_creator_unknown_kwargs_behavior(
     should_raise: bool,
 ) -> None:
     """
-    Unknown kwargs should raise ValidationError only for strict sub-configs and otherwise be ignored.
+    Unknown kwargs should raise ValidationError for configs with extra='forbid'
+    (UNet2DModelConfig, TrainConfig) and be silently ignored for configs with extra='ignore'.
     """
     creator = PH2_UNet_ConfigCreator()
     kwargs = {f"{kwargs_type}_kwargs": extra_kwargs}

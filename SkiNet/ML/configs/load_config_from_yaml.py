@@ -50,6 +50,8 @@ def load_config_from_yaml(yaml_path: Path) -> ExperimentConfig:
         # should be unreachable if _validate_yaml_config enforces allowed types
         raise ValueError(f"Unknown experiment type: {experiment_type}")
 
+    # save path to yaml config in the experiment config for reference
+    experiment_config.cfg_path = str(yaml_path.resolve())
     return experiment_config
 
 

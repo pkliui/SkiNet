@@ -5,8 +5,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
-from SkiNet.ML.configs.train_configs.base_train_config import BaseTrainConfig
+from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
+from SkiNet.Utils.experiment_keys import ExperimentType
 
 DataConfig = Annotated[Union[PH2DatasetConfig], Field(discriminator="kind")]
 ModelConfig = Annotated[Union[UNet2DModelConfig], Field(discriminator="kind")]
@@ -16,21 +17,26 @@ logger = logging.getLogger(__name__)
 
 class ExperimentConfig(BaseModel):
     """
-    Base configuration for an experiment, containing common fields such as experiment name, description, and model type.
+    Base configuration for a ML experiment, containing common fields such as experiment name, description, and model type.
 
     """
     model_config = ConfigDict(extra="forbid")  # Forbid extra fields not defined in the model or its subclasses
-    experiment_type: str  # Subclasses specify the experiment type, e.g. segmentation, classification, etc.
+    # Subclasses specify the experiment type, e.g. segmentation, classification, etc.
+    experiment_type: ExperimentType = Field(...,
+                                            description="Type of the experiment, e.g. 'segmentation', 'classification', etc. ")
     experiment_name: str = Field(..., description="Name of the experiment")
     description: str = Field(..., description="Description of the experiment")
-    dataconfig: DataConfig = Field(..., description="Data configuration for segmentation experiments. "
+    dataconfig: DataConfig = Field(..., description="Data configuration for ML experiments. "
                                    "Discriminated by 'kind' field to select the appropriate dataset configuration.")
     transformconfig: TransformConfig = Field(...,
-                                             description="Transformation configuration for segmentation experiments,"
+                                             description="Transformation configuration for ML experiments,"
                                              "including cropping and augmentations.")
-    trainconfig: BaseTrainConfig = Field(..., description="Training configuration for segmentation experiments")
-    modelconfig: ModelConfig = Field(..., description="Model configuration for segmentation experiments. "
+    trainconfig: TrainConfig = Field(..., description="Training configuration for ML experiments")
+    modelconfig: ModelConfig = Field(..., description="Model configuration for ML experiments. "
                                      "Discriminated by 'kind' field to select the appropriate model configuration.")
+
+    cfg_path: str | None = Field(
+        default=None, description="Resolved path to the YAML config used to create this config")
 
     @model_validator(mode="after")
     def _validate_crop_matches_model(self) -> "ExperimentConfig":

@@ -75,7 +75,8 @@ def main(args: argparse.Namespace) -> None:
     try:
         dataset_key = DatasetKey[args.dataset_key_str.upper()]
     except KeyError:
-        raise ValueError(f"Unknown dataset key string: {args.dataset_key_str}. Valid options: {[k.name for k in DatasetKey]}")
+        raise ValueError(
+            f"Unknown dataset key string: {args.dataset_key_str}. Valid options: {[k.name for k in DatasetKey]}")
 
     if args.azure_data and args.local_data_root is not None:
         raise ValueError("Do not provide --local-data-root when using --azure-data.")

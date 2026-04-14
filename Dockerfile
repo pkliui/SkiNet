@@ -49,6 +49,7 @@ RUN apt-get purge -y wget curl unzip build-essential && \
 # add skinet's python executable to path
 ENV PATH=/root/.local/bin:${MAMBA_ROOT_PREFIX}/envs/${ENV_NAME}/bin:${PATH}
 # Prefer shared libraries from the micromamba environment over possible Ubuntu's older system runtime.
+ENV LD_LIBRARY_PATH=""
 ENV LD_LIBRARY_PATH=${MAMBA_ROOT_PREFIX}/envs/${ENV_NAME}/lib:${LD_LIBRARY_PATH}
 
 RUN micromamba shell init -s bash -r ${MAMBA_ROOT_PREFIX} && \
