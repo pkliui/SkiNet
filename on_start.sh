@@ -42,7 +42,7 @@ DEFAULT_HOME="$HOME"
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
 HOST_REPO="${HOST_REPO:-$DEFAULT_HOME/repos/SkiNet}"
 CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
-BRANCH="${BRANCH:-mlops}"
+BRANCH="${BRANCH:-train}"
 
 # Set Python binary
 PYTHON_BIN="${PYTHON_BIN:-python3}"
