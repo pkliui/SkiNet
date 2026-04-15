@@ -7,7 +7,9 @@ DATA_CONFIG:
   azure_data: True
   azure_blob_mount_point: "/mnt/data/"
   crop_size: [256, 256]
+  split_random_seed: 100
 TRANSFORM_CONFIG:
+  seed_value: 100
   crop:
     crop_apply: True
     crop_type: "random_resized_crop"
@@ -31,8 +33,6 @@ TRANSFORM_CONFIG:
     color_jitter_saturation: 0.0
     color_jitter_hue: 0.0
     color_jitter_p: 0.5
-  compose_kwargs:
-    seed: 100
 MODEL_CONFIG:
 
 TRAIN_CONFIG:
@@ -45,6 +45,8 @@ TRAIN_CONFIG:
   optimizer_name: "adamw"
   lr: 1e-4
   weight_decay: 1e-4
+  seed: 100
+  deterministic: true
   max_epochs: 5
   accelerator: "auto"
   devices: "auto"

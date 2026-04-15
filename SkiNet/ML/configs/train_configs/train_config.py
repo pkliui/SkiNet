@@ -100,6 +100,8 @@ class TrainConfig(BaseModel):
     optimizer_name: str = Field(default="adamw")
     lr: float = Field(default=1e-4, gt=0)
     weight_decay: float = Field(default=1e-4, ge=0)
+    seed: int = Field(default=42, ge=0)
+    deterministic: bool = Field(default=True)
     # L.Trainer params
     max_epochs: int = Field(default=1, ge=1)
     accelerator: str = Field(default="auto")

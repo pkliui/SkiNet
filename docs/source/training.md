@@ -46,3 +46,65 @@ With `TRAIN_CONFIG.use_mlflow_logger: true`, runs now capture:
 - Lightning model artifact at fit end via `mlflow_log_model`.
 - Early stopping params/state when `use_early_stopping: true` (for example `patience`, `min_delta`, `best_score`, `wait_count`, `stopped_epoch`, and `triggered`).
 - Best checkpoint artifact under `checkpoints/best` when early stopping triggers and a best model path is available.
+
+
+# Reproducibility
+
+## How the same seed value is guaranteed
+
+- Seed values don't share a live RNG state — they each get the same integer value (100) configured independently in the main configuration YAML file:
+
+```python
+main_config = load_config_from_yaml(cfg_path)
+```
+
+At this point, from the YAML:
+```python
+DATA_CONFIG.split_random_seed = 100 # goes into dataconfig
+TRANSFORM_CONFIG.seed_value = 100 # goes into transformconfig
+TRAIN_CONFIG.seed = 100 # goes into trainconfig
+```
+- The split seed is used once when datasets are created
+- The transform seed is passed into the transform pipeline constructor
+- Then in configure_reproducibility(), the train seed is applied globally via seed_everything:
+```python
+L.seed_everything(train_cfg.seed, workers=True)  # seeds global RNG with 100
+# fallback: if transform seed_value is None, set it to train_cfg.seed (100)
+```
+
+- **All three fields are set to a constant value in the YAML, and nothing overrides them at runtime.**
+
+- **Note:** A run with visualize=True and visualize=False will produce different model weight initialisations. The fix to re-seed after visualisation.
+
+## Platform notes — Deterministic mode (Apple Silicon / MPS)
+
+- Lightning raises a MisconfigurationException if `deterministic: true` is used on Apple Silicon (MPS) because MPS does not support deterministic mode.
+- If any developer uses a Mac, Trainer construction will crash unless the config or code handles this case.
+
+How it is handled in code:
+
+```python
+# On Apple Silicon (MPS) Lightning raises MisconfigurationException if deterministic=True
+# because the MPS backend doesn't support deterministic mode. To avoid crashing at Trainer
+# construction when a developer runs on a Mac:
+#  - Preferred: set deterministic = "warn" so Lightning logs a warning but continues.
+#  - Alternative: set deterministic = False to silently disable determinism.
+# Note: True deterministic behavior requires CUDA/cuDNN. We only set cuDNN flags when CUDA is available.
+import torch
+if train_cfg.deterministic and torch.backends.mps.is_available():
+    deterministic = "warn"  # use "warn" to avoid MisconfigurationException on MPS
+else:
+    deterministic = train_cfg.deterministic
+
+if deterministic is True and torch.cuda.is_available():
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+```
+
+
+```yaml
+trainconfig:
+  deterministic: true
+```
+
+- For training on Ubuntu, as in SkiNet, this should not be a problem.

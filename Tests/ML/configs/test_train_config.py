@@ -18,6 +18,8 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.optimizer_name == "adamw"
     assert cfg.lr == 1e-4
     assert cfg.weight_decay == 1e-4
+    assert cfg.seed == 42
+    assert cfg.deterministic is True
     assert cfg.max_epochs == 1
     assert cfg.accelerator == "auto"
     assert cfg.devices == "auto"
@@ -89,6 +91,7 @@ def test_train_config_rejects_unknown_top_level_fields(kwargs: dict) -> None:
         ("num_workers", -1),
         ("lr", 0.0),
         ("weight_decay", -1e-4),
+        ("seed", -1),
         ("max_epochs", 0),
         ("log_every_n_steps", 0),
         ("system_metrics_interval_sec", 0.0),
