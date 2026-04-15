@@ -1,6 +1,43 @@
 import logging
 from typing import Iterator, Any
+import torch
+import numpy as np
+import random
+
 from torch.utils.data import BatchSampler, DataLoader, Dataset, RandomSampler, Sampler, SequentialSampler
+from torch.utils.data._utils.collate import default_collate
+
+
+def default_worker_init_fn(worker_id: int) -> None:
+    """Seed each worker process for reproducibility."""
+    seed = torch.initial_seed() % 2**32
+    np.random.seed(seed)
+    random.seed(seed)
+
+
+def collate_preserving_specs(batch: list[Any]) -> Any:
+    """
+    Collate a batch while preserving per-sample ``specs`` payloads as Python objects.
+
+    PyTorch's default collation recurses into nested dicts and attempts to tensorize
+    scalar leaves. That breaks for sample metadata that legitimately contains strings
+    such as sample IDs or paths. For segmentation samples we want tensor collation for
+    ``image``/``mask`` and a plain list for ``specs``.
+    """
+    if not batch:
+        return batch
+
+    first = batch[0]
+    if isinstance(first, dict) and "specs" in first:
+        collated = {
+            key: default_collate([item[key] for item in batch])
+            for key in first
+            if key != "specs"
+        }
+        collated["specs"] = [item["specs"] for item in batch]
+        return collated
+
+    return default_collate(batch)
 
 
 class _RepeatSampler(BatchSampler):
@@ -39,8 +76,7 @@ class _RepeatSampler(BatchSampler):
         # __iter__ is called each time we start iterating over the data loader, such as at the beginning of each epoch
         # i.e. calling iter on the data loader leads to calling __iter__ on the sampler, see _BaseDataLoaderIter.__init__
         while self.max_num_to_repeat == 0 or num_to_repeat < self.max_num_to_repeat:
-            logging.getLogger(__name__).debug(
-                f"Iter of sampler in RepeatSampler.__iter__   {iter(self.sampler)}")
+            logging.getLogger(__name__).debug(f"Iter of sampler in RepeatSampler.__iter__   {iter(self.sampler)}")
             # this is being incremented each epoch
             num_to_repeat += 1
             yield from iter(self.sampler)
@@ -73,42 +109,25 @@ class RepeatDataLoader(DataLoader):
         :param kwargs: Any additional arguments that will be passed through to the Dataloader constructor.
         """
         import os
-
-        logging.getLogger(__name__).debug(
-            f"The process ID in RepeatDataloader: {os.getpid()}")
-
-        # Define a default worker_init_fn to disable OpenCV threading
-        def default_worker_init_fn(worker_id: int) -> None:
-            import cv2
-
-            cv2.setNumThreads(0)  # Disable OpenCV threading in each worker
-            # Keep OpenCV from enabling an extra compute backend per worker.
-            cv2.ocl.setUseOpenCL(False)
+        logging.getLogger(__name__).debug(f"The process ID in RepeatDataloader: {os.getpid()}")
 
         self.dataset = dataset
         # Ensure the dataset is sized
-        if not hasattr(dataset, "__len__"):
-            raise TypeError(
-                "Dataset must be sized (have __len__ method) to be used with RandomSampler/SequentialSampler")
+        if not hasattr(dataset, '__len__'):
+            raise TypeError("Dataset must be sized (have __len__ method) to be used with RandomSampler/SequentialSampler")
         self.max_num_to_repeat = max_num_to_repeat
         self.batch_size = batch_size
         self.shuffle = shuffle
         self.drop_last = drop_last
 
         # specify the sampler
-        sampler: Sampler[int]
-        if shuffle:
-            sampler = RandomSampler(dataset)
-        else:
-            sampler = SequentialSampler(dataset)
+        sampler = RandomSampler(dataset) if shuffle else SequentialSampler(dataset)
 
         # create a batch sampler to yield mini-batches of indicies
-        self.repeatdl_batch_sampler = BatchSampler(
-            sampler, batch_size, drop_last)
+        self.repeatdl_batch_sampler = BatchSampler(sampler, batch_size, drop_last)
         logging.getLogger(__name__).debug(
             f"BatchSampler repeatdl_batch_sampler length {len(self.repeatdl_batch_sampler)}")
-        logging.getLogger(__name__).debug(
-            f"BatchSampler repeatdl_batch_sampler {self.repeatdl_batch_sampler}")
+        logging.getLogger(__name__).debug(f"BatchSampler repeatdl_batch_sampler {self.repeatdl_batch_sampler}")
 
         # create a repeat sampler that will repeat batch sampler forever or a given number of times
         repeat_sampler = _RepeatSampler(
@@ -120,6 +139,8 @@ class RepeatDataLoader(DataLoader):
 
         if "worker_init_fn" not in kwargs:
             kwargs["worker_init_fn"] = default_worker_init_fn
+        if "collate_fn" not in kwargs:
+            kwargs["collate_fn"] = collate_preserving_specs
 
         # create the data loader with the repeat sampler
         # NB! This sets self.batch_sampler to the repeat sampler! Caution whilst specifying the length of RepeatDataLoader in __len__ !
@@ -127,8 +148,7 @@ class RepeatDataLoader(DataLoader):
 
         # do not initialise the iterator here, but do this in __iter__
         self.iterator: Iterator[Any] | None = None
-        logging.getLogger(__name__).debug(
-            f"Iterator in RepeatDataloder.__init__ {self.iterator}")
+        logging.getLogger(__name__).debug(f"Iterator in RepeatDataloder.__init__ {self.iterator}")
 
     def __len__(self) -> int:
         # NB! We use self.repeatdl_batch_sampler here  as it reflects the actual length of the dataset,
@@ -145,14 +165,21 @@ class RepeatDataLoader(DataLoader):
         if self.iterator is None:
             logging.getLogger(__name__).debug(
                 f"Iterator in RepeatDataloder.__iter__ is None   {self.iterator}")
-            # create an iterator here if it is still None and re-use it for the next __iter__ call
-            # essentially, this line will be called only ONCE whilst prefetching data (even before epoch 0)
-            # for all subsequent epochs, the iterator will not be None and will be re-used
             self.iterator = super().__iter__()
-            logging.getLogger(__name__).debug(
-                f" Iterator in RepeatDataloder.__iter__     {self.iterator}")
+            logging.getLogger(__name__).debug(f" Iterator in RepeatDataloder.__iter__     {self.iterator}")
         else:
             logging.getLogger(__name__).debug(
                 f" Iterator in RepeatDataloder.__iter__  is being reused    {self.iterator}")
-        for i in range(len(self)):
-            yield next(self.iterator)
+
+        for _ in range(len(self)):
+            try:
+                yield next(self.iterator)
+            except StopIteration:
+                # Avoid leaking StopIteration from a generator (PEP 479 -> RuntimeError).
+                # Recreate the iterator and continue if data is available.
+                self.iterator = super().__iter__()
+                try:
+                    yield next(self.iterator)
+                except StopIteration:
+                    # Underlying loader is exhausted with no more data to yield.
+                    return
