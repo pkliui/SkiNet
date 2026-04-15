@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import datetime
 import logging
-from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import MLFlowLogger
 from SkiNet.Utils.logging.system_metrics import SystemMetricsThreadCallback
 from SkiNet.Utils.mlops.mlflow_callbacks import MLflowTrainingArtifactsCallback
@@ -102,6 +102,7 @@ def setup_logging_and_callbacks(*, main_config: ExperimentConfig) -> TrainerComp
         if early_stopping:
             _log_early_stopping_config_to_mlflow(mlflow_logger, early_stopping)
 
+    # --- Litlogger ---
     if train_cfg.use_litlogger_logger:
         import litlogger
         if not train_cfg.litlogger_config.teamspace:
@@ -112,6 +113,9 @@ def setup_logging_and_callbacks(*, main_config: ExperimentConfig) -> TrainerComp
                                                            log_model=train_cfg.litlogger_config.log_model,
                                                            save_logs=train_cfg.litlogger_config.save_logs,
                                                            checkpoint_name=train_cfg.litlogger_config.checkpoint_name))
+
+    # --- Learning rate monitoring ---
+    lightning_callbacks.append(LearningRateMonitor(logging_interval="epoch"))
 
     return TrainerComponents(run_name=run_name,
                              loggers=lightning_loggers,

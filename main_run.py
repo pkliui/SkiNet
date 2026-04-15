@@ -73,11 +73,14 @@ def main(cfg_path: Path) -> None:
                                  loss_fn=loss_fn,
                                  num_classes=1,
                                  lr=train_cfg.lr,
-                                 optimizer_name=train_cfg.optimizer_name)
+                                 optimizer_name=train_cfg.optimizer_name,
+                                 weight_decay=train_cfg.weight_decay,
+                                 lr_scheduler_config=train_cfg.lr_scheduler_config)
 
     # Lightning trainer
     trainersetup = setup_logging_and_callbacks(main_config=main_config)
-    light_trainer = L.Trainer(max_epochs=train_cfg.max_epochs,
+    light_trainer = L.Trainer(fast_dev_run=False,  # runs 1 train + 1 val batch only
+                              max_epochs=train_cfg.max_epochs,
                               logger=trainersetup.loggers,
                               callbacks=trainersetup.callbacks,
                               accelerator=train_cfg.accelerator,

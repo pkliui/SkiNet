@@ -42,8 +42,9 @@ TRAIN_CONFIG:
   test_on_val_split: true
   batch_size: 4
   num_workers: 0
-  optimizer_name: "adam"
-  lr: 0.1
+  optimizer_name: "adamw"
+  lr: 1e-4
+  weight_decay: 1e-4
   max_epochs: 5
   accelerator: "auto"
   devices: "auto"
@@ -53,8 +54,8 @@ TRAIN_CONFIG:
   use_early_stopping: true
   use_checkpoint: true
   early_stopping_config:
-    monitor: "val_loss"
-    mode: "min"
+    monitor: "val_dice"
+    mode: "max"
     min_delta: 0.0
     patience: 5
     strict: true
@@ -62,8 +63,8 @@ TRAIN_CONFIG:
     stopping_threshold:
     divergence_threshold:
   checkpoint_config:
-    monitor: "val_loss"
-    mode: "min"
+    monitor: "val_dice"
+    mode: "max"
     save_top_k: 3
     save_last: true
     filename: "epoch{epoch:03d}"
@@ -77,3 +78,8 @@ TRAIN_CONFIG:
     tracking_uri: "http://127.0.0.1:5000" # OK
     log_model: "all"
     log_model_summary: true
+  lr_scheduler_config:
+    monitor: "val_dice"
+    mode: "max"
+    patience: 5
+    factor: 0.5

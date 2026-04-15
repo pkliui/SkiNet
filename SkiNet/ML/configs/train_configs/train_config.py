@@ -5,6 +5,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+class ReduceOnPlateauConfig(BaseModel):
+    """
+    Learning rate ReduceOnPlateau scheduler configuration for PyTorch Lightning.
+    """
+    monitor: str = Field(default="val_dice")
+    mode: Literal["min", "max"] = Field(default="max")
+    patience: int = Field(default=5, ge=0)
+    factor: float = Field(default=0.5, gt=0, lt=1)
+
+
 class CheckpointConfig(BaseModel):
     """
     Configuration for model checkpointing.
@@ -87,8 +97,9 @@ class TrainConfig(BaseModel):
     batch_size: int = Field(default=8, ge=1)
     num_workers: int = Field(default=0, ge=0)
     # LightningModel params
-    optimizer_name: str = Field(default="adam")
+    optimizer_name: str = Field(default="adamw")
     lr: float = Field(default=1e-4, gt=0)
+    weight_decay: float = Field(default=1e-4, ge=0)
     # L.Trainer params
     max_epochs: int = Field(default=1, ge=1)
     accelerator: str = Field(default="auto")
@@ -100,6 +111,9 @@ class TrainConfig(BaseModel):
     checkpoint_config: CheckpointConfig = Field(default_factory=CheckpointConfig)
     mlflow_config: MLflowConfig = Field(default_factory=MLflowConfig)
     litlogger_config: LitLoggerConfig = Field(default_factory=LitLoggerConfig)
+
+    # --- Other configs ---
+    lr_scheduler_config: ReduceOnPlateauConfig = Field(default_factory=ReduceOnPlateauConfig)
 
     #  --- Other callbacks params ---
     system_metrics_interval_sec: float = Field(default=5.0, gt=0)

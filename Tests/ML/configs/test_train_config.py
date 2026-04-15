@@ -15,8 +15,9 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.experiment_name == "unet2d_experiment"
     assert cfg.batch_size == 8
     assert cfg.num_workers == 0
-    assert cfg.optimizer_name == "adam"
+    assert cfg.optimizer_name == "adamw"
     assert cfg.lr == 1e-4
+    assert cfg.weight_decay == 1e-4
     assert cfg.max_epochs == 1
     assert cfg.accelerator == "auto"
     assert cfg.devices == "auto"
@@ -28,6 +29,10 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.use_litlogger_logger is False
     assert cfg.checkpoint_config.filename == "epoch{epoch:03d}"
     assert cfg.mlflow_config.tracking_uri is None
+    assert cfg.lr_scheduler_config.monitor == "val_dice"
+    assert cfg.lr_scheduler_config.mode == "max"
+    assert cfg.lr_scheduler_config.patience == 5
+    assert cfg.lr_scheduler_config.factor == 0.5
 
 
 @pytest.mark.parametrize(
@@ -83,6 +88,7 @@ def test_train_config_rejects_unknown_top_level_fields(kwargs: dict) -> None:
         ("batch_size", 0),
         ("num_workers", -1),
         ("lr", 0.0),
+        ("weight_decay", -1e-4),
         ("max_epochs", 0),
         ("log_every_n_steps", 0),
         ("system_metrics_interval_sec", 0.0),
@@ -151,6 +157,22 @@ def test_train_config_rejects_invalid_scalar_bounds(field_name: str, value: int 
         ),
         (
             {
+                "lr_scheduler_config": {
+                    "monitor": "val_loss",
+                    "mode": "min",
+                    "patience": 2,
+                    "factor": 0.25,
+                }
+            },
+            {
+                "monitor": "val_loss",
+                "mode": "min",
+                "patience": 2,
+                "factor": 0.25,
+            },
+        ),
+        (
+            {
                 "litlogger_config": {
                     "teamspace": "teamspace-1",
                     "log_model": True,
@@ -178,3 +200,19 @@ def test_train_config_parses_nested_configs(kwargs: dict, expected: dict) -> Non
     nested_config = getattr(cfg, nested_config_name)
     for key, value in expected.items():
         assert getattr(nested_config, key) == value
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "match"),
+    [
+        ({"lr_scheduler_config": {"patience": -1}}, "patience"),
+        ({"lr_scheduler_config": {"factor": 0.0}}, "factor"),
+        ({"lr_scheduler_config": {"factor": 1.0}}, "factor"),
+    ],
+)
+def test_train_config_rejects_invalid_lr_scheduler_values(kwargs: dict, match: str) -> None:
+    """
+    Test that TrainConfig rejects invalid ReduceOnPlateau scheduler values.
+    """
+    with pytest.raises(ValidationError, match=match):
+        TrainConfig(**kwargs)
