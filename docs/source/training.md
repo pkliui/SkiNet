@@ -1,43 +1,7 @@
-# Cheatsheet
-
-**See ports busy with non-docker processes**
-- Install lsof
-```bash
-sudo apt-get update
-sudo apt-get install lsof
-```
-- Example: port 6006
-```bash
-lsof -iTCP:6006 -sTCP:LISTEN -n -P
-```
-
-- Kill the process
-```bash
-kill <PID>
-```
-
-Start MLflow tracking server either using this command (SQLite backend + local artifact store):
-```bash
-mlflow server \
-  --backend-store-uri sqlite:////workplace/SkiNet/mlflow.db \
-  --default-artifact-root file:///workplace/SkiNet/mlruns \
-  --host 0.0.0.0 \
-  --port 5000
-```
-
-or running a setup script:
-```bash
-chmod +x start_mlflow.sh
-./start_mlflow.sh
-```
-
-Open MLflow UI in browser on port 5000. If using Lightning studio, ssh to it via
-```bash
-ssh -N -L 5000:localhost:5000 ssh_connection_string_from_your_studio@ssh.lightning.ai
-```
+# Training
 
 
-## Lightning + MLflow notes
+## Lightning + MLflow setup
 
 With `TRAIN_CONFIG.use_mlflow_logger: true`, runs now capture:
 - Training/validation metrics (`train_loss`, `val_loss`, `train_accuracy`, `val_accuracy`) and test metrics (`test_loss`, `test_accuracy`, `average_test_accuracy`) when `run_test_after_fit: true`.
@@ -47,10 +11,59 @@ With `TRAIN_CONFIG.use_mlflow_logger: true`, runs now capture:
 - Early stopping params/state when `use_early_stopping: true` (for example `patience`, `min_delta`, `best_score`, `wait_count`, `stopped_epoch`, and `triggered`).
 - Best checkpoint artifact under `checkpoints/best` when early stopping triggers and a best model path is available.
 
+## Training monitoring
 
-# Reproducibility
+### MLFlow
 
-## How the same seed value is guaranteed
+- Before running a traning script, start MLflow server using either of methods below:
+- Start MLflow tracking server either using this command (SQLite backend + local artifact store):
+```bash
+mlflow server \
+  --backend-store-uri sqlite:////workplace/SkiNet/mlflow.db \
+  --default-artifact-root file:///workplace/SkiNet/mlruns \
+  --host 0.0.0.0 \
+  --port 5000
+```
+
+- Start running a setup script:
+```bash
+chmod +x start_mlflow.sh
+./start_mlflow.sh
+```
+
+- Open MLflow UI in browser on port 5000. If using Lightning studio, ssh to it via
+```bash
+ssh -N -L 5000:localhost:5000 ssh_connection_string_from_your_studio@ssh.lightning.ai
+```
+
+## Start Training
+
+### Optuna hyperparameter optimisation (HPO) sweep
+
+When running `optuna_sweep.py`, each trial is a full training run. The sweep script groups results as:
+- one MLflow parent run per Optuna study
+- one nested MLflow child run per trial
+
+- Optuna sweep phyperparameters can be moved to a YAML
+
+This prevents scattered top-level trial runs and makes the study easier to inspect.
+
+Example:
+
+```bash
+python optuna_sweep.py --config main_config.yaml --trials 12 --monitor val_dice --direction maximize
+```
+
+### Regular training
+
+- Regular training is started using user-provided YAML config file:
+```bash
+python main_run.py --config main_config.yaml
+```
+
+## Reproducibility
+
+### How the same seed value is guaranteed
 
 - Seed values don't share a live RNG state — they each get the same integer value (100) configured independently in the main configuration YAML file:
 
@@ -76,7 +89,7 @@ L.seed_everything(train_cfg.seed, workers=True)  # seeds global RNG with 100
 
 - **Note:** A run with visualize=True and visualize=False will produce different model weight initialisations. The fix to re-seed after visualisation.
 
-## Platform notes — Deterministic mode (Apple Silicon / MPS)
+### Platform notes — Deterministic mode (Apple Silicon / MPS)
 
 - Lightning raises a MisconfigurationException if `deterministic: true` is used on Apple Silicon (MPS) because MPS does not support deterministic mode.
 - If any developer uses a Mac, Trainer construction will crash unless the config or code handles this case.
@@ -109,17 +122,3 @@ trainconfig:
 
 - For training on Ubuntu, as in SkiNet, this should not be a problem.
 
-
-## Optuna + MLflow sweep tracking
-
-When running `optuna_sweep.py`, each trial is a full training run. The sweep script groups results as:
-- one MLflow parent run per Optuna study
-- one nested MLflow child run per trial
-
-This prevents scattered top-level trial runs and makes the study easier to inspect.
-
-Example:
-
-```bash
-python optuna_sweep.py --config main_config.yaml --trials 12 --monitor val_dice --direction maximize
-```

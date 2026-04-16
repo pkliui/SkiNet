@@ -186,6 +186,28 @@ echo "==> Done. Docker is running. Attach Shell to the running container"
 
 - In VSC "Containers" tab, attach the running container to the Bash shell.
 
+
+### Debugging Cheatsheet
+
+**See ports busy with non-docker processes**
+
+- Install lsof
+```bash
+sudo apt-get update
+sudo apt-get install lsof
+```
+- Example: port 6006
+```bash
+lsof -iTCP:6006 -sTCP:LISTEN -n -P
+```
+
+- Kill the process
+```bash
+kill <PID>
+```
+
+
+
 ### Login to Codex
 
 - Login wih ChatGPT credentials
