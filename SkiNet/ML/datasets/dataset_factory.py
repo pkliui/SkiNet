@@ -1,23 +1,18 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar, cast
+from typing import Generic, cast
 
 
 from SkiNet.ML.configs.data_configs.base_data_config import BaseDataConfig
 from SkiNet.Utils.experiment_keys import ExperimentType
-from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.datasets.segmentation_dataset import BaseDataset, SegmentationDataset
 from SkiNet.ML.transformations.transform_data import get_transform_from_config
 from SkiNet.ML.utils.model_utils import MLWorkflowState
 from SkiNet.Utils.data.split_data import DataFrameSplits, split_segmentation_metadata
-
-
+from SkiNet.ML.utils.typing_utils import TDataset_co
+from SkiNet.ML.configs.experiment_config import ExperimentConfig
 logger = logging.getLogger(__name__)
-
-# use covariance to allow DatasetFactory[SegmentationDataset] to be treated as a subtype of DatasetFactory[BaseDataset]
-# DatasetFactory is read-only with respect to the dataset type it produces, so covariance is appropriate here
-TDataset_co = TypeVar("TDataset_co", bound=BaseDataset, covariant=True)
 
 
 @dataclass
@@ -86,15 +81,15 @@ class SegmentationDatasetFactory(DatasetFactory[SegmentationDataset]):
         splits = split_segmentation_metadata(df=metadata_df,
                                              split_config=split_config)
         transformations = get_transform_from_config(config)
-        train_dataset = SegmentationDataset(config,
+        train_dataset = SegmentationDataset(config.dataconfig.data_root,
                                             splits.train,
                                             transformations.train,
                                             MLWorkflowState.TRAIN)
-        val_dataset = SegmentationDataset(config,
+        val_dataset = SegmentationDataset(config.dataconfig.data_root,
                                           splits.val,
                                           transformations.val,
                                           MLWorkflowState.VAL)
-        test_dataset = SegmentationDataset(config,
+        test_dataset = SegmentationDataset(config.dataconfig.data_root,
                                            splits.test,
                                            transformations.test,
                                            MLWorkflowState.TEST)

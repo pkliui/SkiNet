@@ -94,6 +94,12 @@ class SystemMetricsThreadCallback(L.Callback):
             for lg in (trainer.loggers or []):
                 lg.log_metrics(metrics, step=step)
 
+                # try:
+                #    lg.log_metrics(metrics, step=step)
+                # except Exception:
+                #    # Do not let one broken logger backend block system metrics for others.
+                #    continue
+
     def on_fit_start(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         """
         This is a Lightning hook method that is run once at the start of fitting to launch the background thread that collects system metrics.

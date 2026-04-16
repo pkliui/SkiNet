@@ -79,28 +79,37 @@ def setup_logging_and_callbacks(*, main_config: ExperimentConfig) -> TrainerComp
     # --- MLflow Loggers and callbacks ---
 
     if train_cfg.use_mlflow_logger:
-        _ensure_mlflow_available(train_cfg.mlflow_config.tracking_uri,
-                                 train_cfg.mlflow_config.fallback_to_local_mlflow)
+        try:
+            _ensure_mlflow_available(train_cfg.mlflow_config.tracking_uri,
+                                     train_cfg.mlflow_config.fallback_to_local_mlflow)
 
-        # set up mlflow logger
-        mlflow_logger = MLFlowLogger(experiment_name=train_cfg.experiment_name,
-                                     run_name=run_name,
-                                     tracking_uri=train_cfg.mlflow_config.tracking_uri,
-                                     log_model=train_cfg.mlflow_config.log_model)
-        lightning_loggers.append(mlflow_logger)
+            # If we are inside an existing MLflow run (e.g. an Optuna nested run),
+            # attach to it rather than creating a new one — prevents run stack corruption.
+            import mlflow
+            active_run = mlflow.active_run()
 
-        _log_mlflow_run_metadata(mlflow_logger=mlflow_logger,
-                                 main_config=main_config)
-        _log_fit_and_optimizer_params_to_mlflow(mlflow_logger=mlflow_logger,
-                                                train_cfg=train_cfg)
-        # runtime metrics and best checkpoint will be logged in the MLflowTrainingArtifactsCallback
-        # gated on early stoppping and checkpoint inside
-        lightning_callbacks.append(MLflowTrainingArtifactsCallback(mlflow_logger=mlflow_logger,
-                                                                   log_model_summary=train_cfg.mlflow_config.log_model_summary,
-                                                                   early_stopping_cb=early_stopping,
-                                                                   checkpoint_cb=checkpoint_cb))
-        if early_stopping:
-            _log_early_stopping_config_to_mlflow(mlflow_logger, early_stopping)
+            # set up mlflow logger
+            mlflow_logger = MLFlowLogger(experiment_name=train_cfg.experiment_name,
+                                         run_name=run_name,
+                                         tracking_uri=train_cfg.mlflow_config.tracking_uri,
+                                         log_model=train_cfg.mlflow_config.log_model,
+                                         run_id=active_run.info.run_id if active_run else None)
+            lightning_loggers.append(mlflow_logger)
+
+            _log_mlflow_run_metadata(mlflow_logger=mlflow_logger,
+                                     main_config=main_config)
+            _log_fit_and_optimizer_params_to_mlflow(mlflow_logger=mlflow_logger,
+                                                    train_cfg=train_cfg)
+            # runtime metrics and best checkpoint will be logged in the MLflowTrainingArtifactsCallback
+            # gated on early stoppping and checkpoint inside
+            lightning_callbacks.append(MLflowTrainingArtifactsCallback(mlflow_logger=mlflow_logger,
+                                                                       log_model_summary=train_cfg.mlflow_config.log_model_summary,
+                                                                       early_stopping_cb=early_stopping,
+                                                                       checkpoint_cb=checkpoint_cb))
+            if early_stopping:
+                _log_early_stopping_config_to_mlflow(mlflow_logger, early_stopping)
+        except Exception as exc:
+            logger.warning("MLflow logger initialization failed, continuing without MLflow logger: %s", exc)
 
     # --- Litlogger ---
     if train_cfg.use_litlogger_logger:
@@ -115,7 +124,10 @@ def setup_logging_and_callbacks(*, main_config: ExperimentConfig) -> TrainerComp
                                                            checkpoint_name=train_cfg.litlogger_config.checkpoint_name))
 
     # --- Learning rate monitoring ---
-    lightning_callbacks.append(LearningRateMonitor(logging_interval="epoch"))
+    # LearningRateMonitor requires at least one logger to be configured as it works by
+    # sending LR values to the trainer's loggers
+    if lightning_loggers:
+        lightning_callbacks.append(LearningRateMonitor(logging_interval="epoch"))
 
     return TrainerComponents(run_name=run_name,
                              loggers=lightning_loggers,

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 from typing import Any, cast
+from pathlib import Path
 
 from SkiNet.ML.datasets.dataset_factory import (
     SegmentationDatasetFactory,
@@ -20,9 +21,10 @@ class DummyDatasetConfig:
     Dummy dataset config to provide necessary attributes and methods for testing the dataset factory.
     """
 
-    def __init__(self, metadata: pd.DataFrame, split_config: SplitConfig) -> None:
+    def __init__(self, metadata: pd.DataFrame, split_config: SplitConfig, data_root: Path) -> None:
         self.metadata = metadata
         self.split_config = split_config
+        self.data_root = data_root
 
     def get_split_config(self) -> SplitConfig:
         # In a real implementation, this involves more complex logic to determine the split config,
@@ -43,11 +45,12 @@ def _make_config(experiment_type: Any = ExperimentType.SEGMENTATION) -> Experime
         stratify_column="Clinical Diagnosis",
         random_seed=42,
     )
+    data_root = Path("somepath")
     return cast(
         ExperimentConfig,
         SimpleNamespace(
             experiment_type=experiment_type,
-            dataconfig=DummyDatasetConfig(metadata=metadata_df, split_config=split_config),
+            dataconfig=DummyDatasetConfig(metadata=metadata_df, split_config=split_config, data_root=data_root),
         ),
     )
 

@@ -33,7 +33,7 @@ set -Eeuo pipefail
 # Set default values for environment variables if they are not already set
 
 # Image name on Docker Hub
-IMAGE="pkliui/skinet:v7cpu"
+IMAGE="pkliui/skinet:v8cpu"
 
 # Determine a safe default for the home directory
 DEFAULT_HOME="$HOME"

@@ -108,3 +108,18 @@ trainconfig:
 ```
 
 - For training on Ubuntu, as in SkiNet, this should not be a problem.
+
+
+## Optuna + MLflow sweep tracking
+
+When running `optuna_sweep.py`, each trial is a full training run. The sweep script groups results as:
+- one MLflow parent run per Optuna study
+- one nested MLflow child run per trial
+
+This prevents scattered top-level trial runs and makes the study easier to inspect.
+
+Example:
+
+```bash
+python optuna_sweep.py --config main_config.yaml --trials 12 --monitor val_dice --direction maximize
+```

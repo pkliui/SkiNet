@@ -33,19 +33,17 @@ class SegmentationDataset(BaseDataset):
     """
 
     def __init__(self,
-                 config: ExperimentConfig,
+                 data_root: Path,
                  dataframe: pd.DataFrame,
                  transform: SampleTransformAdapter,
                  mode: MLWorkflowState) -> None:
         """
         :param config: The experiment configuration containing dataset metadata and data root information.
         """
-        super().__init__(config=config)
-        self.config = config
         self.dataframe = dataframe
         """A pandas DataFrame containing metadata for the dataset. It should be provided directly
         for train, val and test modes of operation after deriving it as a respective subset of the full dataframe."""
-        self.data_root = Path(config.dataconfig.data_root)
+        self.data_root = data_root
         """Data root path where images and masks are stored, derived from the experiment configuration."""
         logger.debug("Data root in SegmentationDataset: %s", self.data_root)
         self.sample_specs = create_valid_samplespecs(self.dataframe)

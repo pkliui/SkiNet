@@ -10,7 +10,7 @@ from SkiNet.ML.configs.experiment_config import ExperimentConfig, ExperimentType
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.model.architecture.unet2d import UNet2D
-from SkiNet.ML.utils.model_factory import create_model
+from SkiNet.ML.model.model_factory import create_model
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 
 
