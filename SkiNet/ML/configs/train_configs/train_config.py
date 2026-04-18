@@ -90,12 +90,14 @@ class TrainConfig(BaseModel):
     log_dir: str = Field(default="experiment_logs")  # ok
     experiment_name: str = Field(default="unet2d_experiment")
     run_test_after_fit: bool = Field(default=False)
-    test_on_val_split: bool = Field(default=True)
+    test_on_val_split: bool = Field(default=False)  # do not run test on validation set by default unless required
 
     # --- Fit and optimizer params
     # DataLoader params
     batch_size: int = Field(default=8, ge=1)
     num_workers: int = Field(default=0, ge=0)
+    pin_memory: bool = Field(default=True)
+    prefetch_factor: int = Field(default=2, ge=1)
     # LightningModel params
     optimizer_name: str = Field(default="adamw")
     lr: float = Field(default=1e-4, gt=0)
@@ -107,6 +109,8 @@ class TrainConfig(BaseModel):
     accelerator: str = Field(default="auto")
     devices: str | int = Field(default="auto")
     log_every_n_steps: int = Field(default=1, ge=1)
+    check_val_every_n_epoch: int = Field(default=1, ge=1)
+    num_sanity_val_steps: int = Field(default=0, ge=0)
 
     # --- Nested configs  for callbacks and loggers ---
     early_stopping_config: EarlyStoppingConfig = Field(default_factory=EarlyStoppingConfig)
@@ -130,4 +134,13 @@ class TrainConfig(BaseModel):
     def require_tracking_uri_if_enabled(self) -> "TrainConfig":
         if self.use_mlflow_logger and not self.mlflow_config.tracking_uri:
             raise ValueError("TRAIN_CONFIG.mlflow_config.tracking_uri must be set when use_mlflow_logger=true.")
+        return self
+
+    @model_validator(mode="after")
+    def warn_if_testing_on_val(self) -> "TrainConfig":
+        if self.run_test_after_fit and self.test_on_val_split:
+            logger.warning(
+                "test_on_val_split=True: final test will run on the validation set, "
+                "not a held-out test set. Metrics may be optimistic."
+            )
         return self

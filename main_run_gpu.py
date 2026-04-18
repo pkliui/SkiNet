@@ -40,30 +40,47 @@ def train_and_evaluate(main_config: ExperimentConfig, *, visualize: bool = True)
                               accelerator=train_cfg.accelerator,
                               devices=train_cfg.devices,
                               log_every_n_steps=train_cfg.log_every_n_steps,
-                              deterministic=deterministic,
-                              check_val_every_n_epoch=train_cfg.check_val_every_n_epoch,
-                              num_sanity_val_steps=train_cfg.num_sanity_val_steps)
+                              deterministic=deterministic)
 
-    light_trainer.fit(light_model, train_dataloaders=dataloaders.train, val_dataloaders=dataloaders.val)
+    try:
+        light_trainer.fit(light_model, train_dataloaders=dataloaders.train, val_dataloaders=dataloaders.val)
 
-    # Save fit metrics first because test() may mutate trainer metric stores.
-    fit_metrics = _collect_trainer_metrics(light_trainer)
+        # Save fit metrics first because test() may mutate trainer metric stores.
+        fit_metrics = _collect_trainer_metrics(light_trainer)
 
-    if train_cfg.run_test_after_fit:
-        if train_cfg.test_on_val_split:
-            light_trainer.test(light_model, dataloaders=dataloaders.val)
-        else:
-            light_trainer.test(light_model, dataloaders=dataloaders.test)
+        if train_cfg.run_test_after_fit:
+            if train_cfg.test_on_val_split:
+                light_trainer.test(light_model, dataloaders=dataloaders.val)
+            else:
+                light_trainer.test(light_model, dataloaders=dataloaders.test)
 
-    # Collect post-test metrics; keep fit metrics on key collisions (HPO uses val_* from fit).
-    metrics = _collect_trainer_metrics(light_trainer)
+        # Collect post-test metrics; keep fit metrics on key collisions (HPO uses val_* from fit).
+        metrics = _collect_trainer_metrics(light_trainer)
 
-    # Flush logger buffers (important for MLflow nested runs).
-    for lg in light_trainer.loggers:
-        if hasattr(lg, "finalize"):
-            lg.finalize("success")
+        # Flush logger buffers (important for MLflow nested runs).
+        for lg in light_trainer.loggers:
+            if hasattr(lg, "finalize"):
+                lg.finalize("success")
 
-    return {**metrics, **fit_metrics}
+        return {**metrics, **fit_metrics}
+
+    except Exception as e:
+        logger.error(f"Training failed: {e}")
+        raise
+
+    finally:
+        release_gpu()
+
+
+def release_gpu() -> None:
+    """Switch Lightning Studio back to CPU to stop GPU billing."""
+    try:
+        from lightning_sdk import Studio
+        studio = Studio()
+        studio.switch_machine("cpu")
+        logger.info("Successfully switched to CPU machine.")
+    except Exception as e:
+        logger.warning(f"Could not switch machine automatically: {e}")
 
 
 def main(cfg_path: Path) -> dict[str, float]:

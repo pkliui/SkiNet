@@ -37,20 +37,24 @@ MODEL_CONFIG:
 
 TRAIN_CONFIG:
   log_dir: "lightning_logs"
-  experiment_name: "unet2d_ph2_debug"
+  experiment_name: "unet2d_ph2_noaggregate"
   run_test_after_fit: true
-  test_on_val_split: true
-  batch_size: 4
-  num_workers: 0
+  test_on_val_split: false
+  batch_size: 8
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 2
   optimizer_name: "adamw"
   lr: 1e-4
   weight_decay: 1e-4
   seed: 100
   deterministic: true
-  max_epochs: 5
-  accelerator: "auto"
-  devices: "auto"
+  max_epochs: 100
+  accelerator: "gpu"
+  devices: 1
   log_every_n_steps: 1
+  check_val_every_n_epoch: 1
+  num_sanity_val_steps: 0
   use_mlflow_logger: true
   use_litlogger_logger: true
   use_early_stopping: true
@@ -58,8 +62,8 @@ TRAIN_CONFIG:
   early_stopping_config:
     monitor: "val_dice"
     mode: "max"
-    min_delta: 0.0
-    patience: 5
+    min_delta: 0.005
+    patience: 15
     strict: true
     check_finite: true
     stopping_threshold:
@@ -83,5 +87,6 @@ TRAIN_CONFIG:
   lr_scheduler_config:
     monitor: "val_dice"
     mode: "max"
-    patience: 5
+    patience: 8
     factor: 0.5
+    warmup_epochs: 5

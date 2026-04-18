@@ -1,16 +1,5 @@
 # Training
 
-
-## Lightning + MLflow setup
-
-With `TRAIN_CONFIG.use_mlflow_logger: true`, runs now capture:
-- Training/validation metrics (`train_loss`, `val_loss`, `train_accuracy`, `val_accuracy`) and test metrics (`test_loss`, `test_accuracy`, `average_test_accuracy`) when `run_test_after_fit: true`.
-- Fit + optimizer params such as batch size, max epochs, optimizer name, learning rate, and epsilon.
-- Model summary artifact at fit start (`model/model_summary.txt`) when `mlflow_log_model_summary: true`.
-- Lightning model artifact at fit end via `mlflow_log_model`.
-- Early stopping params/state when `use_early_stopping: true` (for example `patience`, `min_delta`, `best_score`, `wait_count`, `stopped_epoch`, and `triggered`).
-- Best checkpoint artifact under `checkpoints/best` when early stopping triggers and a best model path is available.
-
 ## Training monitoring
 
 ### MLFlow
@@ -36,23 +25,25 @@ chmod +x start_mlflow.sh
 ssh -N -L 5000:localhost:5000 ssh_connection_string_from_your_studio@ssh.lightning.ai
 ```
 
-## Start Training
+## Ways to start training
+
+The options below assume you are inside a configured environment
 
 ### Optuna hyperparameter optimisation (HPO) sweep
 
-When running `optuna_sweep.py`, each trial is a full training run. The sweep script groups results as:
-- one MLflow parent run per Optuna study
-- one nested MLflow child run per trial
+When running `optuna_sweep.py`, a single MLflow parent run wraps the whole study that consists of multiple child runs (trials),
+where the hyperparameters of each trial are sampled from the search space.
 
-- Optuna sweep phyperparameters can be moved to a YAML
+- The search space is specified in the main function (can be moved to a config later)
 
-This prevents scattered top-level trial runs and makes the study easier to inspect.
-
-Example:
-
-```bash
-python optuna_sweep.py --config main_config.yaml --trials 12 --monitor val_dice --direction maximize
-```
+Example using default number of trials:
+    ```python
+    python optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize
+    ```
+Example using a custom number of trials:
+    ```python
+    python optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize --trials 10
+    ```
 
 ### Regular training
 
@@ -60,6 +51,24 @@ python optuna_sweep.py --config main_config.yaml --trials 12 --monitor val_dice 
 ```bash
 python main_run.py --config main_config.yaml
 ```
+
+## GPU training on Lightning
+
+- For Optuna sweep on GPU, the following will set up the docker environment and will run MLFlow and Optuna script commands
+Example:
+
+```bash
+./on_start_optuna_gpu.sh
+```
+
+- For a regular training on GPU, the following will set up the docker environment and will run MLFlow and main_run.py commands
+Example:
+
+```bash
+./on_start_train_gpu.sh
+```
+
+
 
 ## Reproducibility
 

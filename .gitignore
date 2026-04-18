@@ -2,10 +2,17 @@
 .idea/
 this_studio.code-workspace
 
+# project files and folders
 *__init__
 *__pycache__
 *.log
 .DS_Store
+*.ckpt
+*.db
+*.tar.gz
+*.litbin
+/lightning_logs/
+/mlruns/
 
 # images
 *.png

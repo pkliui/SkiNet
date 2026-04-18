@@ -35,6 +35,12 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.lr_scheduler_config.mode == "max"
     assert cfg.lr_scheduler_config.patience == 5
     assert cfg.lr_scheduler_config.factor == 0.5
+    assert cfg.pin_memory is True
+    assert cfg.prefetch_factor == 2
+    assert cfg.run_test_after_fit is False
+    assert cfg.test_on_val_split is False
+    assert cfg.check_val_every_n_epoch == 1
+    assert cfg.num_sanity_val_steps == 0
 
 
 @pytest.mark.parametrize(
@@ -95,6 +101,7 @@ def test_train_config_rejects_unknown_top_level_fields(kwargs: dict) -> None:
         ("max_epochs", 0),
         ("log_every_n_steps", 0),
         ("system_metrics_interval_sec", 0.0),
+        ("prefetch_factor", 0)
     ],
 )
 def test_train_config_rejects_invalid_scalar_bounds(field_name: str, value: int | float) -> None:
