@@ -92,7 +92,7 @@ class LightningModel(L.LightningModule):
             raise ValueError(f"Batch is missing 'image' or 'mask' keys. Found keys: {list(batch.keys())}")
         mask = self._prepare_mask(mask)
 
-        logger.info(f"Training step - batch_idx: {batch_idx}, input image shape: {x.shape}, mask shape: {mask.shape}")
+        logger.debug(f"Training step - batch_idx: {batch_idx}, input image shape: {x.shape}, mask shape: {mask.shape}")
 
         logits = self.model(x)
         t_loss: torch.Tensor = self.loss_fn(logits, mask)

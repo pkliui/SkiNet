@@ -23,6 +23,7 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.max_epochs == 1
     assert cfg.accelerator == "auto"
     assert cfg.devices == "auto"
+    assert cfg.precision is None
     assert cfg.log_every_n_steps == 1
     assert cfg.system_metrics_interval_sec == 5.0
     assert cfg.use_mlflow_logger is False
