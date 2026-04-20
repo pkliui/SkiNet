@@ -2,15 +2,17 @@ import argparse
 import logging
 from pathlib import Path
 import lightning as L
+from lightning.pytorch.callbacks import ModelCheckpoint
 
 from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
 from SkiNet.ML.transformations.plot_transformed_data import visualize_augmented_data
 from SkiNet.ML.model.lightning_model import build_lightning_model
-from SkiNet.Utils.logging.logging_callbacks_setup import setup_logging_and_callbacks
+from SkiNet.Utils.logging.logging_callbacks_setup import TrainerComponents, setup_logging_and_callbacks
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.Utils.mlops.optuna_utils import _collect_trainer_metrics
 from SkiNet.Utils.mlops.lightning_utils import configure_reproducibility
 from SkiNet.ML.dataloaders.create_dataloaders import DataLoaders, create_segmentation_dataloaders
+from repos.SkiNet.SkiNet.ML.configs.train_configs.train_config import TrainConfig
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -50,10 +52,11 @@ def train_and_evaluate(main_config: ExperimentConfig, *, visualize: bool = True)
     fit_metrics = _collect_trainer_metrics(light_trainer)
 
     if train_cfg.run_test_after_fit:
-        if train_cfg.test_on_val_split:
-            light_trainer.test(light_model, dataloaders=dataloaders.val)
-        else:
-            light_trainer.test(light_model, dataloaders=dataloaders.test)
+        _run_post_fit_test(light_trainer=light_trainer,
+                           light_model=light_model,
+                           dataloaders=dataloaders,
+                           train_cfg=train_cfg,
+                           trainersetup=trainersetup)
 
     # Collect post-test metrics; keep fit metrics on key collisions (HPO uses val_* from fit).
     metrics = _collect_trainer_metrics(light_trainer)
@@ -64,6 +67,25 @@ def train_and_evaluate(main_config: ExperimentConfig, *, visualize: bool = True)
             lg.finalize("success")
 
     return {**metrics, **fit_metrics}
+
+
+def _run_post_fit_test(light_trainer: L.Trainer,
+                       dataloaders: DataLoaders,
+                       train_cfg: TrainConfig,
+                       trainersetup: TrainerComponents,
+                       light_model: L.LightningModule) -> None:
+    # Get test or val dataloader depending on config
+    test_loader = dataloaders.val if train_cfg.test_on_val_split else dataloaders.test
+    checkpoint_cb = next((cb for cb in trainersetup.callbacks if isinstance(cb, ModelCheckpoint)),
+                         None)
+
+    if train_cfg.use_checkpoint:
+        if checkpoint_cb is None or not checkpoint_cb.best_model_path:
+            raise RuntimeError("Testing requested with checkpoint enabled, but no best checkpoint is available")
+        light_trainer.test(ckpt_path="best", dataloaders=test_loader)
+    else:
+        logger.warning("Checkpoint is disabled; testing with current in-memory weights instead.")
+        light_trainer.test(light_model, dataloaders=test_loader)
 
 
 def main(cfg_path: Path) -> dict[str, float]:
