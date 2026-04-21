@@ -12,7 +12,7 @@ from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.Utils.mlops.optuna_utils import _collect_trainer_metrics
 from SkiNet.Utils.mlops.lightning_utils import configure_reproducibility
 from SkiNet.ML.dataloaders.create_dataloaders import DataLoaders, create_segmentation_dataloaders
-from repos.SkiNet.SkiNet.ML.configs.train_configs.train_config import TrainConfig
+from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -59,15 +59,23 @@ def train_and_evaluate(main_config: ExperimentConfig, *, visualize: bool = True)
                            train_cfg=train_cfg,
                            trainersetup=trainersetup)
 
-    # Collect post-test metrics; keep fit metrics on key collisions (HPO uses val_* from fit).
-    metrics = _collect_trainer_metrics(light_trainer)
+    # Collect post-test metrics;
+    post_test_metrics = _collect_trainer_metrics(light_trainer)
 
     # Flush logger buffers (important for MLflow nested runs).
     for lg in light_trainer.loggers:
         if hasattr(lg, "finalize"):
             lg.finalize("success")
 
-    return {**metrics, **fit_metrics}
+    overlapping_keys = set(post_test_metrics) & set(fit_metrics)
+    if overlapping_keys:
+        logger.debug("Preferring fit metrics over post-test metrics for keys: %s", sorted(overlapping_keys))
+
+    # Keep fit metrics on key collisions (HPO uses val_* from fit).
+    # This means Optuna will use e.g. val_dice (i.e. the fit-time value) for the monitor
+    result_metrics = dict(post_test_metrics)
+    result_metrics.update(fit_metrics)
+    return result_metrics
 
 
 def _run_post_fit_test(light_trainer: L.Trainer,
@@ -77,6 +85,8 @@ def _run_post_fit_test(light_trainer: L.Trainer,
                        light_model: L.LightningModule) -> None:
     # Get test or val dataloader depending on config
     test_loader = dataloaders.val if train_cfg.test_on_val_split else dataloaders.test
+    if test_loader is None:
+        raise RuntimeError("test_on_val_split is False but no test dataloader is available.")
     checkpoint_cb = next((cb for cb in trainersetup.callbacks if isinstance(cb, ModelCheckpoint)),
                          None)
 

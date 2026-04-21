@@ -68,6 +68,7 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
             mlflow.log_param("weight_decay", weight_decay)
             mlflow.log_param("batch_size", batch_size)
 
+            # Get the fit-time validation metrics
             metrics = train_and_evaluate(cfg, visualize=False)
 
             # Check if the monitor (metrics to optimise) is there
@@ -102,7 +103,7 @@ def main() -> None:
             various parameters as set in ExperimentConfig class
         --trials      Number of Optuna trials to run (default: 24).
         --monitor     Metric to optimise, must match a key returned by
-                      ``train_and_evaluate`` (default: ``val_dice``).
+                      ``train_and_evaluate`` (default: ``val_best_dice_at_threshold``).
         --direction   Optimisation direction, either ``maximize`` or
                       ``minimize`` (default: ``maximize``).
         --experiment  MLflow experiment name under which the parent run is
@@ -112,11 +113,11 @@ def main() -> None:
 
     Example using default number of trials:
       ```python
-      python optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize
+      python optuna_sweep.py --config main_config.yaml --monitor val_best_dice_at_threshold --direction maximize
       ```
     Example using a custom number of trials:
       ```python
-      python optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize --trials 10
+      python optuna_sweep.py --config main_config.yaml --monitor val_best_dice_at_threshold --direction maximize --trials 10
       ```
 
     """
@@ -125,7 +126,7 @@ def main() -> None:
                         "This is the main_config.yaml file containing various parameters as set in ExperimentConfig class")
     parser.add_argument("--trials", type=int, default=None,
                         help="Optional number of trials to run. Defaults to full grid (n_combos).")
-    parser.add_argument("--monitor", type=str, default="val_dice", help="Metric to optimize")
+    parser.add_argument("--monitor", type=str, default="val_best_dice_at_threshold", help="Metric to optimize")
     parser.add_argument("--direction", type=str, default="maximize", choices=["maximize", "minimize"])
     parser.add_argument("--experiment", type=str, default="optuna_sweep", help="MLflow experiment name")
     args = parser.parse_args()

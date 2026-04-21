@@ -35,6 +35,8 @@ When running `optuna_sweep.py`, a single MLflow parent run wraps the whole study
 where the hyperparameters of each trial are sampled from the search space.
 
 - The search space is specified in the main function (can be moved to a config later)
+- The metrics that is monitored by Optuna and displayed as the best at the end of the sweep is specified under ```--monitor``` argument
+
 
 Example using default number of trials:
     ```python
@@ -54,18 +56,18 @@ python main_run.py --config main_config.yaml
 
 ## GPU training on Lightning
 
-- For Optuna sweep on GPU, the following will set up the docker environment and will run MLFlow and Optuna script commands
+- The following command will set up the docker environment, run MLFlow and and Optuna hyperparameter sweep
 Example:
 
 ```bash
-./on_start_optuna_gpu.sh
+RUN_TRAINING=true MODE=sweep bash on_start_gpu.sh
 ```
 
-- For a regular training on GPU, the following will set up the docker environment and will run MLFlow and main_run.py commands
+- For a regular training on GPU without any Optuna sweep, the following will set up the docker environment, run MLFlow and the regular training
 Example:
 
 ```bash
-./on_start_train_gpu.sh
+RUN_TRAINING=true MODE=train bash on_start_gpu.sh
 ```
 
 

@@ -16,13 +16,22 @@
 
 #!/usr/bin/env bash
 
-# This script is intended to be run on Lightning Studio. It will:
+# This script is intended to be run on Lightning Studio with GPU. It will:
 # 1. Clone the SkiNet repo (or update it if it already exists)
 # 2. Pull the specified Docker image
-# 3. Run a container from the image, mounting the repo and the Lightning Storage folder into the container
-# 4. Run MLFlow
-# 5. Run Optuna hyperparameter sweep
+# 3. Run a fresh Docker container, mounting the repo and the Lightning Storage folder into the container
+# 4. Start MLFlow server in the background in this container (start_mlflow.sh is expected in the same as this script)
+# 5. Automatically run either a regular training run or an Optuna hyperparameter sweep, depending on command MODE (see example)
 # 6. Release GPU once ready
+
+##########################################
+#  --------------- USAGE ------------------
+
+# Run a training job
+# RUN_TRAINING=true MODE=train bash on_start_gpu.sh
+
+# Run an Optuna sweep
+# RUN_TRAINING=true MODE=sweep bash on_start_gpu.sh
 
 ########################################################################################################
 
@@ -33,9 +42,12 @@
 
 set -Eeuo pipefail
 
-# Set default values for environment variables if they are not already set
+RUN_TRAINING="${RUN_TRAINING:-true}"  # set to true to run training automatically
+MODE="${MODE:-train}"  # "train" = main_run.py, "sweep" = optuna_sweep.py
 
-RUN_TRAINING="${RUN_TRAINING:-false}"  # set to true to run training automatically
+LIGHTNING_ENV_FILE=""
+trap '[[ -n "$LIGHTNING_ENV_FILE" ]] && rm -f "$LIGHTNING_ENV_FILE"' EXIT
+
 
 # Image name on Docker Hub
 IMAGE="pkliui/skinet:v8gpu"
@@ -50,7 +62,7 @@ CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
 BRANCH="${BRANCH:-train}"
 
 # Set Python binary
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+PYTHON_BIN="${PYTHON_BIN:-python}"
 
 
 # Data mount path on Lightning Storage
@@ -103,21 +115,39 @@ fi
 echo "==> Pulling Docker image $IMAGE"
 docker pull "$IMAGE"
 
-echo "Setting up Lightning"
+echo "==> Setting up Lightning"
 LIGHTNING_ENV_FILE="$(mktemp)"
 env | grep '^LIGHTNING_' > "$LIGHTNING_ENV_FILE" || true
 
+echo "==> Selecting the Python command based on MODE"
+if [[ "$MODE" == "sweep" ]]; then
+  PYTHON_CMD="$PYTHON_BIN -u optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize"
+else
+  PYTHON_CMD="$PYTHON_BIN -u main_run.py --config main_config.yaml"
+fi
 
-echo
+echo "==> Selected command to run in Docker is $PYTHON_CMD"
 
 if [[ "$RUN_TRAINING" == "true" ]]; then
-  echo "==> Running fresh container for training on GPU..."
-  echo "==> Once container is running, will start MLflow, port mapping host:container 5000:5000"
-  echo "==> Once container is running, will begin Optuna hyperparameter sweep"
-  docker run --rm -it \
+
+    echo "==> Preparing to run a fresh container"
+
+    # Kill any existing MLflow process on port 5000
+    if lsof -ti:5000 &>/dev/null; then
+    echo "Port 5000 in use — killing existing process..."
+    kill -9 $(lsof -ti:5000) 2>/dev/null || true
+    sleep 1
+    fi
+
+  echo "==> Setting MLflow port mapping host:container to 5000:5000"
+  echo "==> RUNNING container non-interactively and MLflow server in background"
+  echo "==> Command to run is $PYTHON_CMD"
+  CONTAINER_NAME="skinet-$(date +%s)"
+  docker run -it --name "$CONTAINER_NAME" \
     -p 5000:5000 \
     --gpus all \
     --ipc=host \
+    -e PYTHONUNBUFFERED=1 \
     --env-file "$LIGHTNING_ENV_FILE" \
     -v "$HOME/.lightning:/root/.lightning:ro" \
     --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
@@ -125,19 +155,17 @@ if [[ "$RUN_TRAINING" == "true" ]]; then
     -w "$CONTAINER_REPO" \
     "$IMAGE" \
     bash -c "
-      mlflow server --backend-store-uri sqlite:////workplace/SkiNet/mlflow.db \
-        --default-artifact-root file:///workplace/SkiNet/mlruns \
-        --host 0.0.0.0 --port 5000 &
+      set -e
+      ./start_mlflow.sh &
       sleep 3
-      python optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize
-      exit 0
-    "
+      exec $PYTHON_CMD
+    " && DOCKER_EXIT=0 || DOCKER_EXIT=$?
 
-  rm -f "$LIGHTNING_ENV_FILE"
-
-  echo "==> Container exited. Releasing GPU..."
-  set +e
-  python3 -c "
+  if [[ $DOCKER_EXIT -eq 0 ]]; then
+    echo "==> Training succeeded. Cleaning up container..."
+    docker rm "$CONTAINER_NAME"
+    echo "==> Container exited cleanly. Releasing GPU..."
+    python3 -c "
 from lightning_sdk import Studio
 studio = Studio()
 try:
@@ -146,11 +174,15 @@ try:
 except Exception as e2:
     print(f'studio.stop() failed: {e2}')
     print('Please switch to CPU manually in the Lightning UI.')
-  "
-  set -e
-  echo "==> Done."
+    "
+    echo "==> Done."
+  else
+    echo "==> Container '$CONTAINER_NAME' exited with code $DOCKER_EXIT. Keeping for debugging."
+    echo "==> To re-enter: docker start $CONTAINER_NAME && docker exec -it $CONTAINER_NAME bash"
+    echo "==> To clean up when done: docker rm $CONTAINER_NAME"
+    echo "==> Keeping GPU alive."
+  fi
 else
   echo "==> RUN_TRAINING=false, skipping training. Start container manually."
   echo "==> To run training automatically, set RUN_TRAINING=true in your environment."
-  rm -f "$LIGHTNING_ENV_FILE"
 fi

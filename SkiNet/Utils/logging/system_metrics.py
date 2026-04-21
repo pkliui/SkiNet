@@ -1,9 +1,13 @@
 from typing import Any
+import logging
 import lightning as L
+import math
 import threading
 import queue
 import psutil
 import torch
+
+logger = logging.getLogger(__name__)
 
 
 class SystemMetricsThreadCallback(L.Callback):
@@ -49,8 +53,25 @@ class SystemMetricsThreadCallback(L.Callback):
             # pool pytorch clained from OS ie allocated + cached memory
             # gap between - headroom before OOM
             m["system/gpu_mem_reserved_gb"] = reserved / (1024**3)
-            m["system/gpu_util_percent"] = float(torch.cuda.utilization(d))
+            gpu_util = torch.cuda.utilization(d)
+            if gpu_util is not None:
+                m["system/gpu_util_percent"] = float(gpu_util)
         return m
+
+    @staticmethod
+    def _sanitize_metrics(metrics: dict[str, float]) -> dict[str, float]:
+        """
+        Remove values that logger backends cannot serialize, such as NaN and inf.
+        """
+        sanitized: dict[str, float] = {}
+        for key, value in metrics.items():
+            try:
+                float_value = float(value)
+            except (TypeError, ValueError):
+                continue
+            if math.isfinite(float_value):
+                sanitized[key] = float_value
+        return sanitized
 
     def _run(self) -> None:
         """
@@ -89,16 +110,15 @@ class SystemMetricsThreadCallback(L.Callback):
                 metrics = self._metrics_queue.get_nowait()
             except queue.Empty:
                 break
+            metrics = self._sanitize_metrics(metrics)
             if not metrics:
                 continue
             for lg in (trainer.loggers or []):
-                lg.log_metrics(metrics, step=step)
-
-                # try:
-                #    lg.log_metrics(metrics, step=step)
-                # except Exception:
-                #    # Do not let one broken logger backend block system metrics for others.
-                #    continue
+                try:
+                    lg.log_metrics(metrics, step=step)
+                except Exception:
+                    logger.exception("Failed to log system metrics with logger %s", type(lg).__name__)
+                    continue
 
     def on_fit_start(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         """

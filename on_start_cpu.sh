@@ -16,10 +16,20 @@
 
 #!/usr/bin/env bash
 
-# This script is intended to be run on Lightning Studio. It will:
+# This script is intended to be run on Lightning Studio machine with CPU. It will:
 # 1. Clone the SkiNet repo (or update it if it already exists)
 # 2. Pull the specified Docker image
 # 3. Run a container from the image, mounting the repo and the Lightning Storage folder into the container
+# 4. Start MLFlow server in the background in this container (start_mlflow.sh is expected in the same as this script)
+# 5. Container is available for interactive development
+
+##########################################
+#  --------------- USAGE ------------------
+
+# Run container with CPU
+# bash on_start_cpu.sh
+
+
 
 ########################################################################################################
 
@@ -102,25 +112,28 @@ LIGHTNING_ENV_FILE="$(mktemp)"
 env | grep '^LIGHTNING_' > "$LIGHTNING_ENV_FILE" || true
 
 
-echo "==> Running fresh container"
+echo "==> Preparing to run a fresh container"
 
-echo "Tensorboard port mapping host:container 6006:6006"
-echo "Run on host to start tensorboard in the container and make it accessible from the host:"
-echo "tensorboard --logdir /workplace/SkiNet/lightning_logs --port 6006 --host 0.0.0.0 --reload_interval 1"
-echo "MLflow port mapping host:container 5000:5000"
-echo "Run in the container to start the MLflow tracking server:"
-echo "mlflow server --backend-store-uri sqlite:////workplace/SkiNet/mlflow.db --default-artifact-root file:///workplace/SkiNet/mlruns --host 0.0.0.0 --port 5000"
-echo
+# Kill any existing MLflow process on port 5000
+if lsof -ti:5000 &>/dev/null; then
+  echo "Port 5000 in use — killing existing process..."
+  kill -9 $(lsof -ti:5000) 2>/dev/null || true
+  sleep 1
+fi
+
+echo "==> Setting MLflow port mapping host:container to 5000:5000"
+echo "==> RUNNING container and MLflow server in background"
 
 docker run --rm -it\
   -p 5000:5000 \
-  -p 6006:6006 \
   --ipc=host \
   --env-file "$LIGHTNING_ENV_FILE" \
   -v "$HOME/.lightning:/root/.lightning:ro" \
   --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
   --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
   -w "$CONTAINER_REPO" \
-  "$IMAGE"
+  "$IMAGE" \
+  bash -c "./start_mlflow.sh & exec bash"
 rm -f "$LIGHTNING_ENV_FILE"
-echo "==> Done. Docker is running. Attach Shell to the running container"
+echo "==> Done. Docker is running. MLFlow is available at http://localhost:5000"
+echo "==> Attach Shell to the running container in VSC Containers tab to develop inside the container"
