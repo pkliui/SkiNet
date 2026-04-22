@@ -35,16 +35,21 @@ When running `optuna_sweep.py`, a single MLflow parent run wraps the whole study
 where the hyperparameters of each trial are sampled from the search space.
 
 - The search space is specified in the main function (can be moved to a config later)
-- The metrics that is monitored by Optuna and displayed as the best at the end of the sweep is specified under ```--monitor``` argument
+- The metrics that is monitored by Optuna <metrics-to-monitor> and displayed as the best at the end of the sweep is specified under ```--monitor``` argument
+- This metrics must also be specified in YAML config under early stopping, for example:
+```yaml
+early_stopping_config:
+    monitor: "val_best_dice_at_threshold"
+```
 
 
 Example using default number of trials:
     ```python
-    python optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize
+    python optuna_sweep.py --config main_config.yaml --monitor <metrics-to-monitor> --direction maximize
     ```
 Example using a custom number of trials:
     ```python
-    python optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize --trials 10
+    python optuna_sweep.py --config main_config.yaml --monitor <metrics-to-monitor> --direction maximize --trials 10
     ```
 
 ### Regular training
@@ -69,7 +74,6 @@ Example:
 ```bash
 RUN_TRAINING=true MODE=train bash on_start_gpu.sh
 ```
-
 
 
 ## Reproducibility
