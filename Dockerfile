@@ -11,8 +11,11 @@ ENV PROJECT_PATH=/workplace/SkiNet
 ENV PYTHONPATH=${PROJECT_PATH}
 # Specify work directory
 WORKDIR ${PROJECT_PATH}
-# Copy conda's environment file
+# Copy conda's environment file and label the image using its hash
 COPY environment.yaml .
+ARG ENV_HASH
+LABEL skinet.environment_sha=$ENV_HASH
+
 # specify mamba root -where environments will live i.e. /opt/micromamba/envs/skinet
 ENV MAMBA_ROOT_PREFIX=/opt/micromamba
 
@@ -37,7 +40,6 @@ RUN curl -Ls $MAMBA_URL | \
     tar -xvj -C /usr/local/bin --strip-components=1 bin/micromamba && \
     micromamba create -y -n ${ENV_NAME} -f environment.yaml && \
     micromamba clean --all --yes && \
-    rm -f environment.yaml && \
     rm -rf /root/.cache
 
 # clean up installs and remove build-essential since it's not needed after conda installation
