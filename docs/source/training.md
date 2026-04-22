@@ -25,6 +25,14 @@ chmod +x start_mlflow.sh
 ssh -N -L 5000:localhost:5000 ssh_connection_string_from_your_studio@ssh.lightning.ai
 ```
 
+## Set up training
+
+- All settings are expected to be specified in ```main_config.yaml```
+- Training settings are living under "trainconfig" section. Defaults and validation and are managed through
+{py:class}`SkiNet.ML.configs.train_configs.train_config.TrainConfig`  class.
+- If this is a GPU sweep, set accelerator/devices for GPU and keep precision: "16-mixed".
+- If this is a CPU sweep, set precision: null or a CPU-supported mode instead of "16-mixed".
+
 ## Ways to start training
 
 The options below assume you are inside a configured environment

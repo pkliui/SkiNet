@@ -1,7 +1,7 @@
 # Datasets and dataloaders
 
 This document describes the dataset system used in SkiNet.
-See the [API reference](api/dataset_factory.md) for full parameter documentation.
+See the [API reference](api/api_datasets.md) for full parameter documentation.
 
 ---
 
@@ -23,7 +23,7 @@ train_loader = DataLoader(bundle.train, batch_size=8, shuffle=True,  num_workers
 val_loader   = DataLoader(bundle.val,   batch_size=8, shuffle=False, num_workers=4)
 ```
 
-- See [dataset_factory.md](dataset_factory.md) for factory internals and how to extend it.
+- See {py:class}`SkiNet.ML.datasets.dataset_factory.DatasetFactory` for factory internals and how to extend it.
 - Alternatively, dataloaders can be created from ```SkiNet.ML.dataloaders.create_dataloaders.create_dataloaders_from_datasets``` function:
 
 ```python
@@ -137,7 +137,7 @@ and are 0 or 255 for uint8 images.
 
 ```python
 A.Normalize(normalization="image_per_channel", p=1.0)
-```yaml
+```
 
 - ```seed```can be used to ensure reproducibility.
 - **Critical Note: Using the same seed with different num_workers settings will produce different augmentation sequences**. This is by design to ensure:
