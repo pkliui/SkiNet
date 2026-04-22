@@ -25,6 +25,7 @@ dependencies:
       - lightning
       - mlflow
       - optuna
+      - segmentation-models-pytorch
       - torch
       - torchvision
       - torchaudio
