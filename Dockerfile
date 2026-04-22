@@ -14,7 +14,9 @@ WORKDIR ${PROJECT_PATH}
 # Copy conda's environment file and label the image using its hash
 COPY environment.yaml .
 ARG ENV_HASH
-LABEL skinet.environment_sha=$ENV_HASH
+LABEL org.opencontainers.image.version="v9" \
+      org.opencontainers.image.description="SkiNet segmentation" \
+      skinet.environment_sha=$ENV_HASH
 
 # specify mamba root -where environments will live i.e. /opt/micromamba/envs/skinet
 ENV MAMBA_ROOT_PREFIX=/opt/micromamba

@@ -50,7 +50,7 @@ trap '[[ -n "$LIGHTNING_ENV_FILE" ]] && rm -f "$LIGHTNING_ENV_FILE"' EXIT
 
 
 # Image name on Docker Hub
-IMAGE="pkliui/skinet:v8gpu"
+IMAGE="pkliui/skinet:v9gpu"
 
 # Determine a safe default for the home directory
 DEFAULT_HOME="$HOME"
