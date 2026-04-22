@@ -37,3 +37,15 @@ class ExperimentType(Enum):
     """
     SEGMENTATION = "segmentation"
     CLASSIFICATION = "classification"
+
+
+@unique
+class LossFunctionKey(Enum):
+    """
+    Enum for loss function keys used to identify loss functions.
+
+    For example, they are used in Lightning model.
+    """
+    BCE = "bce"
+    DICE = "dice"
+    BCE_DICE = "bce_dice"

@@ -3,6 +3,7 @@ import pytest
 from pydantic import ValidationError
 
 from SkiNet.ML.configs.train_configs.train_config import TrainConfig
+from SkiNet.Utils.experiment_keys import LossFunctionKey
 
 
 def test_train_config_defaults_are_valid() -> None:
@@ -15,6 +16,7 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.experiment_name == "unet2d_experiment"
     assert cfg.batch_size == 8
     assert cfg.num_workers == 0
+    assert cfg.loss_name == LossFunctionKey.BCE_DICE
     assert cfg.optimizer_name == "adamw"
     assert cfg.lr == 1e-4
     assert cfg.weight_decay == 1e-4
@@ -227,3 +229,36 @@ def test_train_config_rejects_invalid_lr_scheduler_values(kwargs: dict, match: s
     """
     with pytest.raises(ValidationError, match=match):
         TrainConfig(**kwargs)
+
+# ------ Test loss config ------
+
+
+def test_train_config_default_loss_name() -> None:
+    """TrainConfig default loss_name should be BCE_DICE."""
+    cfg = TrainConfig()
+    assert cfg.loss_name == LossFunctionKey.BCE_DICE
+
+
+@pytest.mark.parametrize("loss_name,expected_key", [
+    ("bce", LossFunctionKey.BCE),
+    ("dice", LossFunctionKey.DICE),
+    ("bce_dice", LossFunctionKey.BCE_DICE),
+])
+def test_train_config_valid_loss_names(loss_name: str, expected_key: LossFunctionKey) -> None:
+    """TrainConfig should accept all valid LossFunctionKey string values and coerce to enum.
+    Pydantic coerces strings at runtime (loss_name: str will become loss_name: LossFunctionKey) """
+    cfg = TrainConfig(loss_name=loss_name)  # type: ignore[arg-type]
+    assert cfg.loss_name == expected_key
+
+
+def test_train_config_invalid_loss_name_raises() -> None:
+    """TrainConfig should reject unknown loss_name values with ValidationError.
+    Pydantic coerces strings at runtime (loss_name: str will become loss_name: LossFunctionKey)"""
+    with pytest.raises(ValidationError, match="loss_name"):
+        TrainConfig(loss_name="some_loss")  # type: ignore[arg-type]
+
+
+def test_train_config_loss_name_in_defaults_assertion() -> None:
+    """test_train_config_defaults_are_valid should also cover loss_name — add this assertion there."""
+    cfg = TrainConfig()
+    assert cfg.loss_name == LossFunctionKey.BCE_DICE

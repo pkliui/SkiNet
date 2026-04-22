@@ -2,6 +2,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 import logging
 
+from SkiNet.Utils.experiment_keys import LossFunctionKey
+
 logger = logging.getLogger(__name__)
 
 
@@ -108,6 +110,10 @@ class TrainConfig(BaseModel):
     pin_memory: bool = Field(default=True)
     prefetch_factor: int = Field(default=2, ge=1)
     # LightningModel params
+    loss_name: LossFunctionKey = Field(
+        default=LossFunctionKey.BCE_DICE,
+        description="Loss function name. Supported: 'bce', 'dice', 'bce_dice'."
+    )
     optimizer_name: str = Field(default="adamw")
     lr: float = Field(default=1e-4, gt=0)
     weight_decay: float = Field(default=1e-4, ge=0)

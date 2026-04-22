@@ -8,6 +8,7 @@ from torchmetrics.functional.classification import binary_f1_score
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.train_configs.train_config import ReduceOnPlateauConfig
 from SkiNet.ML.model.model_factory import create_model
+from SkiNet.ML.configs.training.build_loss import build_loss
 
 logger = logging.getLogger(__name__)
 
@@ -250,9 +251,8 @@ def build_lightning_model(main_config: ExperimentConfig) -> LightningModel:
     Build the Lightning segmentation model from the experiment config.
     """
     train_cfg = main_config.trainconfig
-
     model: torch.nn.Module = create_model(main_config)
-    loss_fn = torch.nn.BCEWithLogitsLoss()
+    loss_fn = build_loss(train_cfg.loss_name)
     return LightningModel(model=model,
                           loss_fn=loss_fn,
                           num_classes=1,
