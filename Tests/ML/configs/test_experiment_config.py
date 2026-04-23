@@ -7,6 +7,7 @@ from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import P
 from SkiNet.ML.configs.experiment_config import ExperimentConfig, ExperimentType
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.train_config import TrainConfig
+from SkiNet.ML.configs.train_configs.sweep_config import SweepConfig
 from SkiNet.ML.configs.transform_configs.crop_config import CropConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 
@@ -44,6 +45,7 @@ def test_experiment_config_valid() -> None:
     assert isinstance(config.transformconfig, TransformConfig)
     assert isinstance(config.modelconfig, UNet2DModelConfig)
     assert isinstance(config.trainconfig, TrainConfig)
+    assert isinstance(config.sweepconfig, SweepConfig)
 
 
 def test_experiment_config_forbids_extra_top_level_fields() -> None:
@@ -72,6 +74,7 @@ def test_experiment_config_forbids_extra_top_level_fields() -> None:
 def test_experiment_config_missing_required_fields(missing_field: str) -> None:
     """
     ExperimentConfig should raise ValidationError when required fields are missing.
+    Fields that have a default_factory are not required and are not listed here (e.g. sweepconfig)
     """
     kwargs = make_valid_experiment_config_kwargs()
     del kwargs[missing_field]

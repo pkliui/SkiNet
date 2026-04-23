@@ -34,23 +34,29 @@ TRANSFORM_CONFIG:
     color_jitter_hue: 0.0
     color_jitter_p: 0.5
 MODEL_CONFIG:
-
+SWEEP_CONFIG:
+  monitor: "val_best_dice_at_threshold"
+  direction: "maximize"
+  experiment_name: "optuna_sweep_ph2"
+  lr: [3e-4, 1e-4]
+  weight_decay: [1e-4, 1e-3]
+  batch_size: [16, 32]
 TRAIN_CONFIG:
   log_dir: "lightning_logs"
-  experiment_name: "unet2d_ph2_noaggregate"
+  experiment_name: "optuna_sweep"
   run_test_after_fit: false
   test_on_val_split: false
-  batch_size: 8
+  batch_size: 16
   num_workers: 4
   pin_memory: true
-  prefetch_factor: 2
+  prefetch_factor: 4
   loss_name: "bce_dice"
   optimizer_name: "adamw"
-  lr: 1e-4
+  lr: 3e-4
   weight_decay: 1e-4
   seed: 100
   deterministic: true
-  max_epochs: 100
+  max_epochs: 150
   accelerator: "cpu"
   devices: 1
   precision: "16-mixed"
@@ -65,7 +71,7 @@ TRAIN_CONFIG:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
     min_delta: 0.005
-    patience: 15
+    patience: 20
     strict: true
     check_finite: true
     stopping_threshold:
@@ -89,5 +95,5 @@ TRAIN_CONFIG:
   lr_scheduler_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
-    patience: 8
+    patience: 5
     factor: 0.5
