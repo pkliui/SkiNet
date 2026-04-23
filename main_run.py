@@ -28,8 +28,6 @@ def train_and_evaluate(main_config: ExperimentConfig, *, visualize: bool = True)
 
     if visualize:
         visualize_augmented_data(dataset=dataloaders.train.dataset, samples=20)
-        # restore RNG state after visualization to avoid affecting training reproducibility
-        L.seed_everything(train_cfg.seed, workers=True)
 
     light_model = build_lightning_model(main_config)
     trainersetup = setup_logging_and_callbacks(main_config=main_config)
