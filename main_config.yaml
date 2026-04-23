@@ -25,13 +25,23 @@ TRANSFORM_CONFIG:
     perspective_apply: True
     perspective_scale: [0.05, 0.1]
     perspective_p: 0.2
+    elastic_apply: True
+    elastic_alpha: 1.0
+    elastic_sigma: 50.0
+    elastic_p: 0.3
   photometric_augmentation:
     color_jitter_apply: True
     color_jitter_brightness: 0.2
     color_jitter_contrast: 0.2
-    color_jitter_saturation: 0.0
-    color_jitter_hue: 0.0
+    color_jitter_saturation: 0.3
+    color_jitter_hue: 0.05
     color_jitter_p: 0.5
+    gaussian_blur_apply: True
+    gaussian_blur_sigma_limit: [0.5, 2.0]
+    gaussian_blur_p: 0.2
+    gaussian_noise_apply: True
+    gaussian_noise_std_range: [0.05, 0.15]
+    gaussian_noise_p: 0.2
 MODEL_CONFIG:
 SWEEP_CONFIG:
   monitor: "val_best_dice_at_threshold"

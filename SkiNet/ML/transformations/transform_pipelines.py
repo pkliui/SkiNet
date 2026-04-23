@@ -53,6 +53,11 @@ def get_spatial_transforms(config: SpatialAugmentConfig) -> list[A.BasicTransfor
         transforms_list.append(A.Perspective(scale=config.perspective_scale,
                                              p=config.perspective_p))
 
+    if config.elastic_apply:
+        transforms_list.append(A.ElasticTransform(alpha=config.elastic_alpha,
+                                                  sigma=config.elastic_sigma,
+                                                  p=config.elastic_p))
+
     return transforms_list
 
 
@@ -71,6 +76,14 @@ def get_photometric_transforms(config: PhotoAugmentConfig) -> list[A.BasicTransf
                                              saturation=config.color_jitter_saturation,
                                              hue=config.color_jitter_hue,
                                              p=config.color_jitter_p))
+
+    if config.gaussian_blur_apply:
+        transforms_list.append(A.GaussianBlur(sigma_limit=config.gaussian_blur_sigma_limit,
+                                              p=config.gaussian_blur_p))
+
+    if config.gaussian_noise_apply:
+        transforms_list.append(A.GaussNoise(std_range=config.gaussian_noise_std_range,
+                                            p=config.gaussian_noise_p))
 
     return transforms_list
 

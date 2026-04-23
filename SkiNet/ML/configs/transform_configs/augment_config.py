@@ -59,6 +59,17 @@ class SpatialAugmentConfig(BaseModel):
     perspective_p: float = Field(
         default=0.2, ge=0.0, le=1.0, description="Probability of applying perspective transformation.")
 
+    # Elastic deformation
+    # albumentations.ElasticTransform
+    elastic_apply: bool = Field(
+        default=False, description="Apply elastic deformation.")
+    elastic_alpha: float = Field(
+        default=1.0, description="Scaling factor controlling displacement magnitude.")
+    elastic_sigma: float = Field(
+        default=50.0, description="Gaussian smoothing factor; larger values produce smoother deformation.")
+    elastic_p: float = Field(
+        default=0.3, ge=0.0, le=1.0, description="Probability of applying elastic deformation.")
+
 
 class PhotoAugmentConfig(BaseModel):
     """
@@ -102,3 +113,19 @@ class PhotoAugmentConfig(BaseModel):
         default=0.0, description="Hue adjustment factor.")
     color_jitter_p: float = Field(
         default=0.5, ge=0.0, le=1.0, description="Probability of applying color jitter.")
+
+    # albumentations.GaussianBlur
+    gaussian_blur_apply: bool = Field(
+        default=False, description="Apply Gaussian blur.")
+    gaussian_blur_sigma_limit: Tuple[float, float] = Field(
+        default=(0.5, 2.0), description="Sigma range for Gaussian blur kernel.")
+    gaussian_blur_p: float = Field(
+        default=0.2, ge=0.0, le=1.0, description="Probability of applying Gaussian blur.")
+
+    # albumentations.GaussNoise
+    gaussian_noise_apply: bool = Field(
+        default=False, description="Apply Gaussian noise.")
+    gaussian_noise_std_range: Tuple[float, float] = Field(
+        default=(0.05, 0.15), description="Std range as a fraction of max pixel value.")
+    gaussian_noise_p: float = Field(
+        default=0.2, ge=0.0, le=1.0, description="Probability of applying Gaussian noise.")

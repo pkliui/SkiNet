@@ -1,4 +1,4 @@
-from SkiNet.ML.configs.transform_configs.augment_config import SpatialAugmentConfig
+from SkiNet.ML.configs.transform_configs.augment_config import PhotoAugmentConfig, SpatialAugmentConfig
 from pydantic import ValidationError
 import pytest
 
@@ -27,3 +27,39 @@ def test_spatialaugmentconfig_overrides() -> None:
 def test_spatialaugmentconfig_probability_out_of_range_raises(p: float) -> None:
     with pytest.raises(ValidationError):
         SpatialAugmentConfig(square_symmetry_p=p)
+
+
+def test_spatialaugmentconfig_elastic_defaults() -> None:
+    cfg = SpatialAugmentConfig()
+    assert cfg.elastic_apply is False
+    assert cfg.elastic_alpha == 1.0
+    assert cfg.elastic_sigma == 50.0
+    assert cfg.elastic_p == 0.3
+
+
+@pytest.mark.parametrize("p", [-0.1, 1.1])
+def test_spatialaugmentconfig_elastic_probability_out_of_range_raises(p: float) -> None:
+    with pytest.raises(ValidationError):
+        SpatialAugmentConfig(elastic_p=p)
+
+
+def test_photoaugmentconfig_blur_and_noise_defaults() -> None:
+    cfg = PhotoAugmentConfig()
+    assert cfg.gaussian_blur_apply is False
+    assert cfg.gaussian_blur_sigma_limit == (0.5, 2.0)
+    assert cfg.gaussian_blur_p == 0.2
+    assert cfg.gaussian_noise_apply is False
+    assert cfg.gaussian_noise_std_range == (0.05, 0.15)
+    assert cfg.gaussian_noise_p == 0.2
+
+
+@pytest.mark.parametrize("p", [-0.1, 1.1])
+def test_photoaugmentconfig_blur_probability_out_of_range_raises(p: float) -> None:
+    with pytest.raises(ValidationError):
+        PhotoAugmentConfig(gaussian_blur_p=p)
+
+
+@pytest.mark.parametrize("p", [-0.1, 1.1])
+def test_photoaugmentconfig_noise_probability_out_of_range_raises(p: float) -> None:
+    with pytest.raises(ValidationError):
+        PhotoAugmentConfig(gaussian_noise_p=p)

@@ -175,7 +175,129 @@ def test_get_photometric_transforms_uses_configured_color_jitter_values() -> Non
     assert len(transforms) == 0  # default is False
 
 
+@pytest.mark.parametrize(
+    "config,expected_types",
+    [
+        (
+            SpatialAugmentConfig(elastic_apply=False),
+            [],
+        ),
+        (
+            SpatialAugmentConfig(elastic_apply=True),
+            ["ElasticTransform"],
+        ),
+        (
+            SpatialAugmentConfig(square_symmetry_apply=True, affine_apply=True,
+                                 perspective_apply=True, elastic_apply=True),
+            ["SquareSymmetry", "Affine", "Perspective", "ElasticTransform"],
+        ),
+    ],
+)
+def test_get_spatial_transforms_elastic_included_when_enabled(
+    config: SpatialAugmentConfig,
+    expected_types: list[str],
+) -> None:
+    """
+    get_spatial_transforms() should append ElasticTransform only when elastic_apply is True,
+    and place it after Perspective in the transform order.
+    """
+    transforms = get_spatial_transforms(config)
+
+    assert [type(t).__name__ for t in transforms] == expected_types
+
+
+def test_get_spatial_transforms_elastic_uses_configured_params() -> None:
+    """
+    get_spatial_transforms() should pass elastic_alpha, elastic_sigma, and elastic_p
+    through to the ElasticTransform instance unchanged.
+    """
+    config = SpatialAugmentConfig(elastic_apply=True, elastic_alpha=2.0,
+                                  elastic_sigma=30.0, elastic_p=0.5)
+
+    transforms = get_spatial_transforms(config)
+
+    assert len(transforms) == 1
+    elastic = transforms[0]
+    assert isinstance(elastic, A.ElasticTransform)
+    assert elastic.alpha == 2.0
+    assert elastic.sigma == 30.0
+    assert elastic.p == 0.5
+
+
+@pytest.mark.parametrize(
+    "config,expected_types",
+    [
+        (
+            PhotoAugmentConfig(gaussian_blur_apply=False, gaussian_noise_apply=False),
+            [],
+        ),
+        (
+            PhotoAugmentConfig(color_jitter_apply=True, gaussian_blur_apply=True,
+                               gaussian_noise_apply=True),
+            ["ColorJitter", "GaussianBlur", "GaussNoise"],
+        ),
+        (
+            PhotoAugmentConfig(gaussian_blur_apply=True),
+            ["GaussianBlur"],
+        ),
+        (
+            PhotoAugmentConfig(gaussian_noise_apply=True),
+            ["GaussNoise"],
+        ),
+    ],
+)
+def test_get_photometric_transforms_blur_and_noise_included_when_enabled(
+    config: PhotoAugmentConfig,
+    expected_types: list[str],
+) -> None:
+    """
+    get_photometric_transforms() should include GaussianBlur and GaussNoise only when
+    their respective apply flags are True, and in the order: ColorJitter → GaussianBlur → GaussNoise.
+    """
+    transforms = get_photometric_transforms(config)
+
+    assert [type(t).__name__ for t in transforms] == expected_types
+
+
+def test_get_photometric_transforms_blur_uses_configured_params() -> None:
+    """
+    get_photometric_transforms() should pass gaussian_blur_sigma_limit and gaussian_blur_p
+    through to the GaussianBlur instance unchanged.
+    """
+    config = PhotoAugmentConfig(gaussian_blur_apply=True,
+                                gaussian_blur_sigma_limit=(1.0, 3.0),
+                                gaussian_blur_p=0.4)
+
+    transforms = get_photometric_transforms(config)
+
+    assert len(transforms) == 1
+    blur = transforms[0]
+    assert isinstance(blur, A.GaussianBlur)
+    assert blur.p == 0.4
+
+
+def test_get_photometric_transforms_noise_uses_configured_params() -> None:
+    """
+    get_photometric_transforms() should pass gaussian_noise_std_range and gaussian_noise_p
+    through to the GaussNoise instance unchanged.
+    """
+    config = PhotoAugmentConfig(gaussian_noise_apply=True,
+                                gaussian_noise_std_range=(0.1, 0.3),
+                                gaussian_noise_p=0.6)
+
+    transforms = get_photometric_transforms(config)
+
+    assert len(transforms) == 1
+    noise = transforms[0]
+    assert isinstance(noise, A.GaussNoise)
+    assert noise.p == 0.6
+
+
 def test_get_postprocess_transforms_returns_normalize_then_tensor() -> None:
+    """
+    get_postprocess_transforms() should always return exactly [Normalize, ToTensorV2]
+    with image_per_channel normalisation and transpose_mask=True.
+    """
     transforms: list[A.BasicTransform] = get_postprocess_transforms()
 
     assert [type(transform).__name__ for transform in transforms] == ["Normalize", "ToTensorV2"]
