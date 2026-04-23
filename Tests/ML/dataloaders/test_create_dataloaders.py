@@ -106,16 +106,21 @@ def test_create_dataloaders_train_shuffles_val_test_do_not(monkeypatch: pytest.M
     assert created[2]["shuffle"] is False  # test
 
 
-@pytest.mark.parametrize(("num_workers", "expected_prefetch"), [
-    (0, None),   # prefetch_factor must be None when num_workers=0
-    (2, 2),      # default prefetch_factor=2 forwarded when workers > 0
+@pytest.mark.parametrize(("num_workers", "prefetch_factor_in", "expected_prefetch"), [
+    (0, None, None),  # already None, validator keeps it None
+    (0, 4, None),  # validator forces to None when num_workers=0
+    (2, 4, 4),  # forwarded as-is when workers > 0
+    (2, None, None),  # user explicitly set None, respected
 ])
 def test_create_dataloaders_prefetch_factor_conditioned_on_num_workers(
-    monkeypatch: pytest.MonkeyPatch, num_workers: int, expected_prefetch: int | None
+    monkeypatch: pytest.MonkeyPatch,
+    num_workers: int,
+    prefetch_factor_in: int | None,
+    expected_prefetch: int | None,
 ) -> None:
-    """prefetch_factor is None when num_workers=0, otherwise forwarded from config."""
+    """prefetch_factor is forced to None when num_workers=0, otherwise forwarded unchanged."""
     datasets = _make_dataset_split()
-    cfg = _make_train_cfg(num_workers=num_workers)
+    cfg = _make_train_cfg(num_workers=num_workers, prefetch_factor=prefetch_factor_in)
     created: list[dict[str, Any]] = []
 
     class FakeRepeatDataLoader:
@@ -128,5 +133,6 @@ def test_create_dataloaders_prefetch_factor_conditioned_on_num_workers(
 
     create_dataloaders_from_datasets(datasets, cfg)
 
+    assert len(created) > 0, "No dataloaders were created"
     for kw in created:
-        assert kw["prefetch_factor"] == expected_prefetch
+        assert kw.get("prefetch_factor") == expected_prefetch

@@ -1,3 +1,4 @@
+from typing import cast
 import lightning as L
 import torch
 import logging
@@ -8,7 +9,7 @@ from torchmetrics.functional.classification import binary_f1_score
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.train_configs.train_config import ReduceOnPlateauConfig
 from SkiNet.ML.model.model_factory import create_model
-from SkiNet.ML.configs.training.build_loss import build_loss
+from SkiNet.ML.training.build_loss import build_loss
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +38,12 @@ class LightningModel(L.LightningModule):
         self.test_dice = BinaryF1Score()
         self.test_iou = BinaryJaccardIndex()
 
+        # Optimal threshold - Register as a buffer so that checkpoints contain the threshold value at the best epoch
+        # Float attributes are invisible to the checkpoint system
+        # start at 0.5, update each val epoch
+        self.optimal_threshold: torch.Tensor
+        self.register_buffer("optimal_threshold", torch.tensor(0.5))
         # Initialise lists to keep validation and ground truth probs for finding the optimal threshold
-        self.optimal_threshold = 0.5  # start at 0.5, update each val epoch
         self._val_probs: list[torch.Tensor] = []
         self._val_masks: list[torch.Tensor] = []
 
@@ -100,7 +105,12 @@ class LightningModel(L.LightningModule):
         self._val_probs.clear()
         self._val_masks.clear()
 
+        # single-class edge case — log sentinel value so the metric key always exists
+        # this prevents KeyError in Optuna when val split contains only one class
         if torch.unique(all_targets).numel() < 2:
+            logger.warning("Validation targets contain only one class — skipping threshold sweep. "
+                           "Logging val_best_dice_at_threshold=0.0 as sentinel.")
+            self.log("val_best_dice_at_threshold", 0.0, on_step=False, on_epoch=True, prog_bar=False, logger=True)
             return
 
         best_thr = 0.5
@@ -114,17 +124,16 @@ class LightningModel(L.LightningModule):
                 best_dice = dice.item()  # keep as float throughout
                 best_thr = thr  # already float thanks to tolist()
 
-        self.optimal_threshold = best_thr
+        self.optimal_threshold.fill_(best_thr)
         self.log("val_optimal_threshold", self.optimal_threshold,
                  on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("val_best_dice_at_threshold", best_dice, on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
     def _prepare_mask(self, mask: torch.Tensor) -> torch.Tensor:
-        if isinstance(self.loss_fn, torch.nn.BCEWithLogitsLoss):
-            if not torch.is_floating_point(mask):
-                mask = mask.float()
-            if mask.max() > 1:
-                mask = mask.float() / 255.0
+        if not torch.is_floating_point(mask):
+            mask = mask.float()
+        if mask.max() > 1:
+            mask = mask.float() / 255.0
         return mask
 
     def _get_current_lr(self) -> float | None:
@@ -223,13 +232,9 @@ class LightningModel(L.LightningModule):
                                                                mode=self.lr_scheduler_config.mode,
                                                                patience=self.lr_scheduler_config.patience,
                                                                factor=self.lr_scheduler_config.factor)
-        return {
-            "optimizer": optim,
-            "lr_scheduler": {
-                "scheduler": scheduler,
-                "monitor": self.lr_scheduler_config.monitor,
-            },
-        }
+        return cast(OptimizerLRScheduler, {"optimizer": optim,
+                                           "lr_scheduler": {"scheduler": scheduler,
+                                                            "monitor": self.lr_scheduler_config.monitor}})
 
     def validation_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> torch.Tensor:
         return self._shared_eval_step("val", batch)

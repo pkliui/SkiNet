@@ -2,7 +2,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 import logging
 
-from SkiNet.Utils.experiment_keys import LossFunctionKey
+from SkiNet.Utils.experiment_keys import LossFunctionKey, MetricsKey
 
 logger = logging.getLogger(__name__)
 
@@ -11,7 +11,7 @@ class ReduceOnPlateauConfig(BaseModel):
     """
     Learning rate ReduceOnPlateau scheduler configuration for PyTorch Lightning.
     """
-    monitor: str = Field(default="val_dice")
+    monitor: MetricsKey = Field(default=MetricsKey.default_monitor())
     mode: Literal["min", "max"] = Field(default="max")
     patience: int = Field(default=5, ge=0)
     factor: float = Field(default=0.5, gt=0, lt=1)
@@ -23,8 +23,8 @@ class CheckpointConfig(BaseModel):
     """
     model_config = ConfigDict(extra='ignore', validate_assignment=True)
     # ok For segmentation, sometimes Dice/IoU is a better “best model” criterion than validation loss, depending on what you care about.
-    monitor: str = Field(default="val_loss")  # ok ModelCheckpoint
-    mode: str = Field(default="min")  # ok ModelCheckpoint
+    monitor: MetricsKey = Field(default=MetricsKey.default_monitor())
+    mode: Literal["min", "max"] = Field(default="max")  # ok ModelCheckpoint
     save_top_k: int = Field(default=3, ge=1)  # ok ModelCheckpoint
     save_last: bool = Field(default=True)  # ok ModelCheckpoint
     filename: str = Field(default="epoch{epoch:03d}")  # ok
@@ -35,8 +35,8 @@ class EarlyStoppingConfig(BaseModel):  # passed all, ok
     Configuration for early stopping.
     """
     model_config = ConfigDict(extra='ignore', validate_assignment=True)
-    monitor: str = Field(default="val_loss")
-    mode: str = Field(default="min")
+    monitor: MetricsKey = Field(default=MetricsKey.default_monitor())
+    mode: Literal["min", "max"] = Field(default="max")
     min_delta: float = Field(default=0.0)
     patience: int = Field(default=5, ge=0)
     strict: bool = Field(default=True)
@@ -46,9 +46,9 @@ class EarlyStoppingConfig(BaseModel):  # passed all, ok
 
     @model_validator(mode="after")
     def warn_monitor_is_default(self) -> "EarlyStoppingConfig":
-        if self.monitor == "val_loss":
+        if self.monitor == MetricsKey.default_monitor():
             logger.warning(
-                "EarlyStopping monitor is set to default 'val_loss' — "
+                f"EarlyStopping monitor is set to default {MetricsKey.default_monitor()} — "
                 "make sure your LightningModule logs this exact key."
             )
         return self
@@ -108,7 +108,7 @@ class TrainConfig(BaseModel):
     batch_size: int = Field(default=8, ge=1)
     num_workers: int = Field(default=0, ge=0)
     pin_memory: bool = Field(default=True)
-    prefetch_factor: int = Field(default=2, ge=1)
+    prefetch_factor: int | None = Field(default=None, ge=1)
     # LightningModel params
     loss_name: LossFunctionKey = Field(
         default=LossFunctionKey.BCE_DICE,
@@ -159,4 +159,11 @@ class TrainConfig(BaseModel):
                 "test_on_val_split=True: final test will run on the validation set, "
                 "not a held-out test set. Metrics may be optimistic."
             )
+        return self
+
+    @model_validator(mode="after")
+    def validate_prefetch_factor(self) -> "TrainConfig":
+        if self.num_workers == 0 and self.prefetch_factor is not None:
+            logger.warning("prefetch_factor is ignored when num_workers=0; setting to None.")
+            object.__setattr__(self, "prefetch_factor", None)
         return self

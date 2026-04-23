@@ -52,7 +52,12 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         lr = cast(float, trial.suggest_categorical("lr", search_space["lr"]))
         weight_decay = cast(float, trial.suggest_categorical("weight_decay", search_space["weight_decay"]))
         batch_size = cast(int, trial.suggest_categorical("batch_size", search_space["batch_size"]))
-        train_cfg.lr = lr
+
+        # scale LR linearly with batch size
+        BASE_BATCH_SIZE = 16
+        scaled_lr = lr * (batch_size / BASE_BATCH_SIZE)
+        train_cfg.lr = scaled_lr
+
         train_cfg.weight_decay = weight_decay
         train_cfg.batch_size = batch_size
 
@@ -64,7 +69,8 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
             mlflow.set_tag("optuna_trial", trial.number)
             mlflow.set_tag("optuna_study", main_config.trainconfig.__class__.__name__)
             # Log all search space targets
-            mlflow.log_param("lr", lr)
+            mlflow.log_param("lr_optuna_sampled", lr)       # what Optuna picked
+            mlflow.log_param("lr_actually_used", scaled_lr)  # what the model actually used
             mlflow.log_param("weight_decay", weight_decay)
             mlflow.log_param("batch_size", batch_size)
 
@@ -94,9 +100,9 @@ def main() -> None:
     trial is logged as a nested MLflow child run.
 
     The search space is fixed to:
-        - lr: [1e-3, 3e-4, 1e-4, 3e-5]
+        - lr: [3e-4, 1e-4]          # base LRs at batch_size=16; scaled linearly per trial
         - weight_decay: [1e-4, 1e-3]
-        - batch_size: [4, 8, 16]
+        - batch_size: [16, 32]
 
     CLI arguments:
         --config      Path to the experiment YAML config file (required). This is the main_config.yaml file containing
@@ -133,9 +139,9 @@ def main() -> None:
 
     # define the search space (in the future, can be from a config)
     search_space: SearchSpace = {
-        "lr": [1e-3, 3e-4, 1e-4, 3e-5],
+        "lr": [3e-4, 1e-4],
         "weight_decay": [1e-4, 1e-3],
-        "batch_size": [4, 8, 16]
+        "batch_size": [16, 32]
     }
 
     try:
@@ -151,23 +157,25 @@ def main() -> None:
     tracking_uri = main_config.trainconfig.mlflow_config.tracking_uri
     if tracking_uri is not None:
         mlflow.set_tracking_uri(tracking_uri)
-        mlflow.set_experiment(args.experiment)
     else:
         logger.warning("MLflow tracking URI is not set in config. Using default local file storage. "
                        "Set 'trainconfig.mlflow_config.tracking_uri' to log to a remote server or different location.")
+    mlflow.set_experiment(args.experiment)
 
     # Define the PARENT run that wraps the entire study — all trials appear as children beneath it
     with mlflow.start_run(run_name=f"optuna_study_{main_config.trainconfig.experiment_name}_{args.monitor}") as _:
-        mlflow.set_tag("mlflow.runName", f"optuna_study_{args.monitor}")
-        mlflow.set_tag("monitor", args.monitor)
-        mlflow.set_tag("direction", args.direction)
-        mlflow.set_tag("n_trials", args.trials)
-        mlflow.log_param("n_trials", args.trials)
-
-        # set number of trials and combinations of search space params
         import math
         n_combos = math.prod(len(v) for v in search_space.values())
         n_trials = args.trials if args.trials is not None else n_combos
+
+        mlflow.set_tag("mlflow.runName", f"optuna_study_{args.monitor}")
+        mlflow.set_tag("monitor", args.monitor)
+        mlflow.set_tag("direction", args.direction)
+        mlflow.set_tag("n_trials", n_trials)
+        if args.trials is not None:
+            mlflow.log_param("requested_n_trials", args.trials)
+
+        # set number of trials and combinations of search space params
         mlflow.log_param("n_combos", n_combos)
         mlflow.log_param("n_trials", n_trials)
 

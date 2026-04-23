@@ -49,3 +49,18 @@ class LossFunctionKey(Enum):
     BCE = "bce"
     DICE = "dice"
     BCE_DICE = "bce_dice"
+
+
+@unique
+class MetricsKey(Enum):
+    """
+    Enum for metrics
+    """
+    VAL_BEST_DICE_AT_THRESHOLD = "val_best_dice_at_threshold"
+
+    @classmethod
+    def default_monitor(cls) -> "MetricsKey":
+        """
+        Default used in Optuna and EarlyStopping.
+        """
+        return cls.VAL_BEST_DICE_AT_THRESHOLD

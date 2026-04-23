@@ -3,7 +3,7 @@ import pytest
 from pydantic import ValidationError
 
 from SkiNet.ML.configs.train_configs.train_config import TrainConfig
-from SkiNet.Utils.experiment_keys import LossFunctionKey
+from SkiNet.Utils.experiment_keys import LossFunctionKey, MetricsKey
 
 
 def test_train_config_defaults_are_valid() -> None:
@@ -14,8 +14,12 @@ def test_train_config_defaults_are_valid() -> None:
 
     assert cfg.log_dir == "experiment_logs"
     assert cfg.experiment_name == "unet2d_experiment"
+    assert cfg.run_test_after_fit is False
+    assert cfg.test_on_val_split is False
     assert cfg.batch_size == 8
     assert cfg.num_workers == 0
+    assert cfg.pin_memory is True
+    assert cfg.prefetch_factor is None
     assert cfg.loss_name == LossFunctionKey.BCE_DICE
     assert cfg.optimizer_name == "adamw"
     assert cfg.lr == 1e-4
@@ -27,23 +31,35 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.devices == "auto"
     assert cfg.precision is None
     assert cfg.log_every_n_steps == 1
+    assert cfg.check_val_every_n_epoch == 1
+    assert cfg.num_sanity_val_steps == 0
     assert cfg.system_metrics_interval_sec == 5.0
     assert cfg.use_mlflow_logger is False
     assert cfg.use_checkpoint is False
     assert cfg.use_early_stopping is False
     assert cfg.use_litlogger_logger is False
+    assert cfg.early_stopping_config.monitor == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
+    assert cfg.early_stopping_config.mode == "max"
+    assert cfg.early_stopping_config.min_delta == 0.0
+    assert cfg.early_stopping_config.patience == 5
+    assert cfg.early_stopping_config.strict is True
+    assert cfg.early_stopping_config.check_finite is True
+    assert cfg.checkpoint_config.monitor == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
+    assert cfg.checkpoint_config.mode == "max"
+    assert cfg.checkpoint_config.save_top_k == 3
+    assert cfg.checkpoint_config.save_last is True
     assert cfg.checkpoint_config.filename == "epoch{epoch:03d}"
+    assert cfg.litlogger_config.teamspace is None
+    assert cfg.litlogger_config.log_model is False
+    assert cfg.litlogger_config.save_logs is False
+    assert cfg.mlflow_config.fallback_to_local_mlflow is False
     assert cfg.mlflow_config.tracking_uri is None
-    assert cfg.lr_scheduler_config.monitor == "val_dice"
+    assert cfg.mlflow_config.log_model == "all"
+    assert cfg.mlflow_config.log_model_summary is True
+    assert cfg.lr_scheduler_config.monitor == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
     assert cfg.lr_scheduler_config.mode == "max"
     assert cfg.lr_scheduler_config.patience == 5
     assert cfg.lr_scheduler_config.factor == 0.5
-    assert cfg.pin_memory is True
-    assert cfg.prefetch_factor == 2
-    assert cfg.run_test_after_fit is False
-    assert cfg.test_on_val_split is False
-    assert cfg.check_val_every_n_epoch == 1
-    assert cfg.num_sanity_val_steps == 0
 
 
 @pytest.mark.parametrize(
@@ -123,7 +139,7 @@ def test_train_config_rejects_invalid_scalar_bounds(field_name: str, value: int 
         (
             {
                 "checkpoint_config": {
-                    "monitor": "val_metric",
+                    "monitor": "val_best_dice_at_threshold",
                     "mode": "max",
                     "save_top_k": 1,
                     "save_last": False,
@@ -131,7 +147,7 @@ def test_train_config_rejects_invalid_scalar_bounds(field_name: str, value: int 
                 }
             },
             {
-                "monitor": "val_metric",
+                "monitor": MetricsKey.VAL_BEST_DICE_AT_THRESHOLD,
                 "mode": "max",
                 "save_top_k": 1,
                 "save_last": False,
@@ -141,13 +157,13 @@ def test_train_config_rejects_invalid_scalar_bounds(field_name: str, value: int 
         (
             {
                 "early_stopping_config": {
-                    "monitor": "val_metric",
+                    "monitor": "val_best_dice_at_threshold",
                     "patience": 9,
                     "min_delta": 0.2,
                 }
             },
             {
-                "monitor": "val_metric",
+                "monitor": MetricsKey.VAL_BEST_DICE_AT_THRESHOLD,
                 "patience": 9,
                 "min_delta": 0.2,
             },
@@ -171,15 +187,15 @@ def test_train_config_rejects_invalid_scalar_bounds(field_name: str, value: int 
         (
             {
                 "lr_scheduler_config": {
-                    "monitor": "val_loss",
-                    "mode": "min",
+                    "monitor": "val_best_dice_at_threshold",
+                    "mode": "max",
                     "patience": 2,
                     "factor": 0.25,
                 }
             },
             {
-                "monitor": "val_loss",
-                "mode": "min",
+                "monitor": MetricsKey.VAL_BEST_DICE_AT_THRESHOLD,
+                "mode": "max",
                 "patience": 2,
                 "factor": 0.25,
             },
@@ -262,3 +278,44 @@ def test_train_config_loss_name_in_defaults_assertion() -> None:
     """test_train_config_defaults_are_valid should also cover loss_name — add this assertion there."""
     cfg = TrainConfig()
     assert cfg.loss_name == LossFunctionKey.BCE_DICE
+
+# ------ Test prefetch_factor validator ------
+
+
+def test_train_config_prefetch_factor_set_to_none_when_num_workers_is_zero() -> None:
+    """
+    validate_prefetch_factor should silently coerce prefetch_factor to None
+    when num_workers=0, regardless of the supplied value.
+    """
+    cfg = TrainConfig(num_workers=0, prefetch_factor=4)
+    assert cfg.prefetch_factor is None
+
+
+def test_train_config_prefetch_factor_default_nulled_by_zero_workers(caplog: pytest.LogCaptureFixture) -> None:
+    """
+    Default TrainConfig has num_workers=0 (default), so prefetch_factor=4
+    should be coerced to None and a warning should be emitted.
+    """
+    import logging
+    with caplog.at_level(logging.WARNING, logger="SkiNet.ML.configs.train_configs.train_config"):
+        cfg = TrainConfig(num_workers=0, prefetch_factor=4)
+    assert cfg.prefetch_factor is None
+    assert "prefetch_factor" in caplog.text
+
+
+def test_train_config_prefetch_factor_default_values() -> None:
+    """
+    Default TrainConfig has num_workers=0 (default) and prefetch_factor=None (default)
+    """
+    cfg = TrainConfig()  # num_workers=0, prefetch_factor=None by default
+    assert cfg.prefetch_factor is None
+    assert cfg.num_workers == 0
+
+
+def test_train_config_prefetch_factor_minimum_valid_with_workers() -> None:
+    """
+    prefetch_factor=1 is the minimum valid value (ge=1) and should be accepted
+    when num_workers > 0.
+    """
+    cfg = TrainConfig(num_workers=1, prefetch_factor=1)
+    assert cfg.prefetch_factor == 1
