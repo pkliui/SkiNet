@@ -10,6 +10,7 @@ from optuna.samplers import GridSampler
 from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from main_run import train_and_evaluate
+from repos.SkiNet.SkiNet.Utils.mlops.optuna_utils import scale_lr
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
 
         # scale LR linearly with batch size
         BASE_BATCH_SIZE = 16
-        scaled_lr = lr * (batch_size / BASE_BATCH_SIZE)
+        scaled_lr = scale_lr(lr=lr, batch_size=batch_size, base_batch_size=BASE_BATCH_SIZE)
         train_cfg.lr = scaled_lr
 
         train_cfg.weight_decay = weight_decay
@@ -167,6 +168,11 @@ def main() -> None:
         import math
         n_combos = math.prod(len(v) for v in search_space.values())
         n_trials = args.trials if args.trials is not None else n_combos
+
+        if args.trials is not None and args.trials < n_combos:
+            logger.warning(f"--trials ({args.trials}) < full grid size ({n_combos}). "
+                           "GridSampler will cover the grid only partially with no coverage guarantee. "
+                           "Use --trials without an argument to run the full grid.")
 
         mlflow.set_tag("mlflow.runName", f"optuna_study_{args.monitor}")
         mlflow.set_tag("monitor", args.monitor)
