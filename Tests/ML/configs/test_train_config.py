@@ -29,7 +29,7 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.max_epochs == 1
     assert cfg.accelerator == "auto"
     assert cfg.devices == "auto"
-    assert cfg.precision is None
+    assert cfg.precision is not None  # auto-resolved from accelerator at construction time
     assert cfg.log_every_n_steps == 1
     assert cfg.check_val_every_n_epoch == 1
     assert cfg.num_sanity_val_steps == 0
@@ -319,3 +319,40 @@ def test_train_config_prefetch_factor_minimum_valid_with_workers() -> None:
     """
     cfg = TrainConfig(num_workers=1, prefetch_factor=1)
     assert cfg.prefetch_factor == 1
+
+
+# ------ Test precision auto-resolution ------
+
+
+@pytest.mark.parametrize(
+    ("accelerator", "expected_precision"),
+    [
+        ("gpu", "bf16-mixed"),
+        ("cuda", "bf16-mixed"),
+        ("mps", "16-mixed"),
+        ("cpu", "32-true"),
+    ],
+)
+def test_precision_auto_set_from_explicit_accelerator(accelerator: str, expected_precision: str) -> None:
+    """
+    When precision is not set, it should be resolved from the explicit accelerator value.
+    """
+    cfg = TrainConfig(accelerator=accelerator)
+    assert cfg.precision == expected_precision
+
+
+def test_explicit_precision_is_not_overridden() -> None:
+    """
+    When precision is explicitly set, the validator must not overwrite it.
+    """
+    cfg = TrainConfig(accelerator="gpu", precision="32-true")
+    assert cfg.precision == "32-true"
+
+
+def test_precision_auto_set_from_auto_accelerator_is_not_none() -> None:
+    """
+    accelerator='auto' should resolve to a non-None precision on any machine
+    where torch can detect hardware.
+    """
+    cfg = TrainConfig(accelerator="auto")
+    assert cfg.precision is not None

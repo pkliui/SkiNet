@@ -147,6 +147,34 @@ class TrainConfig(BaseModel):
     use_litlogger_logger: bool = Field(default=False)
 
     @model_validator(mode="after")
+    def set_precision_from_accelerator(self) -> "TrainConfig":
+        if self.precision is not None:
+            return self
+        accelerator = self.accelerator.lower()
+        if accelerator == "auto":
+            try:
+                import torch
+                if torch.cuda.is_available():
+                    accelerator = "gpu"
+                elif torch.backends.mps.is_available():
+                    accelerator = "mps"
+                else:
+                    accelerator = "cpu"
+            except ImportError:
+                return self
+        precision_map: dict[str, PrecisionType] = {
+            "gpu": "bf16-mixed",
+            "cuda": "bf16-mixed",
+            "mps": "16-mixed",
+            "cpu": "32-true",
+        }
+        resolved = precision_map.get(accelerator)
+        if resolved:
+            object.__setattr__(self, "precision", resolved)
+            logger.info("precision auto-set to '%s' for accelerator='%s'", resolved, self.accelerator)
+        return self
+
+    @model_validator(mode="after")
     def require_tracking_uri_if_enabled(self) -> "TrainConfig":
         if self.use_mlflow_logger and not self.mlflow_config.tracking_uri:
             raise ValueError("TRAIN_CONFIG.mlflow_config.tracking_uri must be set when use_mlflow_logger=true.")
