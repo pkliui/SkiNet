@@ -28,15 +28,15 @@ def create_dataloaders_from_datasets(datasets: DatasetSplit[TDataset_co], train_
     :param train_cfg: TrainConfig containing dataloader parameters like batch size and num_workers.
     :return: DataLoaders containing the train/val/test dataloaders built from the provided datasets and config.
     """
-    return DataLoaders(train=RepeatDataLoader(datasets.train, shuffle=True, max_num_to_repeat=1, batch_size=train_cfg.batch_size,
+    return DataLoaders(train=RepeatDataLoader(datasets.train, shuffle=True, batch_size=train_cfg.batch_size,
                                               num_workers=train_cfg.num_workers, drop_last=False,
                                               pin_memory=train_cfg.pin_memory,
                                               prefetch_factor=train_cfg.prefetch_factor if train_cfg.num_workers > 0 else None),
-                       val=RepeatDataLoader(datasets.val, shuffle=False, max_num_to_repeat=1, batch_size=train_cfg.batch_size,
+                       val=RepeatDataLoader(datasets.val, shuffle=False, batch_size=train_cfg.batch_size,
                                             num_workers=train_cfg.num_workers, drop_last=False,
                                             pin_memory=train_cfg.pin_memory,
                                             prefetch_factor=train_cfg.prefetch_factor if train_cfg.num_workers > 0 else None),
-                       test=RepeatDataLoader(datasets.test, shuffle=False, max_num_to_repeat=1, batch_size=train_cfg.batch_size,
+                       test=RepeatDataLoader(datasets.test, shuffle=False, batch_size=train_cfg.batch_size,
                                              num_workers=train_cfg.num_workers, drop_last=False,
                                              pin_memory=train_cfg.pin_memory,
                                              prefetch_factor=train_cfg.prefetch_factor if train_cfg.num_workers > 0 else None))
