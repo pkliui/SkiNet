@@ -4,13 +4,14 @@ import logging
 from pathlib import Path
 import mlflow
 from typing import Callable, TypeAlias, cast
+import optuna
 from optuna.trial import Trial
 from optuna.samplers import GridSampler
 
 from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from main_run import train_and_evaluate
-from repos.SkiNet.SkiNet.Utils.mlops.optuna_utils import scale_lr
+from repos.SkiNet.SkiNet.Utils.mlops.optuna_utils import scale_lr, validate_search_space
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,7 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         train_cfg = cfg.trainconfig
 
         # define the search space targets and reassign the respective configs
+        validate_search_space(cfg.sweepconfig.search_space)
         lr = cast(float, trial.suggest_categorical("lr", search_space["lr"]))
         weight_decay = cast(float, trial.suggest_categorical("weight_decay", search_space["weight_decay"]))
         batch_size = cast(int, trial.suggest_categorical("batch_size", search_space["batch_size"]))
@@ -138,20 +140,11 @@ def main() -> None:
     parser.add_argument("--experiment", type=str, default="optuna_sweep", help="MLflow experiment name")
     args = parser.parse_args()
 
-    # define the search space (in the future, can be from a config)
-    search_space: SearchSpace = {
-        "lr": [3e-4, 1e-4],
-        "weight_decay": [1e-4, 1e-3],
-        "batch_size": [16, 32]
-    }
-
-    try:
-        import optuna
-    except ModuleNotFoundError as exc:
-        raise SystemExit("Optuna is not installed. Install it before using optuna_sweep.py.") from exc
-
     # load the main config
     main_config = load_config_from_yaml(args.config)
+
+    # define the search space based on sweep config
+    search_space = main_config.sweepconfig.search_space
 
     # Set tracking URI from config FIRST, before any mlflow.start_run calls,
     # so the parent run and MLFlowLogger all land on the same backend.

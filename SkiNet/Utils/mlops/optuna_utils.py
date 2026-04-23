@@ -2,6 +2,8 @@ import torch
 import lightning as L
 import logging
 import math
+from typing import List
+
 logger = logging.getLogger(__name__)
 
 
@@ -48,3 +50,21 @@ def scale_lr(lr: float, batch_size: int, base_batch_size: int = 16) -> float:
     if base_batch_size <= 0:
         raise ValueError(f"base_batch_size must be positive, got {base_batch_size}")
     return lr * (batch_size / base_batch_size)
+
+
+def validate_search_space(search_space: dict[str, List[int | float]]) -> None:
+    """
+    Validate search space parameters
+
+    :param search_space: Search space parameters
+    :raises ValueError: If search space keys do not match what objective reads
+    """
+    expected_keys = {"lr", "weight_decay", "batch_size"}
+    actual_keys = set(search_space.keys())
+    if actual_keys != expected_keys:
+        unexpected = actual_keys - expected_keys
+        missing = expected_keys - actual_keys
+        raise ValueError(
+            f"search_space keys do not match what objective reads. "
+            f"Unexpected: {unexpected}, missing: {missing}"
+        )

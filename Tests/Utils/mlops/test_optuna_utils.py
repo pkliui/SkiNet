@@ -2,6 +2,7 @@ import pytest
 import torch
 from unittest.mock import MagicMock
 from SkiNet.Utils.mlops.optuna_utils import _collect_trainer_metrics, scale_lr
+from SkiNet.Utils.mlops.optuna_utils import validate_search_space
 
 
 # ── scale_lr ────────────────────────────────────────────────────────────────
@@ -97,3 +98,62 @@ class TestCollectTrainerMetrics:
         trainer = make_trainer(callback={"metric": t})
         result = _collect_trainer_metrics(trainer)
         assert result["metric"] == pytest.approx(1.23)
+
+
+class TestValidateSearchSpace:
+    def test_accepts_expected_keys(self) -> None:
+        search_space: dict[str, list[int | float]] = {
+            "lr": [1e-3, 1e-4],
+            "weight_decay": [0.0, 1e-5],
+            "batch_size": [8, 16],
+        }
+
+        validate_search_space(search_space)
+
+    def test_missing_key_raises(self) -> None:
+        search_space = {
+            "lr": [1e-3],
+            "weight_decay": [0.0],
+        }
+
+        with pytest.raises(ValueError, match="search_space keys do not match"):
+            validate_search_space(search_space)
+
+    def test_unexpected_key_raises(self) -> None:
+        search_space: dict[str, list[int | float]] = {
+            "lr": [1e-3],
+            "weight_decay": [0.0],
+            "batch_size": [16],
+            "momentum": [0.9],
+        }
+
+        with pytest.raises(ValueError) as exc:
+            validate_search_space(search_space)
+
+        assert "Unexpected:" in str(exc.value)
+        assert "momentum" in str(exc.value)
+        assert "missing: set()" in str(exc.value)
+
+    def test_missing_and_unexpected_keys_raise(self) -> None:
+        search_space = {
+            "lr": [1e-3],
+            "momentum": [0.9],
+        }
+
+        with pytest.raises(ValueError) as exc:
+            validate_search_space(search_space)
+
+        message = str(exc.value)
+        assert "momentum" in message
+        assert "weight_decay" in message
+        assert "batch_size" in message
+
+    def test_empty_search_space_raises(self) -> None:
+        with pytest.raises(ValueError) as exc:
+            validate_search_space({})
+
+        message = str(exc.value)
+        assert "Unexpected: set()" in message
+        assert "lr" in message
+        assert "weight_decay" in message
+        assert "batch_size" in message
