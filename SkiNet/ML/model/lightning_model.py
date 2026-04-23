@@ -128,12 +128,14 @@ class LightningModel(L.LightningModule):
         self.log("val_optimal_threshold", self.optimal_threshold,
                  on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("val_best_dice_at_threshold", best_dice, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log("val_dice_threshold_gain", best_dice - self.val_dice.compute().item(),
+                 on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
     def _prepare_mask(self, mask: torch.Tensor) -> torch.Tensor:
         if not torch.is_floating_point(mask):
             mask = mask.float()
         if mask.max() > 1:
-            mask = mask.float() / 255.0
+            mask = mask / 255.0
         return mask
 
     def _get_current_lr(self) -> float | None:

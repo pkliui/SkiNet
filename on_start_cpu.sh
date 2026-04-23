@@ -133,7 +133,11 @@ docker run --rm -it\
   --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
   -w "$CONTAINER_REPO" \
   "$IMAGE" \
-  bash -c "./start_mlflow.sh & exec bash"
+  bash -c "
+  set -e
+  ./start_mlflow.sh &
+  sleep 3
+  exec bash"
 rm -f "$LIGHTNING_ENV_FILE"
 echo "==> Done. Docker is running. MLFlow is available at http://localhost:5000"
 echo "==> Attach Shell to the running container in VSC Containers tab to develop inside the container"

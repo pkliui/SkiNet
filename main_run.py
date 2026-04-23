@@ -62,11 +62,6 @@ def train_and_evaluate(main_config: ExperimentConfig, *, visualize: bool = True)
     # Collect post-test metrics;
     post_test_metrics = _collect_trainer_metrics(light_trainer)
 
-    # Flush logger buffers (important for MLflow nested runs).
-    for lg in light_trainer.loggers:
-        if hasattr(lg, "finalize"):
-            lg.finalize("success")
-
     overlapping_keys = set(post_test_metrics) & set(fit_metrics)
     if overlapping_keys:
         logger.debug("Preferring fit metrics over post-test metrics for keys: %s", sorted(overlapping_keys))
@@ -75,6 +70,12 @@ def train_and_evaluate(main_config: ExperimentConfig, *, visualize: bool = True)
     # This means Optuna will use e.g. val_dice (i.e. the fit-time value) for the monitor
     result_metrics = dict(post_test_metrics)
     result_metrics.update(fit_metrics)
+
+    # Flush logger buffers (important for MLflow nested runs).
+    for lg in light_trainer.loggers:
+        if hasattr(lg, "finalize"):
+            lg.finalize("success")
+
     return result_metrics
 
 
