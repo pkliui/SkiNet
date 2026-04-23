@@ -44,7 +44,6 @@ class PH2DatasetConfig(BaseDataConfig):
 
     """
     kind: Literal["ph2"] = Field("ph2", description="Dataset kind identifier for config selection and validation.")
-    crop_size: tuple[int, int] = Field((256, 256), description="Size to which images will be cropped. Default is 256.")
     split_stratify_column: PH2StratificationOptions | None = Field(
         default=PH2StratificationOptions.PH2_CLINICAL_DIAGNOSIS,
         description="Column name in the metadata CSV to use for stratified splitting into train/val/test splits. "

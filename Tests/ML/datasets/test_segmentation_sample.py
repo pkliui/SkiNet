@@ -1,23 +1,20 @@
+from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_IMAGE, DATATYPE_MASK, SAMPLEID_HEADER
+from SkiNet.ML.transformations.transform_adapters import AlbumentationsSampleTransform
+from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
+from SkiNet.ML.datasets.sample_specs import Sample
+from torchvision.io import write_png
+import torch
+import pandas as pd
+import numpy as np
+import albumentations as A
+from typing import Any, cast
+from types import SimpleNamespace
+from pathlib import Path
 import pytest
 pytest.skip("temp disable", allow_module_level=True)
 
-from pathlib import Path
-from types import SimpleNamespace
-from typing import Any, cast
 
-import albumentations as A
-import numpy as np
-import pandas as pd
-import pytest
-import torch
-from torchvision.io import write_png
-
-from SkiNet.ML.datasets.sample_specs import Sample
-from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
-from SkiNet.ML.transformations.transform_adapters import AlbumentationsSampleTransform
-from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_IMAGE, DATATYPE_MASK, SAMPLEID_HEADER
-
-CROP_SIZE = (256, 256)  # as in main_config
+CROP_SIZE = (512, 512)  # as per augmentations config
 IMG_SIZE = (572, 765)  # as in main_run dummy sample
 IMG_CHANNELS = 3  # as in main_run dummy sample
 MASK_SIZE = (572, 765)  # as in main_run dummy sample
@@ -31,7 +28,6 @@ def _make_config(df: pd.DataFrame, data_root: Path) -> Any:
     cfg = SimpleNamespace(
         metadata=df,
         data_root=str(data_root),
-        crop_size=CROP_SIZE,
     )
     return SimpleNamespace(dataconfig=cfg)
 
