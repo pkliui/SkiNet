@@ -1,5 +1,6 @@
 from pathlib import Path
 import random
+import time
 from typing import Any
 
 import cv2
@@ -29,6 +30,9 @@ def visualize_augmented_data(dataset: Any,
     cuda_state = torch.cuda.get_rng_state() if torch.cuda.is_available() else None
 
     try:
+        # provide a random seed to the visualisation
+        vis_seed = time.time_ns() % (2**31)
+        random.seed(vis_seed)
         _do_visualize(dataset=dataset,
                       samples=samples,
                       save_dir=save_dir,
