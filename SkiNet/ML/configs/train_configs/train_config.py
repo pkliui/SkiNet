@@ -1,3 +1,4 @@
+import os
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 import logging
@@ -106,8 +107,8 @@ class TrainConfig(BaseModel):
     # --- Fit and optimizer params
     # DataLoader params
     batch_size: int = Field(default=8, ge=1)
-    num_workers: int = Field(default=0, ge=0)
-    pin_memory: bool = Field(default=True)
+    num_workers: int | None = Field(default=None, ge=0)
+    pin_memory: bool | None = Field(default=None)
     prefetch_factor: int | None = Field(default=None, ge=1)
     # LightningModel params
     loss_name: LossFunctionKey = Field(
@@ -146,25 +147,37 @@ class TrainConfig(BaseModel):
     use_early_stopping: bool = Field(default=False)
     use_litlogger_logger: bool = Field(default=False)
 
+    def _resolve_accelerator(self) -> str | None:
+        """
+        Resolve `accelerator` to a concrete device name (gpu/cuda/mps/cpu).
+        Returns None if 'auto' cannot be resolved (torch not importable).
+        """
+        accelerator = self.accelerator.lower()
+        if accelerator != "auto":
+            return accelerator
+        try:
+            import torch
+        except ImportError:
+            return None
+        if torch.cuda.is_available():
+            return "gpu"
+        if torch.backends.mps.is_available():
+            return "mps"
+        return "cpu"
+
     @model_validator(mode="after")
     def set_precision_from_accelerator(self) -> "TrainConfig":
+        """
+        Set precision format based on the currently used device type
+        """
         if self.precision is not None:
             return self
-        accelerator = self.accelerator.lower()
-        if accelerator == "auto":
-            try:
-                import torch
-                if torch.cuda.is_available():
-                    accelerator = "gpu"
-                elif torch.backends.mps.is_available():
-                    accelerator = "mps"
-                else:
-                    accelerator = "cpu"
-            except ImportError:
-                return self
+        accelerator = self._resolve_accelerator()
+        if accelerator is None:
+            return self
         precision_map: dict[str, PrecisionType] = {
-            "gpu": "bf16-mixed",
-            "cuda": "bf16-mixed",
+            "gpu": "16-mixed",
+            "cuda": "16-mixed",
             "mps": "16-mixed",
             "cpu": "32-true",
         }
@@ -172,6 +185,43 @@ class TrainConfig(BaseModel):
         if resolved:
             object.__setattr__(self, "precision", resolved)
             logger.info("precision auto-set to '%s' for accelerator='%s'", resolved, self.accelerator)
+        return self
+
+    @model_validator(mode="after")
+    def set_num_workers_auto(self) -> "TrainConfig":
+        """
+        Auto-detect num_workers from os.cpu_count(), DDP-aware: when `devices`
+        is an int > 1 (one process per device), divide the CPU budget among them
+        to avoid oversubscription.
+        """
+        if self.num_workers is not None:
+            return self
+        cpu_count = os.cpu_count()
+        assert cpu_count is not None
+        if isinstance(self.devices, int) and self.devices > 1:
+            num_workers = max(1, cpu_count // self.devices)
+            logger.info(
+                "num_workers auto-set to %d (os.cpu_count()=%d // devices=%d)",
+                num_workers, cpu_count, self.devices,
+            )
+        else:
+            num_workers = cpu_count
+            logger.info("num_workers auto-set to %d (os.cpu_count())", num_workers)
+        object.__setattr__(self, "num_workers", num_workers)
+        return self
+
+    @model_validator(mode="after")
+    def set_pin_memory_from_accelerator(self) -> "TrainConfig":
+        """
+        Auto-set pin_memory: True iff effective accelerator is CUDA/GPU.
+        pin_memory is a no-op (or unsupported) for MPS/CPU.
+        """
+        if self.pin_memory is not None:
+            return self
+        accelerator = self._resolve_accelerator()
+        pin_memory = accelerator in ("gpu", "cuda")
+        object.__setattr__(self, "pin_memory", pin_memory)
+        logger.info("pin_memory auto-set to %s for accelerator='%s'", pin_memory, self.accelerator)
         return self
 
     @model_validator(mode="after")

@@ -1,3 +1,4 @@
+import os
 from typing import cast, Dict, Any
 import pytest
 from pydantic import ValidationError
@@ -17,8 +18,8 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.run_test_after_fit is False
     assert cfg.test_on_val_split is False
     assert cfg.batch_size == 8
-    assert cfg.num_workers == 0
-    assert cfg.pin_memory is True
+    assert cfg.num_workers is not None  # resolves to os.cpu_count()
+    assert cfg.pin_memory is not None  # auto-resolved from accelerator
     assert cfg.prefetch_factor is None
     assert cfg.loss_name == LossFunctionKey.BCE_DICE
     assert cfg.optimizer_name == "adamw"
@@ -291,9 +292,9 @@ def test_train_config_prefetch_factor_set_to_none_when_num_workers_is_zero() -> 
     assert cfg.prefetch_factor is None
 
 
-def test_train_config_prefetch_factor_default_nulled_by_zero_workers(caplog: pytest.LogCaptureFixture) -> None:
+def test_train_config_prefetch_factor_nulled_by_zero_workers(caplog: pytest.LogCaptureFixture) -> None:
     """
-    Default TrainConfig has num_workers=0 (default), so prefetch_factor=4
+    TrainConfig got num_workers=0, so prefetch_factor=4
     should be coerced to None and a warning should be emitted.
     """
     import logging
@@ -305,11 +306,10 @@ def test_train_config_prefetch_factor_default_nulled_by_zero_workers(caplog: pyt
 
 def test_train_config_prefetch_factor_default_values() -> None:
     """
-    Default TrainConfig has num_workers=0 (default) and prefetch_factor=None (default)
+    Default TrainConfig has prefetch_factor=None
     """
-    cfg = TrainConfig()  # num_workers=0, prefetch_factor=None by default
+    cfg = TrainConfig()  # prefetch_factor=None by default
     assert cfg.prefetch_factor is None
-    assert cfg.num_workers == 0
 
 
 def test_train_config_prefetch_factor_minimum_valid_with_workers() -> None:
@@ -327,8 +327,8 @@ def test_train_config_prefetch_factor_minimum_valid_with_workers() -> None:
 @pytest.mark.parametrize(
     ("accelerator", "expected_precision"),
     [
-        ("gpu", "bf16-mixed"),
-        ("cuda", "bf16-mixed"),
+        ("gpu", "16-mixed"),
+        ("cuda", "16-mixed"),
         ("mps", "16-mixed"),
         ("cpu", "32-true"),
     ],
@@ -356,3 +356,68 @@ def test_precision_auto_set_from_auto_accelerator_is_not_none() -> None:
     """
     cfg = TrainConfig(accelerator="auto")
     assert cfg.precision is not None
+
+
+# ------ Test num_workers auto-resolution ------
+
+
+@pytest.mark.parametrize("devices", [1, "auto"])
+def test_num_workers_auto_set_from_cpu_count(devices: int | str) -> None:
+    """
+    When num_workers is not set and devices is 1 or 'auto' (no DDP), it resolves
+    to os.cpu_count() with no per-device division.
+    """
+    cfg = TrainConfig(devices=devices)
+    assert cfg.num_workers == os.cpu_count()
+
+
+def test_num_workers_auto_set_ddp_aware() -> None:
+    """
+    When devices is an int > 1, num_workers is divided among DDP processes
+    to avoid oversubscribing CPUs.
+    """
+    devices = 4
+    cpu_count = os.cpu_count()
+    cfg = TrainConfig(devices=devices)
+    if cpu_count is not None:
+        assert cfg.num_workers == max(1, cpu_count // devices)
+
+
+def test_explicit_num_workers_is_not_overridden() -> None:
+    """
+    When num_workers is explicitly set, the validator must not overwrite it.
+    """
+    cfg = TrainConfig(num_workers=2)
+    assert cfg.num_workers == 2
+
+
+# ------ Test pin_memory auto-resolution ------
+
+
+@pytest.mark.parametrize(
+    ("accelerator", "expected_pin_memory"),
+    [
+        ("gpu", True),
+        ("cuda", True),
+        ("mps", False),
+        ("cpu", False),
+    ],
+)
+def test_pin_memory_auto_set_from_explicit_accelerator(
+    accelerator: str, expected_pin_memory: bool
+) -> None:
+    """
+    When pin_memory is not set, it should be True iff effective accelerator is GPU/CUDA.
+    MPS and CPU do not benefit from pinned memory.
+    """
+    cfg = TrainConfig(accelerator=accelerator)
+    assert cfg.pin_memory is expected_pin_memory
+
+
+def test_explicit_pin_memory_is_not_overridden() -> None:
+    """
+    When pin_memory is explicitly set to False, the validator must not overwrite it
+    even when the accelerator would otherwise yield True.
+    """
+    cfg = TrainConfig(accelerator="gpu", pin_memory=False)
+    assert cfg.pin_memory is False
