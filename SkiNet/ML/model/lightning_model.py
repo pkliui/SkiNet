@@ -32,6 +32,9 @@ class LightningModel(L.LightningModule):
         self.optimizer_name = optimizer_name.lower()
         self.weight_decay = weight_decay
         self.lr_scheduler_config = lr_scheduler_config
+        # Train mode metrics
+        self.train_dice = BinaryF1Score()
+        self.train_iou = BinaryJaccardIndex()
         # Metrics for validation and testing
         self.val_dice = BinaryF1Score()
         self.val_iou = BinaryJaccardIndex()
@@ -186,14 +189,7 @@ class LightningModel(L.LightningModule):
         self.log(f"{prefix}_loss", loss, on_step=False, on_epoch=True,
                  prog_bar=(prefix == "val"), logger=True, batch_size=x.shape[0])
 
-        # get probabilities and predictions for metrics computation
-        probs_and_preds = self._get_probs_and_preds(logits, mask)
-        probs = probs_and_preds["probs"]
-        preds = probs_and_preds["preds"]
-        target = probs_and_preds["target"]
-
-        # update epoch metrics from this batch; Lightning logs the aggregated value at epoch end
-        self._compute_and_log_segmentation_metrics(prefix, preds, target)
+        probs = self._compute_and_log_segmentation_metrics_from_logits_and_mask(prefix, logits, mask)
 
         # collect probabilities (raw sigmoid outputs) and raw masks to find an optimal sigmoid threshold at the val epoch end
         # note we collect all batches - so full validation set will be used at the end of epoch
@@ -211,22 +207,36 @@ class LightningModel(L.LightningModule):
         mask = self._prepare_mask(mask)
         self._raise_if_non_finite("train/image", x, batch_idx)
         self._raise_if_non_finite("train/mask", mask, batch_idx)
-
         logger.debug(f"Training step - batch_idx: {batch_idx}, input image shape: {x.shape}, mask shape: {mask.shape}")
 
+        # get the logits and compute and log loss
         logits = self.model(x)
         self._raise_if_non_finite("train/logits", logits, batch_idx)
         t_loss: torch.Tensor = self.loss_fn(logits, mask)
         self._raise_if_non_finite("train/loss", t_loss, batch_idx)
-
         self.log("train_loss", t_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=x.shape[0])
+
+        _ = self._compute_and_log_segmentation_metrics_from_logits_and_mask("train", logits, mask)
+
         return t_loss
 
+    def _compute_and_log_segmentation_metrics_from_logits_and_mask(
+            self, prefix: str, logits: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        probs_and_preds = self._get_probs_and_preds(logits, mask)
+        probs = probs_and_preds["probs"]
+        preds = probs_and_preds["preds"]
+        target = probs_and_preds["target"]
+        self._compute_and_log_segmentation_metrics(prefix, preds, target)
+        return probs
+
     def configure_optimizers(self) -> OptimizerLRScheduler:
+        """
+        Configure optimizers
+        """
         if self.optimizer_name == "adam":
-            optim = torch.optim.Adam(self.parameters(), lr=self.lr, eps=1e-4)
+            optim = torch.optim.Adam(self.parameters(), lr=self.lr)
         elif self.optimizer_name == "adamw":
-            optim = torch.optim.AdamW(self.parameters(), lr=self.lr, eps=1e-4, weight_decay=self.weight_decay)
+            optim = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         else:
             raise ValueError(f"Unsupported optimizer_name '{self.optimizer_name}'. Supported: ['adam', 'adamw']")
 
@@ -237,6 +247,16 @@ class LightningModel(L.LightningModule):
         return cast(OptimizerLRScheduler, {"optimizer": optim,
                                            "lr_scheduler": {"scheduler": scheduler,
                                                             "monitor": self.lr_scheduler_config.monitor}})
+
+    def on_before_optimizer_step(self, optimizer: torch.optim.Optimizer) -> None:
+        """
+        Log the gradient scaler attribute.
+        If sufficiently high (e.g. >=1024), no gradient clipping required,
+        if it monotonically decaying to 1, add clipping
+        """
+        scaler = getattr(self.trainer.precision_plugin, "scaler", None)
+        if scaler is not None:
+            self.log("grad_scale", scaler.get_scale(), prog_bar=True, on_step=True)
 
     def validation_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> torch.Tensor:
         return self._shared_eval_step("val", batch)
