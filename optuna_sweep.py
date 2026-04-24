@@ -11,7 +11,7 @@ from optuna.samplers import GridSampler
 from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from main_run import train_and_evaluate
-from repos.SkiNet.SkiNet.Utils.mlops.optuna_utils import scale_lr, validate_search_space
+from SkiNet.Utils.mlops.optuna_utils import scale_lr, validate_search_space
 
 logger = logging.getLogger(__name__)
 

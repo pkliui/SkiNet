@@ -56,8 +56,8 @@ class BaseDataConfig(BaseModel):
         None, description="The mount point for the Azure Blob Storage. Required if azure_data is True. Ignored if azure_data is False.")
     local_data_root: Optional[str] = Field(None, description="The root path to data and metadata locally. The path should point to a directory that contains"
                                            " folders with samples of data uniquely identifiable by their ID. Only used when no azure_data argument is set.")
-    split_train_size: float = Field(0.7, ge=0.0, le=1.0, description="Proportion of the dataset in the train split.")
-    split_val_size: float = Field(0.1, ge=0.0, le=1.0, description="Proportion of the dataset in the validation split.")
+    split_train_size: float = Field(0.6, ge=0.0, le=1.0, description="Proportion of the dataset in the train split.")
+    split_val_size: float = Field(0.2, ge=0.0, le=1.0, description="Proportion of the dataset in the validation split.")
     split_test_size: float = Field(0.2, ge=0.0, le=1.0, description="Proportion of the dataset in the test split.")
     split_random_seed: int = Field(42, ge=0, description="Random seed of the train/val/test splits.")
     split_stratify_column: str | None = Field(default=None, description="Column name in the metadata CSV to use for"
