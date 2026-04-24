@@ -37,7 +37,7 @@ def test_crop_config_uses_defaults_and_accepts_overrides(
 @pytest.mark.parametrize(
     "config,expected_affine_scale,expected_perspective_p,expected_shear_x",
     [
-        (SpatialAugmentConfig(), (0.5, 1.0), 0.2, (-15, 15)),
+        (SpatialAugmentConfig(), (0.8, 1.0), 0.2, (-15, 15)),
         (
             SpatialAugmentConfig(
                 affine_apply=True,

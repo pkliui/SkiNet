@@ -6,7 +6,7 @@ import pytest
 def test_spatialaugmentconfig_defaults() -> None:
     cfg = SpatialAugmentConfig()
     assert cfg.square_symmetry_p == 0.5
-    assert cfg.affine_scale == (0.5, 1.0)
+    assert cfg.affine_scale == (0.8, 1.0)
     assert cfg.affine_rotate == (-45, 45)
     assert cfg.affine_shear["x"] == (-15, 15)
     assert cfg.perspective_p == 0.2
@@ -32,8 +32,8 @@ def test_spatialaugmentconfig_probability_out_of_range_raises(p: float) -> None:
 def test_spatialaugmentconfig_elastic_defaults() -> None:
     cfg = SpatialAugmentConfig()
     assert cfg.elastic_apply is False
-    assert cfg.elastic_alpha == 1.0
-    assert cfg.elastic_sigma == 50.0
+    assert cfg.elastic_alpha == 120.0
+    assert cfg.elastic_sigma == 10.0
     assert cfg.elastic_p == 0.3
 
 

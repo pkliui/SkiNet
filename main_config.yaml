@@ -18,7 +18,7 @@ TRANSFORM_CONFIG:
     square_symmetry_apply: True
     square_symmetry_p: 0.5
     affine_apply: True
-    affine_scale: [0.5, 1.0]
+    affine_scale: [0.8, 1.0]
     affine_translate_percent: {"x": [-0.05, 0.05], "y": [-0.05, 0.05]}
     affine_rotate: [-45, 45]
     affine_shear: {"x": [-15, 15], "y": [-15, 15]}
@@ -26,8 +26,8 @@ TRANSFORM_CONFIG:
     perspective_scale: [0.05, 0.1]
     perspective_p: 0.2
     elastic_apply: True
-    elastic_alpha: 1.0
-    elastic_sigma: 50.0
+    elastic_alpha: 120
+    elastic_sigma: 10
     elastic_p: 0.3
   photometric_augmentation:
     color_jitter_apply: True

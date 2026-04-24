@@ -42,7 +42,7 @@ class SpatialAugmentConfig(BaseModel):
     affine_apply: bool = Field(
         default=False, description="Apply affine transformations.")
     affine_scale: Tuple[float, float] = Field(default=(
-        0.5, 1.0), description="Scaling (zoom) factor for affine transformation.")
+        0.8, 1.0), description="Scaling (zoom) factor for affine transformation.")
     affine_translate_percent: dict[str, float | Tuple[float, float]] = Field(default={"x": (
         -0.05, 0.05), "y": (-0.05, 0.05)}, description="Translation as a fraction of the image size.")
     affine_rotate: Tuple[float, float] = Field(
@@ -64,9 +64,9 @@ class SpatialAugmentConfig(BaseModel):
     elastic_apply: bool = Field(
         default=False, description="Apply elastic deformation.")
     elastic_alpha: float = Field(
-        default=1.0, description="Scaling factor controlling displacement magnitude.")
+        default=120.0, description="Scaling factor controlling displacement magnitude.")
     elastic_sigma: float = Field(
-        default=50.0, description="Gaussian smoothing factor; larger values produce smoother deformation.")
+        default=10.0, description="Gaussian smoothing factor; larger values produce smoother deformation.")
     elastic_p: float = Field(
         default=0.3, ge=0.0, le=1.0, description="Probability of applying elastic deformation.")
 
