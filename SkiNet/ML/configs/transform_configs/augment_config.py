@@ -43,12 +43,12 @@ class SpatialAugmentConfig(BaseModel):
         default=False, description="Apply affine transformations.")
     affine_scale: Tuple[float, float] = Field(default=(
         0.8, 1.0), description="Scaling (zoom) factor for affine transformation.")
-    affine_translate_percent: dict[str, float | Tuple[float, float]] = Field(default={"x": (
+    affine_translate_percent: dict[str, Tuple[float, float]] = Field(default={"x": (
         -0.05, 0.05), "y": (-0.05, 0.05)}, description="Translation as a fraction of the image size.")
     affine_rotate: Tuple[float, float] = Field(
         default=(-45, 45), description="Rotation angle in degrees.")
-    affine_shear: dict[str, float | Tuple[float, float]] = Field(
-        default={"x": (-15, 15), "y": (-15, 15)}, description="Shear angle in degrees.")
+    affine_shear: dict[str, Tuple[float, float]] = Field(
+        default={"x": (-15.0, 15.0), "y": (-15.0, 15.0)}, description="Shear angle in degrees.")
 
     # Perspective transformations
     # albumentations.Perspective
