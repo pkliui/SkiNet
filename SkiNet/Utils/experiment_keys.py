@@ -52,9 +52,15 @@ class LossFunctionKey(Enum):
 
 
 @unique
-class MetricsKey(Enum):
+class MetricsKey(str, Enum):
     """
-    Enum for metrics
+    Enum for metric keys passed to external frameworks (Lightning, MLflow, Optuna).
+
+    Inherits from str so each member IS a str at the Python object level. This means
+    dict lookups against trainer.callback_metrics (which has plain str keys) succeed
+    without calling .value explicitly. With a plain Enum, the member's __hash__ and
+    __eq__ differ from the equivalent str, so the lookup silently misses even though
+    the .value is correct.
     """
     VAL_BEST_DICE_AT_THRESHOLD = "val_best_dice_at_threshold"
 

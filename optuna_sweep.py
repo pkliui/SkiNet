@@ -23,7 +23,6 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
     """
     Create an Optuna objective that logs each trial as a nested MLflow child run.
     """
-    import optuna
 
     def objective(trial: optuna.trial.Trial) -> float:
         """
