@@ -233,7 +233,7 @@ class LightningModel(L.LightningModule):
         Configure optimizers
         """
         if self.optimizer_name == "adam":
-            optim = torch.optim.Adam(self.parameters(), lr=self.lr)
+            optim = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         elif self.optimizer_name == "adamw":
             optim = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         else:
