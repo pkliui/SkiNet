@@ -1,4 +1,4 @@
-from typing import Callable, Optional, cast
+from typing import Callable, cast
 
 import torch.nn as nn
 from torch import Tensor
@@ -9,7 +9,19 @@ from SkiNet.ML.utils.sampling.base_sampling import EncoderParams2D
 
 class Encoder2D(nn.Module):
     """
-    Encoder2D is an encoder block composed of a downsampling and a shape-preserving convolutional layers
+    Encoder2D is an encoder block composed of a downsampling and a shape-preserving convolutional layers.
+    Instead of the standard ResNet pattern, where the shortcut starts from the block input, this encoder first
+    downsamples the input and then applies a local residual refinement on that intermediate representation:
+
+        h = Conv-BN-Act(x)
+        y = Conv-BN-Act(h) + h
+
+    Here the first convolution typically uses stride > 1, so the original block input and the output of the second
+    convolution generally have mismatched spatial dimensions. Reusing the output of the first convolution as the skip
+    path preserves a direct additive route through the downsampled features while letting the second convolution learn
+    a refinement:
+    - He et al., "Deep Residual Learning for Image Recognition" (CVPR 2016)
+    - He et al., "Identity Mappings in Deep Residual Networks" (ECCV 2016)
 
     :param in_channels: Number of input channels.
     :param out_channels: Number of output channels.
@@ -67,5 +79,5 @@ class Encoder2D(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         x = self.conv2d_layer1(x)
         conv2 = self.conv2d_layer2(x)
-        # cast for mypy
+        # Residual refinement over the downsampled feature map, not a shortcut from the original block input.
         return cast(Tensor, conv2 + x if self.use_residual else conv2)
