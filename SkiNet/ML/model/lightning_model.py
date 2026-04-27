@@ -50,9 +50,8 @@ class LightningModel(L.LightningModule):
         self._val_probs: list[torch.Tensor] = []
         self._val_masks: list[torch.Tensor] = []
 
-    def forward(self, x: torch.Tensor) -> torch.nn.Module:
-        model: torch.nn.Module = self.model(x)
-        return model
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.model(x)  # type: ignore[no-any-return]
 
     def _get_probs_and_preds(self, logits: torch.Tensor, mask: torch.Tensor) -> dict[str, torch.Tensor]:
         """

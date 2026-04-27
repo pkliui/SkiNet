@@ -9,6 +9,11 @@ from SkiNet.ML.utils.sampling.base_sampling import EncoderParams2D
 class Merge2DBlock(nn.Module):
     """
     Merge2DBlock merges the output of a decoder with a skip connection.
+    Instead of the standard UNet approach of concatenating decoder and skip features along the channel dimension
+    followed by a single convolution, this block decomposes that operation into two separate convolutions applied
+    independently to each input, then sums the results. This is algebraically equivalent to concatenation+convolution
+    (by linearity) while keeping channel count constant and avoiding the peak memory cost of materializing the
+    concatenated tensor.
 
     :param in_channels: Number of input channels to the decoder block
     :param out_channels: Number of output channels from the merge block, should match skip connection channels
