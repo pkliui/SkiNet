@@ -112,9 +112,10 @@ class BaseDataConfig(BaseModel):
         if df[list(self.REQUIRED_COLUMNS)].replace("", pd.NA).isna().all().all():
             raise ValueError(f"Metadata at '{csv_path}' is empty (all required columns have only empty values).")
 
-    def read_metadata_csv(self, **kwargs: Any) -> pd.DataFrame:
+    def _read_metadata_csv(self, **kwargs: Any) -> None:
         """
-        Reads dataset metadata file (local or Azure) into a pandas DataFrame, validates, and returns it
+        Reads dataset metadata file (local or Azure) into a pandas DataFrame,
+        validates it, and stores it in the internal metadata cache.
         """
         self._validate_config()
 
@@ -135,13 +136,12 @@ class BaseDataConfig(BaseModel):
 
         self._validate_dataframe(df, csv_path)
         self._metadata = df
-        return df
 
     @property
     def metadata(self) -> pd.DataFrame:
         """Returns the loaded DataFrame with metadata, reading it if necessary."""
         if self._metadata is None:
-            self.read_metadata_csv()
+            self._read_metadata_csv()
         assert self._metadata is not None  # for mypy
         return self._metadata.copy()  # avoid silently corrupting metadata by e.g. in-place operations
 

@@ -74,6 +74,21 @@ def test_basedataconfig_success(tmp_path: Path) -> None:
     assert loaded.iloc[0]["b"] == 2
 
 
+def test_basedataconfig_metadata_returns_copy(tmp_path: Path) -> None:
+    """
+    Mutating the DataFrame returned from metadata must not mutate the cached metadata.
+    """
+    df = pd.DataFrame([{"a": 1, "b": 2}])
+    csv_path = tmp_path / CSV_NAME
+    df.to_csv(csv_path, index=False)
+    cfg = DummyConfig(local_data_root=str(tmp_path), azure_data=False, azure_blob_mount_point=str(tmp_path))
+
+    loaded = cfg.metadata
+    loaded.loc[0, "a"] = 999
+
+    assert cfg.metadata.iloc[0]["a"] == 1
+
+
 def test_basedataconfig_deepcopy_clears_metadata_cache(tmp_path: Path) -> None:
     """
     deepcopy must reset _metadata to None so each copy lazy-loads independently,

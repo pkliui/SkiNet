@@ -24,6 +24,9 @@ def test_sweep_config_search_space_contains_all_keys() -> None:
     assert space["lr"] == cfg.lr
     assert space["weight_decay"] == cfg.weight_decay
     assert space["batch_size"] == cfg.batch_size
+    assert space["lr"] is not cfg.lr
+    assert space["weight_decay"] is not cfg.weight_decay
+    assert space["batch_size"] is not cfg.batch_size
 
 
 @pytest.mark.parametrize("direction", ["maximize", "minimize"])
@@ -49,3 +52,14 @@ def test_sweep_config_custom_search_space() -> None:
 
     assert cfg.search_space["lr"] == [1e-3, 1e-4, 1e-5]
     assert cfg.search_space["batch_size"] == [8, 16]
+
+
+def test_sweep_config_search_space_mutation_does_not_affect_config() -> None:
+    cfg = SweepConfig()
+
+    space = cfg.search_space
+    space["lr"].append(1e-5)
+    space["batch_size"][0] = 99
+
+    assert cfg.lr == [3e-4, 1e-4]
+    assert cfg.batch_size == [16, 32]
