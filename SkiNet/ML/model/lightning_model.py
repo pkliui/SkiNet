@@ -23,6 +23,15 @@ class LightningModel(L.LightningModule):
                  optimizer_name: str,
                  weight_decay: float,
                  lr_scheduler_config: ReduceOnPlateauConfig):
+        """
+        :param model: backbone segmentation network (returns raw logits)
+        :param loss_fn: loss function applied to logits and binary float masks
+        :param num_classes: number of output classes (1 for binary segmentation)
+        :param lr: initial learning rate
+        :param optimizer_name: "adam" or "adamw"
+        :param weight_decay: L2 regularisation coefficient
+        :param lr_scheduler_config: ReduceLROnPlateau scheduler settings
+        """
         super().__init__()
         self.save_hyperparameters(ignore=["model", "loss_fn"])
         self.model = model
@@ -51,35 +60,32 @@ class LightningModel(L.LightningModule):
         self._val_masks: list[torch.Tensor] = []
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Run the backbone and return raw logits (pre-sigmoid)."""
         return self.model(x)  # type: ignore[no-any-return]
 
-    def _get_probs_and_preds(self, logits: torch.Tensor, mask: torch.Tensor) -> dict[str, torch.Tensor]:
+    @staticmethod
+    def _get_probs_and_preds(logits: torch.Tensor,
+                             threshold: torch.Tensor) -> dict[str, torch.Tensor]:
         """
-        Computes sigmoid activation function probabilities and predictions
-        based on an optimal threshold value (for each epoch N computed based on params in epoch N-1),
-        converts the masks into long.
+        Apply sigmoid to logits and threshold the result into binary predictions.
 
-        :param logits: outputs of the model
-        :param mask: ground truth binary masks
-
-        :return a dictionary of probabilities, predictions and the ground truth masks converted to long:
-            - probabilities are the sigmoid activation function outputs,
-            - predictions are the thresholded outputs of the sigmoid activation function, converted to long
-            - inarise masks in case the values shifted from 0  and 1 due to interpolation in augmenations
+        :param logits: raw model outputs (pre-sigmoid)
+        :param threshold: scalar tensor; sigmoid outputs >= threshold are predicted positive
+        :return: dict with keys:
+            - "probs": sigmoid outputs in [0, 1]
+            - "preds": thresholded predictions as torch.long
         """
         probs = torch.sigmoid(logits)
-        preds = (probs >= self.optimal_threshold).long()
-        target = (mask >= 0.5).long()
-        return {"probs": probs, "preds": preds, "target": target}
+        preds = (probs >= threshold).long()
+        return {"probs": probs, "preds": preds}
 
     def _compute_and_log_segmentation_metrics(self, prefix: str, preds: torch.Tensor, target: torch.Tensor) -> None:
         """
-        Compute and log Dice and IoU metrics and log it at the end of each epoch.
-        It is called from every validation_step and test_step. Add any new torchmetrics here.
+        Compute Dice and IoU for one batch and log them at epoch end. Add new torchmetrics here.
 
-        :param prefix: "val" or "test"
-        :param preds: predictions, which are the thresholded outputs of the sigmoid activation function, converted to long
-        :param target: ground truth, which are the masks, converted to long
+        :param prefix: "train", "val", or "test" — prepended to each metric name
+        :param preds: thresholded binary predictions as torch.long
+        :param target: ground truth binary masks as torch.long
         """
         metrics = {
             f"{prefix}_dice": getattr(self, f"{prefix}_dice"),
@@ -125,14 +131,21 @@ class LightningModel(L.LightningModule):
         self.log("val_dice_threshold_gain", best_dice - self.val_dice.compute().item(),
                  on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
-    def _prepare_mask(self, mask: torch.Tensor) -> torch.Tensor:
+    @staticmethod
+    def _prepare_mask(mask: torch.Tensor) -> torch.Tensor:
+        """
+        Ensure the mask values are floating point numbers and that the values are binary
+
+        :param mask: mask as returned by the batch following disk read or possible augmentation
+        """
         if not torch.is_floating_point(mask):
             mask = mask.float()
-        if mask.max() > 1:
-            mask = mask / 255.0
+        is_binary = ((mask.abs() < 1e-5) | ((mask - 1.0).abs() < 1e-5)).all()
+        assert is_binary, f"Expected binary mask (0/1), got unique values: {mask.unique()}"
         return mask
 
     def _get_current_lr(self) -> float | None:
+        """Return the current learning rate from the first optimizer, or None if no trainer is attached."""
         if self.trainer is None or not self.trainer.optimizers:
             return None
         optimizer: torch.optim.Optimizer = self.trainer.optimizers[0]
@@ -141,6 +154,14 @@ class LightningModel(L.LightningModule):
 
     @staticmethod
     def _tensor_debug_summary(name: str, tensor: torch.Tensor) -> str:
+        """
+        Build a diagnostic string for a tensor showing shape, dtype, finite element count,
+        and min/max over finite elements (omitted when no finite values exist).
+
+        :param name: label to prefix the summary with (e.g. "train/logits")
+        :param tensor: tensor to summarise
+        :return: human-readable one-line summary string
+        """
         detached = tensor.detach()
         finite_mask = torch.isfinite(detached)
         finite_count = int(finite_mask.sum().item())
@@ -155,6 +176,14 @@ class LightningModel(L.LightningModule):
         )
 
     def _raise_if_non_finite(self, name: str, tensor: torch.Tensor, batch_idx: int) -> None:
+        """
+        Raise ValueError if the tensor contains any NaN or Inf value.
+
+        :param name: descriptive label included in the error message (e.g. "train/logits")
+        :param tensor: tensor to check
+        :param batch_idx: current batch index, included in the error message for reproducibility
+        :raises ValueError: if any element is non-finite
+        """
         if torch.isfinite(tensor).all():
             return
         raise ValueError(
@@ -191,6 +220,14 @@ class LightningModel(L.LightningModule):
         return loss
 
     def training_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> torch.Tensor:
+        """
+        Run one training iteration: validate inputs, compute loss, log metrics.
+
+        :param batch: dict with "image" and "mask" tensors
+        :param batch_idx: index of the current batch within the epoch
+        :return: scalar training loss
+        :raises ValueError: if the batch is missing required keys or contains non-finite values
+        """
         x = batch.get("image")
         mask = batch.get("mask")
         if x is None or mask is None:
@@ -213,16 +250,25 @@ class LightningModel(L.LightningModule):
 
     def _compute_and_log_segmentation_metrics_from_logits_and_mask(
             self, prefix: str, logits: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        probs_and_preds = self._get_probs_and_preds(logits, mask)
-        probs = probs_and_preds["probs"]
-        preds = probs_and_preds["preds"]
-        target = probs_and_preds["target"]
-        self._compute_and_log_segmentation_metrics(prefix, preds, target)
-        return probs
+        """
+        Compute and log segmentation metrics for one batch.
+
+        :param prefix: "train", "val", or "test" — prepended to every logged metric name
+        :param logits: raw model outputs (pre-sigmoid)
+        :param mask: binary float mask from _prepare_mask; cast to long here for metrics
+        :return: sigmoid probabilities (used upstream to accumulate val probs for threshold search)
+        """
+        target = mask.long()
+        probs_and_preds = self._get_probs_and_preds(logits, self.optimal_threshold)
+        self._compute_and_log_segmentation_metrics(prefix, probs_and_preds["preds"], target)
+        return probs_and_preds["probs"]
 
     def configure_optimizers(self) -> OptimizerLRScheduler:
         """
-        Configure optimizers
+        Build the optimizer and ReduceLROnPlateau scheduler from the stored config.
+
+        :return: Lightning-compatible dict with "optimizer" and "lr_scheduler" keys
+        :raises ValueError: if optimizer_name is not "adam" or "adamw"
         """
         if self.optimizer_name == "adam":
             optim = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
@@ -250,9 +296,20 @@ class LightningModel(L.LightningModule):
             self.log("grad_scale", scaler.get_scale(), prog_bar=True, on_step=True)
 
     def validation_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> torch.Tensor:
+        """
+        Run one validation iteration and accumulate probabilities and masks for
+        end-of-epoch threshold search.
+
+        :param batch: dict with "image" and "mask" tensors
+        :param batch_idx: index of the current batch within the epoch
+        :return: scalar validation loss
+        """
         return self._shared_eval_step("val", batch)
 
     def test_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> torch.Tensor:
+        """
+        Test step using self.optimal_threshold learned during validation
+        """
         return self._shared_eval_step("test", batch)
 
     def on_validation_epoch_end(self) -> None:
