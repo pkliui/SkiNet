@@ -24,10 +24,23 @@ class SystemMetricsThreadCallback(L.Callback):
     without requiring any additional setup in the loggers themselves.
 
     Note that the native MLflow logging of system metrics is not supported by the MLFlowLogger itself.
+
+    Note: all metric snapshots flushed at a given hook point are assigned the same global_step value,
+    regardless of when they were actually collected within the interval. This means that if a validation
+    epoch takes 30s and `interval_sec=5`, ~6 snapshots will all be logged at the same step, and the
+    logger UI will not reflect the actual wall-clock time at which each snapshot was taken.
+
+    Note: the collection cadence (`interval_sec`) and flush cadence (Lightning hooks) are decoupled, which
+    has two opposite failure modes. If `interval_sec` is small relative to batch duration (e.g. `interval_sec=0.1`,
+    batch=5s), ~50 snapshots accumulate before each flush and the queue may fill up, causing the oldest snapshots
+    to be silently dropped — increase `max_queue_size` if you need to retain more history. Conversely, if
+    `interval_sec` is large relative to batch duration (e.g. `interval_sec=5`, batch=0.1s), most batch-end
+    flushes will find an empty queue and log nothing, as the thread has not collected a new snapshot yet.
     """
 
     def __init__(self, interval_sec: float = 5.0, max_queue_size: int = 256):
         self.interval_sec = float(interval_sec)
+        self._max_queue_size = max_queue_size
         # acts as a sleeptimer and a signal to stop the thread when fitting ends
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
@@ -50,8 +63,7 @@ class SystemMetricsThreadCallback(L.Callback):
             reserved = torch.cuda.memory_reserved(d)
             # tensors actively held by pytorch
             m["system/gpu_mem_allocated_gb"] = allocated / (1024**3)
-            # pool pytorch clained from OS ie allocated + cached memory
-            # gap between - headroom before OOM
+            # pool pytorch claimed from OS (allocated + cached); gap between this and allocated is headroom before OOM
             m["system/gpu_mem_reserved_gb"] = reserved / (1024**3)
             gpu_util = torch.cuda.utilization(d)
             if gpu_util is not None:
@@ -75,7 +87,7 @@ class SystemMetricsThreadCallback(L.Callback):
 
     def _run(self) -> None:
         """
-        Method that runs in the background thread to periodically collect system metrics and put them in the queue for logging.
+        Runs in the background thread to periodically collect system metrics and put them in the queue for logging.
 
         If the queue is full, the oldest metric snapshot is dropped to make room for the new one,
         ensuring that the most recent metrics are always logged without unbounded memory growth.
@@ -92,8 +104,9 @@ class SystemMetricsThreadCallback(L.Callback):
                     # drop the oldest metric and insert the new one
                     _ = self._metrics_queue.get_nowait()
                     self._metrics_queue.put_nowait(metrics)
-                # in case the main thread has emptied the queue by calling _flush_metrics
-                # as we reached e.g. end of batch or val epoch and the queue is now empty,
+                # if the main thread drained the queue via _flush_metrics between our get and put, the new metric is
+                # already storable — but at this point put_nowait already succeeded above, so this only fires if
+                # get_nowait itself raced; either way the snapshot is silently dropped rather than blocking.
                 except queue.Empty:
                     pass
             # sleep for interval_sec seconds OR wake immediately if stop_event is set (fitting ended)
@@ -103,6 +116,9 @@ class SystemMetricsThreadCallback(L.Callback):
         """
         Read all currently queued metric snapshots from self._metrics_queue and log them to all of the Lightning trainer's
         loggers with the current global step. Stops when the queue is empty.
+
+        Noe: global_step is a standard PyTorch Lightning Trainer attribute — it counts how many optimizer steps (batches)
+        have been processed so far during training. It increments automatically as training progresses.
         """
         step = int(getattr(trainer, "global_step", 0))
         while True:
@@ -120,6 +136,12 @@ class SystemMetricsThreadCallback(L.Callback):
                     logger.exception("Failed to log system metrics with logger %s", type(lg).__name__)
                     continue
 
+    def _stop_thread(self) -> None:
+        """Signal the background thread to stop and wait for it to finish."""
+        self._stop_event.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+
     def on_fit_start(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         """
         This is a Lightning hook method that is run once at the start of fitting to launch the background thread that collects system metrics.
@@ -129,6 +151,12 @@ class SystemMetricsThreadCallback(L.Callback):
         if self._thread is not None and self._thread.is_alive():
             return  # already running — don't spawn a second thread
         self._stop_event.clear()
+        # drain any stale metrics left over from a previous fit that ended without a clean on_fit_end flush
+        while not self._metrics_queue.empty():
+            try:
+                self._metrics_queue.get_nowait()
+            except queue.Empty:
+                break
         # prime CPU percent measurement once at the start of fitting as there is no previous data for the first measurement
         psutil.cpu_percent(interval=None)
         self._thread = threading.Thread(target=self._run, daemon=True)
@@ -148,14 +176,18 @@ class SystemMetricsThreadCallback(L.Callback):
         """
         self._flush_metrics(trainer)
 
+    def on_exception(self, trainer: L.Trainer, pl_module: L.LightningModule, exception: BaseException) -> None:
+        """
+        This is a Lightning hook called when an exception occurs during training.
+        It ensures the background thread is stopped even if on_fit_end is not called.
+        """
+        self._stop_thread()
+
     def on_fit_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         """
         This is a Lightning hook method that is called by Lightning at the end of fitting,
         and it ensures that the background thread is properly stopped and all collected metrics are flushed to the loggers when fitting ends.
         """
         # signal the thread to stop and wait for it to finish, then flush any remaining metrics
-        self._stop_event.set()
-        if self._thread is not None:
-            # wait for the thread to finish, but don't block indefinitely in case of issues with the thread
-            self._thread.join(timeout=2.0)
+        self._stop_thread()
         self._flush_metrics(trainer)
