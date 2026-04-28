@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any, ClassVar, Optional, Set
+from typing import Any, ClassVar, Optional
 
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field, PrivateAttr
@@ -29,7 +29,7 @@ class BaseDataConfig(BaseModel):
 
     :attributes:
         METADATA_CSV_NAME (Optional[str]): Name of a dataset metadata file used in config, as defined in project paths. Must be specified in subclasses.
-        REQUIRED_COLUMNS (Set[str]): Set of required columns in the metadata file. Must be specified in subclasses.
+        REQUIRED_COLUMNS (frozenset[str]): Set of required columns in the metadata file. Must be specified in subclasses.
         DATASET_KEY (Optional[DatasetKey]): One of the keys from DatasetKey.
             Its value must match the key used in the YAML config file and specified in subclasses.
         _metadata (Optional[pd.DataFrame]): Cached dataset metadata loaded from a CSV file into a DataFrame. Not part of model validation/serialization.
@@ -56,16 +56,19 @@ class BaseDataConfig(BaseModel):
         None, description="The mount point for the Azure Blob Storage. Required if azure_data is True. Ignored if azure_data is False.")
     local_data_root: Optional[str] = Field(None, description="The root path to data and metadata locally. The path should point to a directory that contains"
                                            " folders with samples of data uniquely identifiable by their ID. Only used when no azure_data argument is set.")
-    split_train_size: float = Field(default=0.6, ge=0.0, le=1.0, description="Proportion of the dataset in the train split.")
-    split_val_size: float = Field(default=0.2, ge=0.0, le=1.0, description="Proportion of the dataset in the validation split.")
-    split_test_size: float = Field(default=0.2, ge=0.0, le=1.0, description="Proportion of the dataset in the test split.")
+    split_train_size: float = Field(default=0.6, ge=0.0, le=1.0,
+                                    description="Proportion of the dataset in the train split.")
+    split_val_size: float = Field(default=0.2, ge=0.0, le=1.0,
+                                  description="Proportion of the dataset in the validation split.")
+    split_test_size: float = Field(default=0.2, ge=0.0, le=1.0,
+                                   description="Proportion of the dataset in the test split.")
     split_random_seed: int = Field(default=42, ge=0, description="Random seed of the train/val/test splits.")
     split_stratify_column: str | None = Field(default=None, description="Column name in the metadata CSV to use for"
                                               "stratified splitting into train/val/test splits. Should be a column  "
                                               "in the metadata CSV that has categorical labels for stratification. ")
 
     METADATA_CSV_NAME: ClassVar[str]
-    REQUIRED_COLUMNS: ClassVar[Set[str]] = set()
+    REQUIRED_COLUMNS: ClassVar[frozenset[str]] = frozenset()
     DATASET_KEY: ClassVar[Optional[DatasetKey]] = None
 
     _metadata: Optional[pd.DataFrame] = PrivateAttr(default=None)
@@ -139,7 +142,8 @@ class BaseDataConfig(BaseModel):
         """Returns the loaded DataFrame with metadata, reading it if necessary."""
         if self._metadata is None:
             self.read_metadata_csv()
-        return self._metadata
+        assert self._metadata is not None  # for mypy
+        return self._metadata.copy()  # avoid silently corrupting metadata by e.g. in-place operations
 
     @property
     def data_root(self) -> Path:

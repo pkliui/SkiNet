@@ -1,6 +1,6 @@
 from copy import deepcopy
 from pathlib import Path
-from typing import ClassVar, Optional, Set
+from typing import ClassVar, Optional
 
 import pandas as pd
 import pytest
@@ -11,7 +11,7 @@ from SkiNet.Utils.experiment_keys import DatasetKey
 CSV_NAME = "dummy.csv"
 
 class DummyConfig(BaseDataConfig):
-    REQUIRED_COLUMNS: ClassVar[Set[str]] = {"a", "b"}
+    REQUIRED_COLUMNS: ClassVar[frozenset[str]] = frozenset({"a", "b"})
     DATASET_KEY: ClassVar[Optional[DatasetKey]] = None
     METADATA_CSV_NAME: ClassVar[str] = CSV_NAME
 

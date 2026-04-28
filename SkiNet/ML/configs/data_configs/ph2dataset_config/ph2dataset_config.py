@@ -1,4 +1,4 @@
-from typing import ClassVar, Literal, Set
+from typing import ClassVar, Literal
 from enum import Enum, unique
 
 from pydantic import Field
@@ -51,7 +51,7 @@ class PH2DatasetConfig(BaseDataConfig):
         "Set to None to disable stratification. For PH2, we use PH2StratificationOptions for stratification."
     )
 
-    REQUIRED_COLUMNS: ClassVar[Set[str]] = {SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER}
+    REQUIRED_COLUMNS: ClassVar[frozenset[str]] = frozenset({SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER})
     DATASET_KEY: ClassVar[DatasetKey] = DatasetKey.PH2
     METADATA_CSV_NAME: ClassVar[str] = PH2_CSV_NAME
 
