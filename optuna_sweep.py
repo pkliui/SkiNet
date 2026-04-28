@@ -50,7 +50,6 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         train_cfg = cfg.trainconfig
 
         # define the search space targets and reassign the respective configs
-        validate_search_space(cfg.sweepconfig.search_space)
         lr = cast(float, trial.suggest_categorical("lr", search_space["lr"]))
         weight_decay = cast(float, trial.suggest_categorical("weight_decay", search_space["weight_decay"]))
         batch_size = cast(int, trial.suggest_categorical("batch_size", search_space["batch_size"]))
@@ -144,6 +143,7 @@ def main() -> None:
 
     # define the search space based on sweep config
     search_space = main_config.sweepconfig.search_space
+    validate_search_space(search_space)
 
     # Set tracking URI from config FIRST, before any mlflow.start_run calls,
     # so the parent run and MLFlowLogger all land on the same backend.
