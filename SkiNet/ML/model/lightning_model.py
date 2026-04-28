@@ -4,12 +4,12 @@ import torch
 import logging
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 from torchmetrics.classification import BinaryF1Score, BinaryJaccardIndex
-from torchmetrics.functional.classification import binary_f1_score
 
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.train_configs.train_config import ReduceOnPlateauConfig
 from SkiNet.ML.model.model_factory import create_model
 from SkiNet.ML.training.build_loss import build_loss
+from SkiNet.ML.training.training_utils import find_best_threshold
 
 logger = logging.getLogger(__name__)
 
@@ -115,16 +115,8 @@ class LightningModel(L.LightningModule):
             self.log("val_best_dice_at_threshold", 0.0, on_step=False, on_epoch=True, prog_bar=False, logger=True)
             return
 
-        best_thr = 0.5
-        best_dice = -1.0
-
-        # .tolist() converts to plain Python floats, which PyTorch will broadcast to whatever device the tensor is on
-        for thr in torch.linspace(0.0, 1.0, 51).tolist():
-            preds = (all_probs >= thr).long()
-            dice = binary_f1_score(preds, all_targets)
-            if dice.item() > best_dice:
-                best_dice = dice.item()  # keep as float throughout
-                best_thr = thr  # already float thanks to tolist()
+        best_result = find_best_threshold(all_probs, all_targets)
+        best_thr, best_dice = best_result["best_threshold"], best_result["best_dice"]
 
         self.optimal_threshold.fill_(best_thr)
         self.log("val_optimal_threshold", self.optimal_threshold,

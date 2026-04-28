@@ -33,6 +33,10 @@ ssh -N -L 5000:localhost:5000 ssh_connection_string_from_your_studio@ssh.lightni
 - If this is a GPU sweep, set accelerator/devices for GPU and keep precision: "16-mixed".
 - If this is a CPU sweep, set precision: null or a CPU-supported mode instead of "16-mixed".
 
+## Best threshold selection
+
+At the end of each validation epoch, `find_best_threshold` sweeps `n_thresholds` evenly-spaced candidate values from 1.0 down to 0.0 using `torch.linspace`. For every threshold it computes true positives, false positives, and false negatives in a single vectorised operation across the entire validation set, then derives the Dice (F1) score as `2·tp / (2·tp + fp + fn)`. The threshold with the highest Dice is selected; when multiple thresholds tie, the **highest** one wins because the sweep is descending and `argmax` returns the first occurrence. The resulting `val_best_dice_at_threshold` metric is what early stopping and Optuna optimisation monitor.
+
 ## Ways to start training
 
 The options below assume you are inside a configured environment
