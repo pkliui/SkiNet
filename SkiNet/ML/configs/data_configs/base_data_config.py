@@ -56,10 +56,10 @@ class BaseDataConfig(BaseModel):
         None, description="The mount point for the Azure Blob Storage. Required if azure_data is True. Ignored if azure_data is False.")
     local_data_root: Optional[str] = Field(None, description="The root path to data and metadata locally. The path should point to a directory that contains"
                                            " folders with samples of data uniquely identifiable by their ID. Only used when no azure_data argument is set.")
-    split_train_size: float = Field(0.6, ge=0.0, le=1.0, description="Proportion of the dataset in the train split.")
-    split_val_size: float = Field(0.2, ge=0.0, le=1.0, description="Proportion of the dataset in the validation split.")
-    split_test_size: float = Field(0.2, ge=0.0, le=1.0, description="Proportion of the dataset in the test split.")
-    split_random_seed: int = Field(42, ge=0, description="Random seed of the train/val/test splits.")
+    split_train_size: float = Field(default=0.6, ge=0.0, le=1.0, description="Proportion of the dataset in the train split.")
+    split_val_size: float = Field(default=0.2, ge=0.0, le=1.0, description="Proportion of the dataset in the validation split.")
+    split_test_size: float = Field(default=0.2, ge=0.0, le=1.0, description="Proportion of the dataset in the test split.")
+    split_random_seed: int = Field(default=42, ge=0, description="Random seed of the train/val/test splits.")
     split_stratify_column: str | None = Field(default=None, description="Column name in the metadata CSV to use for"
                                               "stratified splitting into train/val/test splits. Should be a column  "
                                               "in the metadata CSV that has categorical labels for stratification. ")
@@ -164,6 +164,24 @@ class BaseDataConfig(BaseModel):
         else:
             assert self.local_data_root is not None
             return Path(self.local_data_root)
+
+    def __deepcopy__(self, memo: dict[int, Any] | None = None) -> "BaseDataConfig":
+        """
+        Create a deep copy of the BaseDataConfig instance.
+
+        This override ensures that the internal `_metadata` cache dataframe is not copied to the new
+        instance. Instead, the copied object resets `_metadata` to `None`, so
+        each consumer can lazily load its own metadata independently.
+
+        :param memo: Dictionary used by the deepcopy mechanism to track
+            already-copied objects and avoid infinite recursion.
+
+        :return: A deep-copied instance with `_metadata` cleared.
+        """
+        copy = super().__deepcopy__(memo)
+        # Don't carry the cached DataFrame into each copy; each consumer lazy-loads independently.
+        copy._metadata = None
+        return copy
 
     def get_split_config(self) -> SplitConfig:
         """

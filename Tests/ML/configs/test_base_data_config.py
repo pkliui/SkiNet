@@ -1,3 +1,4 @@
+from copy import deepcopy
 from pathlib import Path
 from typing import ClassVar, Optional, Set
 
@@ -71,3 +72,25 @@ def test_basedataconfig_success(tmp_path: Path) -> None:
     assert set(loaded.columns) == {"a", "b"}
     assert loaded.iloc[0]["a"] == 1
     assert loaded.iloc[0]["b"] == 2
+
+
+def test_basedataconfig_deepcopy_clears_metadata_cache(tmp_path: Path) -> None:
+    """
+    deepcopy must reset _metadata to None so each copy lazy-loads independently,
+    without duplicating the same DataFrame across multiple trial configs.
+    """
+    df = pd.DataFrame([{"a": 1, "b": 2}])
+    csv_path = tmp_path / CSV_NAME
+    df.to_csv(csv_path, index=False)
+
+    original = DummyConfig(local_data_root=str(tmp_path), azure_data=False, azure_blob_mount_point=str(tmp_path))
+    _ = original.metadata  # populate the cache
+
+    copy = deepcopy(original)
+
+    assert copy._metadata is None, "deepcopy must not carry the cached DataFrame"
+    assert original._metadata is not None, "original cache must be unaffected"
+
+    loaded = copy.metadata  # copy must still lazy-load correctly
+    assert set(loaded.columns) == {"a", "b"}
+    assert loaded.iloc[0]["a"] == 1
