@@ -47,7 +47,7 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.early_stopping_config.check_finite is True
     assert cfg.checkpoint_config.monitor == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
     assert cfg.checkpoint_config.mode == "max"
-    assert cfg.checkpoint_config.save_top_k == 3
+    assert cfg.checkpoint_config.save_top_k == 1
     assert cfg.checkpoint_config.save_last is True
     assert cfg.checkpoint_config.filename == "epoch{epoch:03d}"
     assert cfg.litlogger_config.teamspace is None
