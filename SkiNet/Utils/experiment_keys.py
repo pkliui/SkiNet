@@ -52,6 +52,21 @@ class LossFunctionKey(Enum):
 
 
 @unique
+class HyperparamKey(str, Enum):
+    """
+    Enum for hyperparameter keys used in the Optuna sweep search space.
+
+    Inherits from str so members can be used directly as dict keys against
+    plain-str-keyed dicts (e.g. search_space[HyperparamKey.LR]).
+    Adding a new hyperparameter here automatically makes validate_search_space
+    require it, preventing silent mismatches between the search space and objective.
+    """
+    LR = "lr"
+    WEIGHT_DECAY = "weight_decay"
+    BATCH_SIZE = "batch_size"
+
+
+@unique
 class MetricsKey(str, Enum):
     """
     Enum for metric keys passed to external frameworks (Lightning, MLflow, Optuna).

@@ -3,6 +3,9 @@ import torch
 from unittest.mock import MagicMock
 from SkiNet.Utils.mlops.optuna_utils import _collect_trainer_metrics, scale_lr
 from SkiNet.Utils.mlops.optuna_utils import validate_search_space
+from SkiNet.Utils.experiment_keys import HyperparamKey
+
+_EXPECTED_KEYS = set(HyperparamKey)
 
 
 # ── scale_lr ────────────────────────────────────────────────────────────────
@@ -108,7 +111,7 @@ class TestValidateSearchSpace:
             "batch_size": [8, 16],
         }
 
-        validate_search_space(search_space)
+        validate_search_space(search_space, _EXPECTED_KEYS)
 
     def test_missing_key_raises(self) -> None:
         search_space = {
@@ -117,7 +120,7 @@ class TestValidateSearchSpace:
         }
 
         with pytest.raises(ValueError, match="search_space keys do not match"):
-            validate_search_space(search_space)
+            validate_search_space(search_space, _EXPECTED_KEYS)
 
     def test_unexpected_key_raises(self) -> None:
         search_space: dict[str, list[int | float]] = {
@@ -128,7 +131,7 @@ class TestValidateSearchSpace:
         }
 
         with pytest.raises(ValueError) as exc:
-            validate_search_space(search_space)
+            validate_search_space(search_space, _EXPECTED_KEYS)
 
         assert "Unexpected:" in str(exc.value)
         assert "momentum" in str(exc.value)
@@ -141,7 +144,7 @@ class TestValidateSearchSpace:
         }
 
         with pytest.raises(ValueError) as exc:
-            validate_search_space(search_space)
+            validate_search_space(search_space, _EXPECTED_KEYS)
 
         message = str(exc.value)
         assert "momentum" in message

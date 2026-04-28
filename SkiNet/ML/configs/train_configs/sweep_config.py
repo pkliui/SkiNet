@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict, Field
+from SkiNet.Utils.experiment_keys import HyperparamKey
 
 
 class SweepConfig(BaseModel):
@@ -17,7 +18,7 @@ class SweepConfig(BaseModel):
     @property
     def search_space(self) -> dict[str, list]:
         return {
-            "lr": self.lr.copy(),
-            "weight_decay": self.weight_decay.copy(),
-            "batch_size": self.batch_size.copy(),
+            HyperparamKey.LR: self.lr.copy(),
+            HyperparamKey.WEIGHT_DECAY: self.weight_decay.copy(),
+            HyperparamKey.BATCH_SIZE: self.batch_size.copy(),
         }

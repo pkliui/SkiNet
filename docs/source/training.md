@@ -46,8 +46,21 @@ The options below assume you are inside a configured environment
 When running `optuna_sweep.py`, a single MLflow parent run wraps the whole study that consists of multiple child runs (trials),
 where the hyperparameters of each trial are sampled from the search space.
 
-- The search space is specified in the main function (can be moved to a config later)
+- The search space is specified in `SweepConfig` and hyperparameters swept over are declared in `HyperparamKey` (`SkiNet/Utils/experiment_keys.py`).
+  `HyperparamKey` is the single source of truth: adding a new member there automatically makes
+  `validate_search_space` require it and allows `build_objective` to read it — no other constant
+  needs updating.
+
+  Current members:
+
+  | Member | String key | Description |
+  |---|---|---|
+  | `HyperparamKey.LR` | `"lr"` | Base learning rate (scaled linearly with batch size) |
+  | `HyperparamKey.WEIGHT_DECAY` | `"weight_decay"` | L2 regularisation strength |
+  | `HyperparamKey.BATCH_SIZE` | `"batch_size"` | Number of samples per training batch |
+
 - The metrics that is monitored by Optuna <metrics-to-monitor> and displayed as the best at the end of the sweep is specified under ```--monitor``` argument
+(default="val_best_dice_at_threshold")
 - This metrics must also be specified in YAML config under early stopping, for example:
 ```yaml
 early_stopping_config:

@@ -2,7 +2,9 @@ import torch
 import lightning as L
 import logging
 import math
+from collections.abc import Set
 from typing import List
+from SkiNet.Utils.experiment_keys import HyperparamKey
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +54,21 @@ def scale_lr(lr: float, batch_size: int, base_batch_size: int = 16) -> float:
     return lr * (batch_size / base_batch_size)
 
 
-def validate_search_space(search_space: dict[str, List[int | float]]) -> None:
+def validate_search_space(
+    search_space: dict[str, List[int | float]],
+    expected_keys: Set[str] | None = None,
+) -> None:
     """
-    Validate search space parameters
+    Validate search space parameters against the keys the objective function reads.
 
     :param search_space: Search space parameters
-    :raises ValueError: If search space keys do not match what objective reads
+    :param expected_keys: Keys the objective function reads from search_space.
+        Defaults to the full ``HyperparamKey`` set used by the Optuna sweep.
+    :raises ValueError: If search space keys do not match expected_keys
     """
-    expected_keys = {"lr", "weight_decay", "batch_size"}
+    if expected_keys is None:
+        expected_keys = set(HyperparamKey)
+
     actual_keys = set(search_space.keys())
     if actual_keys != expected_keys:
         unexpected = actual_keys - expected_keys

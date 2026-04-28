@@ -12,6 +12,7 @@ from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from main_run import train_and_evaluate
 from SkiNet.Utils.mlops.optuna_utils import scale_lr, validate_search_space
+from SkiNet.Utils.experiment_keys import HyperparamKey
 
 logger = logging.getLogger(__name__)
 
@@ -50,9 +51,9 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         train_cfg = cfg.trainconfig
 
         # define the search space targets and reassign the respective configs
-        lr = cast(float, trial.suggest_categorical("lr", search_space["lr"]))
-        weight_decay = cast(float, trial.suggest_categorical("weight_decay", search_space["weight_decay"]))
-        batch_size = cast(int, trial.suggest_categorical("batch_size", search_space["batch_size"]))
+        lr = cast(float, trial.suggest_categorical(HyperparamKey.LR, search_space[HyperparamKey.LR]))
+        weight_decay = cast(float, trial.suggest_categorical(HyperparamKey.WEIGHT_DECAY, search_space[HyperparamKey.WEIGHT_DECAY]))
+        batch_size = cast(int, trial.suggest_categorical(HyperparamKey.BATCH_SIZE, search_space[HyperparamKey.BATCH_SIZE]))
 
         # scale LR linearly with batch size
         BASE_BATCH_SIZE = main_config.trainconfig.batch_size
@@ -143,7 +144,7 @@ def main() -> None:
 
     # define the search space based on sweep config
     search_space = main_config.sweepconfig.search_space
-    validate_search_space(search_space)
+    validate_search_space(search_space, set(HyperparamKey))
 
     # Set tracking URI from config FIRST, before any mlflow.start_run calls,
     # so the parent run and MLFlowLogger all land on the same backend.
