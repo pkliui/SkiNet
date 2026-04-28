@@ -56,7 +56,7 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         batch_size = cast(int, trial.suggest_categorical("batch_size", search_space["batch_size"]))
 
         # scale LR linearly with batch size
-        BASE_BATCH_SIZE = 16
+        BASE_BATCH_SIZE = main_config.trainconfig.batch_size
         scaled_lr = scale_lr(lr=lr, batch_size=batch_size, base_batch_size=BASE_BATCH_SIZE)
         train_cfg.lr = scaled_lr
 
@@ -69,7 +69,7 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         with mlflow.start_run(run_name=run_name, nested=True) as child_run:
             # Tag the child to be able to search/filter by study
             mlflow.set_tag("optuna_trial", trial.number)
-            mlflow.set_tag("optuna_study", main_config.trainconfig.__class__.__name__)
+            mlflow.set_tag("optuna_study", cfg.sweepconfig.experiment_name)
             # Log all search space targets
             mlflow.log_param("lr_optuna_sampled", lr)       # what Optuna picked
             mlflow.log_param("lr_actually_used", scaled_lr)  # what the model actually used
