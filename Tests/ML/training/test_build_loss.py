@@ -1,3 +1,5 @@
+import pickle
+
 import pytest
 import torch
 import segmentation_models_pytorch as smp
@@ -90,6 +92,15 @@ def test_build_loss_gradients_flow(
     result.backward()
     assert logits.grad is not None
     assert torch.isfinite(logits.grad).all()
+
+
+# --- Picklability ---
+
+def test_bce_dice_loss_is_picklable() -> None:
+    """BCEDiceLoss must be picklable for DataLoader compatibility with num_workers > 0."""
+    loss = build_loss(LossFunctionKey.BCE_DICE)
+    reloaded = pickle.loads(pickle.dumps(loss))
+    assert isinstance(reloaded, torch.nn.Module)
 
 
 # --- Error handling ---
