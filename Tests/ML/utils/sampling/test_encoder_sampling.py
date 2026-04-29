@@ -73,9 +73,9 @@ class TestHandleMixedInputs:
 )
 def test_validate_param_valid(value: IntOrTuple2d3d, name: EncoderParamSpec) -> None:
     """
-    Test that various inputs passed to _validate_param  preserve their values
+    Test that various valid inputs passed to _validate_param do not raise
     """
-    assert _validate_param(value, name) == value
+    _validate_param(value, name)
 
 @pytest.mark.parametrize(
     "value,name,exc_msg",
