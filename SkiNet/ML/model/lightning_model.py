@@ -187,7 +187,7 @@ class LightningModel(L.LightningModule):
             f"{self._tensor_debug_summary(name, tensor)}"
         )
 
-    def _shared_eval_step(self, prefix: str, batch: dict[str, torch.Tensor]) -> torch.Tensor:
+    def _shared_eval_step(self, prefix: str, batch: dict[str, torch.Tensor], batch_idx: int) -> torch.Tensor:
         """
         This is a shared function for validation and testing.
         Logs metrics and additionally saves validation probabilities
@@ -198,10 +198,14 @@ class LightningModel(L.LightningModule):
         if x is None or mask is None:  # for mypy type checking
             raise ValueError(f"Batch is missing 'image' or 'mask' keys. Found keys: {list(batch.keys())}")
         mask = self._prepare_mask(mask)
+        self._raise_if_non_finite(f"{prefix}/image", x, batch_idx)
+        self._raise_if_non_finite(f"{prefix}/mask", mask, batch_idx)
 
         # get the logits and compute loss from them
         logits = self.model(x)
+        self._raise_if_non_finite(f"{prefix}/logits", logits, batch_idx)
         loss: torch.Tensor = self.loss_fn(logits, mask)
+        self._raise_if_non_finite(f"{prefix}/loss", loss, batch_idx)
         self.log(f"{prefix}_loss", loss, on_step=False, on_epoch=True,
                  prog_bar=(prefix == "val"), logger=True, batch_size=x.shape[0])
 
@@ -300,13 +304,13 @@ class LightningModel(L.LightningModule):
         :param batch_idx: index of the current batch within the epoch
         :return: scalar validation loss
         """
-        return self._shared_eval_step("val", batch)
+        return self._shared_eval_step("val", batch, batch_idx)
 
     def test_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> torch.Tensor:
         """
         Test step using self.optimal_threshold learned during validation
         """
-        return self._shared_eval_step("test", batch)
+        return self._shared_eval_step("test", batch, batch_idx)
 
     def on_validation_epoch_end(self) -> None:
         """
