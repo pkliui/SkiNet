@@ -262,3 +262,32 @@ def test_threshold_search_clears_lists_after_update(lm: LightningModel) -> None:
         lm._compute_and_log_threshold_search_metrics_for_sigmoid()
     assert lm._val_probs == []
     assert lm._val_masks == []
+
+
+def test_threshold_search_logs_dice_threshold_gain(lm: LightningModel) -> None:
+    """Checks that val_dice_threshold_gain is logged as best_dice - fixed_thr_dice.
+
+    Probabilities are designed so the fixed 0.5 threshold yields Dice=1.0 (perfect
+    separation) and the swept best Dice is also 1.0, giving gain=0.0. A second
+    assertion uses a case where the fixed threshold misclassifies one sample so
+    gain > 0 to verify the sign and computation are correct.
+    """
+    # Case 1: fixed threshold already perfect → gain == 0
+    probs = torch.tensor([0.1, 0.2, 0.8, 0.9])
+    masks = torch.tensor([0.0, 0.0, 1.0, 1.0])
+    lm._val_probs = [probs]
+    lm._val_masks = [masks]
+    logged: dict[str, float] = {}
+    with patch.object(lm, "log", side_effect=lambda key, val, **_: logged.update({key: float(val)})):
+        lm._compute_and_log_threshold_search_metrics_for_sigmoid()
+    assert "val_dice_threshold_gain" in logged
+    assert logged["val_dice_threshold_gain"] == pytest.approx(0.0, abs=1e-5)
+
+    # Case 2: positive prob (0.6) straddles 0.5 → fixed threshold classifies it as
+    # positive when the true label is 0, so fixed-thr Dice < best Dice → gain > 0
+    lm._val_probs = [torch.tensor([0.1, 0.6, 0.9])]
+    lm._val_masks = [torch.tensor([0.0, 0.0, 1.0])]
+    logged2: dict[str, float] = {}
+    with patch.object(lm, "log", side_effect=lambda key, val, **_: logged2.update({key: float(val)})):
+        lm._compute_and_log_threshold_search_metrics_for_sigmoid()
+    assert logged2["val_dice_threshold_gain"] > 0.0

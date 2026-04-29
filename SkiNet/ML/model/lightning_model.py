@@ -121,6 +121,9 @@ class LightningModel(L.LightningModule):
             self.log("val_best_dice_at_threshold", 0.0, on_step=False, on_epoch=True, prog_bar=False, logger=True)
             return
 
+        fixed_thr_preds = (all_probs >= 0.5).long()
+        fixed_thr_dice = BinaryF1Score().to(all_probs.device)(fixed_thr_preds, all_targets).item()
+
         best_result = find_best_threshold(all_probs, all_targets)
         best_thr, best_dice = best_result["best_threshold"], best_result["best_dice"]
 
@@ -128,7 +131,7 @@ class LightningModel(L.LightningModule):
         self.log("val_optimal_threshold", self.optimal_threshold,
                  on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("val_best_dice_at_threshold", best_dice, on_step=False, on_epoch=True, prog_bar=False, logger=True)
-        self.log("val_dice_threshold_gain", best_dice - self.val_dice.compute().item(),
+        self.log("val_dice_threshold_gain", best_dice - fixed_thr_dice,
                  on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
     @staticmethod
