@@ -84,13 +84,13 @@ def test_prepare_mask_binary_float_passthrough() -> None:
     assert torch.equal(out, mask)
 
 
-def test_prepare_mask_raises_on_non_binary_soft_value() -> None:
-    """Checks that a mask containing interpolated soft values (e.g. 0.5 from
-    bilinear augmentation) raises AssertionError. Masks must be strictly binary
-    on input; silent binarisation would hide data-pipeline bugs."""
-    mask = torch.tensor([0.0, 0.5, 1.0])
-    with pytest.raises(AssertionError, match="Expected binary mask"):
-        LightningModel._prepare_mask(mask)
+def test_prepare_mask_thresholds_soft_values() -> None:
+    """Soft values from bilinear augmentation (e.g. Albumentations Affine) are
+    thresholded at 0.5 rather than rejected, matching the validation sweep."""
+    mask = torch.tensor([0.0, 0.3, 0.5, 0.7, 1.0])
+    out = LightningModel._prepare_mask(mask)
+    assert out.dtype == torch.float32
+    assert torch.equal(out, torch.tensor([0.0, 0.0, 1.0, 1.0, 1.0]))
 
 
 def test_prepare_mask_int_converted_to_float() -> None:
@@ -103,12 +103,12 @@ def test_prepare_mask_int_converted_to_float() -> None:
     assert torch.equal(out, torch.tensor([0.0, 1.0, 0.0, 1.0]))
 
 
-def test_prepare_mask_raises_on_out_of_range_value() -> None:
-    """Checks that a mask whose values exceed 1 (e.g. un-normalised pixel values)
-    raises AssertionError, catching masks that were never converted to [0, 1]."""
+def test_prepare_mask_out_of_range_value_treated_as_foreground() -> None:
+    """Values > 1 (e.g. un-normalised pixels) pass the >= 0.5 threshold and
+    become 1.0; callers are responsible for normalising before this point."""
     mask = torch.tensor([0.0, 2.0])
-    with pytest.raises(AssertionError, match="Expected binary mask"):
-        LightningModel._prepare_mask(mask)
+    out = LightningModel._prepare_mask(mask)
+    assert torch.equal(out, torch.tensor([0.0, 1.0]))
 
 
 def test_prepare_mask_max_value_one_passes() -> None:

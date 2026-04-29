@@ -136,16 +136,9 @@ class LightningModel(L.LightningModule):
 
     @staticmethod
     def _prepare_mask(mask: torch.Tensor) -> torch.Tensor:
-        """
-        Ensure the mask values are floating point numbers and that the values are binary
-
-        :param mask: mask as returned by the batch following disk read or possible augmentation
-        """
         if not torch.is_floating_point(mask):
             mask = mask.float()
-        is_binary = ((mask.abs() < 1e-5) | ((mask - 1.0).abs() < 1e-5)).all()
-        assert is_binary, f"Expected binary mask (0/1), got unique values: {mask.unique()}"
-        return mask
+        return (mask >= 0.5).float()
 
     def _get_current_lr(self) -> float | None:
         """Return the current learning rate from the first optimizer, or None if no trainer is attached."""
