@@ -130,7 +130,7 @@ class LightningModel(L.LightningModule):
         self.optimal_threshold.fill_(best_thr)
         self.log("val_optimal_threshold", self.optimal_threshold,
                  on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        self.log("val_best_dice_at_threshold", best_dice, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+        self.log("val_best_dice_at_threshold", best_dice, on_step=False, on_epoch=True, prog_bar=True, logger=True)
         self.log("val_dice_threshold_gain", best_dice - fixed_thr_dice,
                  on_step=False, on_epoch=True, prog_bar=False, logger=True)
 
