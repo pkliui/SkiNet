@@ -55,8 +55,10 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         weight_decay = cast(float, trial.suggest_categorical(HyperparamKey.WEIGHT_DECAY, search_space[HyperparamKey.WEIGHT_DECAY]))
         batch_size = cast(int, trial.suggest_categorical(HyperparamKey.BATCH_SIZE, search_space[HyperparamKey.BATCH_SIZE]))
 
-        # scale LR linearly with batch size
-        BASE_BATCH_SIZE = main_config.trainconfig.batch_size
+        # scale LR linearly with batch size, anchored to the smallest batch in the sweep
+        # so sampled LR values always represent the rate at the sweep's reference batch size,
+        # regardless of what TRAIN_CONFIG.batch_size is set to.
+        BASE_BATCH_SIZE = min(cast(list[int], search_space[HyperparamKey.BATCH_SIZE]))
         scaled_lr = scale_lr(lr=lr, batch_size=batch_size, base_batch_size=BASE_BATCH_SIZE)
         train_cfg.lr = scaled_lr
 
@@ -102,7 +104,7 @@ def main() -> None:
     trial is logged as a nested MLflow child run.
 
     The search space is fixed to:
-        - lr: [3e-4, 1e-4]          # base LRs at batch_size=16; scaled linearly per trial
+        - lr: [3e-4, 1e-4]          # base LRs at min(batch_size) in the sweep; scaled linearly per trial
         - weight_decay: [1e-4, 1e-3]
         - batch_size: [16, 32]
 

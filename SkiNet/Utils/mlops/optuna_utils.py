@@ -40,13 +40,13 @@ def _collect_trainer_metrics(light_trainer: L.Trainer) -> dict[str, float]:
     return out
 
 
-def scale_lr(lr: float, batch_size: int, base_batch_size: int = 16) -> float:
+def scale_lr(lr: float, batch_size: int, base_batch_size: int) -> float:
     """
     Scale learning rate linearly with batch size.
 
-    :param lr: Learning rate
-    :param batch_size: Batch size
-    :param base_batch_size: Base batch size (default: 16)
+    :param lr: Learning rate calibrated at ``base_batch_size``
+    :param batch_size: Target batch size for this trial
+    :param base_batch_size: Reference batch size at which ``lr`` is calibrated
     :return: Scaled learning rate
     """
     if base_batch_size <= 0:

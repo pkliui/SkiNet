@@ -20,11 +20,8 @@ class TestScaleLr:
     def test_scales_down_with_smaller_batch(self) -> None:
         assert scale_lr(3e-4, batch_size=8, base_batch_size=16) == pytest.approx(1.5e-4)
 
-    def test_default_base_batch_size_is_16(self) -> None:
-        assert scale_lr(1e-3, batch_size=16) == pytest.approx(1e-3)
-
     def test_zero_lr_returns_zero(self) -> None:
-        assert scale_lr(0.0, batch_size=32) == pytest.approx(0.0)
+        assert scale_lr(0.0, batch_size=32, base_batch_size=16) == pytest.approx(0.0)
 
     def test_zero_base_batch_size_raises(self) -> None:
         with pytest.raises(ValueError, match="base_batch_size must be positive"):
