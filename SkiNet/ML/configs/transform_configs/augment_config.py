@@ -87,21 +87,15 @@ class PhotoAugmentConfig(BaseModel):
     A review of medical image data augmentation techniques for deep learning applications.
     Journal of medical imaging and radiation oncology, 65(5), 545-563.
 
-    Basic augmentation techniques:
-    - geometric (mapping points of the image to new locations)
-        - geometric transformations (scaling, translation, rotation, flipping, shear, skew); very common
-        - cropping; used when there is class imbalance to even the balance
-        - occlusion (removing small patches of the image); used when there is class imbalance to even the balance
-    - photometric (manipulating the image intensity values)
-        - gamma contrast, linear contrast, histogram equalization
-        - filtering (convolution to sharpern, blur or smooth)
-        - adding noise (Gaussian, salt and pepper, uniform)
+    Photometric augmentation techniques:
+    - gamma contrast, linear contrast, histogram equalization
+    - filtering (convolution to sharpen, blur or smooth)
+    - adding noise (Gaussian, salt and pepper, uniform)
 
-    Deformable augmentation techniques:
-        - randomised displacement of pixels
-        - spline interpolation (B-splines)
-        - deformable image registration
-        - statistical shape models
+    Implemented transforms:
+    - ColorJitter (albumentations.ColorJitter)
+    - GaussianBlur (albumentations.GaussianBlur)
+    - GaussNoise (albumentations.GaussNoise)
     """
 
     # albumentations.ColorJitter
