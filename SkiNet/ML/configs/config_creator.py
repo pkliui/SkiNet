@@ -46,7 +46,8 @@ class ConfigCreator(ABC):
                       transformconfig_kwargs: Optional[Dict[str, Any]] = None,
                       modelconfig_kwargs: Optional[Dict[str, Any]] = None,
                       trainconfig_kwargs: Optional[Dict[str, Any]] = None,
-                      sweepconfig_kwargs: Optional[Dict[str, Any]] = None) -> ExperimentConfig:
+                      sweepconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      experiment_name: str = "") -> ExperimentConfig:
         pass
 
 
@@ -60,14 +61,15 @@ class PH2_UNet_ConfigCreator(ConfigCreator):
                       transformconfig_kwargs: Optional[Dict[str, Any]] = None,
                       modelconfig_kwargs: Optional[Dict[str, Any]] = None,
                       trainconfig_kwargs: Optional[Dict[str, Any]] = None,
-                      sweepconfig_kwargs: Optional[Dict[str, Any]] = None) -> ExperimentConfig:
+                      sweepconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      experiment_name: str = "unet2d_ph2_experiment") -> ExperimentConfig:
         dataconfig_kwargs = dataconfig_kwargs or {}
         transformconfig_kwargs = transformconfig_kwargs or {}
         modelconfig_kwargs = modelconfig_kwargs or {}
         trainconfig_kwargs = trainconfig_kwargs or {}
         sweepconfig_kwargs = sweepconfig_kwargs or {}
 
-        return ExperimentConfig(experiment_name="unet2d_ph2_experiment",
+        return ExperimentConfig(experiment_name=experiment_name,
                                 experiment_type=ExperimentType.SEGMENTATION,
                                 description="UNet2D on PH2 dataset",
                                 dataconfig=PH2DatasetConfig(**dataconfig_kwargs),

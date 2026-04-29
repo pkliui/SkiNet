@@ -89,9 +89,9 @@ def test_ph2_unet_config_creator_unknown_kwargs_behavior(
 
     if should_raise:
         with pytest.raises(ValidationError):
-            creator.create_config(**kwargs)
+            creator.create_config(**kwargs)  # type: ignore[arg-type]
     else:
-        config = creator.create_config(**kwargs)
+        config = creator.create_config(**kwargs)  # type: ignore[arg-type]
         assert isinstance(config, ExperimentConfig)
         sub_config = getattr(config, kwargs_type)
         for key in extra_kwargs:
@@ -118,6 +118,26 @@ def test_ph2_unet_config_creator_applies_transformconfig_overrides() -> None:
     assert config.transformconfig.crop.crop_type == "center_crop"
     assert config.transformconfig.crop.size == (64, 48)
     assert config.transformconfig.photometric_augmentation.color_jitter_apply is False
+
+
+def test_ph2_unet_config_creator_custom_experiment_name() -> None:
+    """
+    experiment_name kwarg should override the hardcoded default.
+    """
+    creator = PH2_UNet_ConfigCreator()
+    config = creator.create_config(experiment_name="my_custom_run")
+
+    assert config.experiment_name == "my_custom_run"
+
+
+def test_ph2_unet_config_creator_default_experiment_name_unchanged() -> None:
+    """
+    Omitting experiment_name should still produce the original default value.
+    """
+    creator = PH2_UNet_ConfigCreator()
+    config = creator.create_config()
+
+    assert config.experiment_name == "unet2d_ph2_experiment"
 
 
 def test_ph2_unet_config_creator_uses_default_transformconfig_when_not_overridden() -> None:
