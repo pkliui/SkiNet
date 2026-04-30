@@ -100,6 +100,13 @@ Example:
 RUN_TRAINING=true MODE=train bash on_start_gpu.sh
 ```
 
+- For a regular training on GPU with different seed values, the following will set up the docker environment, run MLFlow and the training. Each run will have a different seed value.
+Example:
+
+```bash
+RUN_TRAINING=true MODE=seeds SEEDS="42 200 300" bash on_start_gpu.sh
+```
+
 
 ## Reproducibility
 

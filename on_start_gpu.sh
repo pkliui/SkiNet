@@ -30,6 +30,9 @@
 # Run a training job
 # RUN_TRAINING=true MODE=train bash on_start_gpu.sh
 
+# Run training with different seeds
+# RUN_TRAINING=true MODE=seeds SEEDS="42 123 256 512 1024" bash on_start_gpu.sh
+
 # Run an Optuna sweep
 # RUN_TRAINING=true MODE=sweep bash on_start_gpu.sh
 
@@ -43,7 +46,7 @@
 set -Eeuo pipefail
 
 RUN_TRAINING="${RUN_TRAINING:-true}"  # set to true to run training automatically
-MODE="${MODE:-train}"  # "train" = main_run.py, "sweep" = optuna_sweep.py
+MODE="${MODE:-seeds}"  # "train" = main_run.py, "sweep" = optuna_sweep.py
 
 LIGHTNING_ENV_FILE=""
 trap '[[ -n "$LIGHTNING_ENV_FILE" ]] && rm -f "$LIGHTNING_ENV_FILE"' EXIT
@@ -120,10 +123,17 @@ LIGHTNING_ENV_FILE="$(mktemp)"
 env | grep '^LIGHTNING_' > "$LIGHTNING_ENV_FILE" || true
 
 echo "==> Selecting the Python command based on MODE"
+SEEDS="${SEEDS:-1 2 3 4 5}"  # space-separated list of seeds, used only when MODE=seeds
+
 if [[ "$MODE" == "sweep" ]]; then
   PYTHON_CMD="$PYTHON_BIN -u optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize"
-else
+elif [[ "$MODE" == "seeds" ]]; then
+  PYTHON_CMD="$PYTHON_BIN -u run_seeds.py --config main_config.yaml --seeds $SEEDS"
+elif [[ "$MODE" == "train" ]]; then
   PYTHON_CMD="$PYTHON_BIN -u main_run.py --config main_config.yaml"
+else
+  echo "ERROR: Unknown MODE='$MODE'. Valid values: train, sweep, seeds"
+  exit 1
 fi
 
 echo "==> Selected command to run in Docker is $PYTHON_CMD"
@@ -143,7 +153,7 @@ if [[ "$RUN_TRAINING" == "true" ]]; then
   echo "==> RUNNING container non-interactively and MLflow server in background"
   echo "==> Command to run is $PYTHON_CMD"
   CONTAINER_NAME="skinet-$(date +%s)"
-  docker run -it --name "$CONTAINER_NAME" \
+  docker run --name "$CONTAINER_NAME" \
     -p 5000:5000 \
     --gpus all \
     --ipc=host \
@@ -161,26 +171,29 @@ if [[ "$RUN_TRAINING" == "true" ]]; then
       exec $PYTHON_CMD
     " && DOCKER_EXIT=0 || DOCKER_EXIT=$?
 
+  echo "==> Docker exited with code $DOCKER_EXIT"
   if [[ $DOCKER_EXIT -eq 0 ]]; then
     echo "==> Training succeeded. Cleaning up container..."
     docker rm "$CONTAINER_NAME"
-    echo "==> Container exited cleanly. Releasing GPU..."
+    echo "==> Container removed. Waiting for GPU to detach..."
+    sleep 10
+    echo "==> Releasing GPU..."
     python3 -c "
-from lightning_sdk import Studio
+from lightning_sdk import Studio, Machine
 studio = Studio()
 try:
-    studio.stop()
-    print('Studio stopped successfully.')
-except Exception as e2:
-    print(f'studio.stop() failed: {e2}')
+    studio.switch_machine(Machine.CPU)
+    print('GPU released — switched to CPU successfully.')
+except Exception as e:
+    print(f'switch_machine(CPU) failed: {e}')
     print('Please switch to CPU manually in the Lightning UI.')
-    "
+"
     echo "==> Done."
   else
     echo "==> Container '$CONTAINER_NAME' exited with code $DOCKER_EXIT. Keeping for debugging."
     echo "==> To re-enter: docker start $CONTAINER_NAME && docker exec -it $CONTAINER_NAME bash"
     echo "==> To clean up when done: docker rm $CONTAINER_NAME"
-    echo "==> Keeping GPU alive."
+    echo "==> GPU NOT released — switch to CPU manually in the Lightning UI if needed."
   fi
 else
   echo "==> RUN_TRAINING=false, skipping training. Start container manually."
