@@ -81,18 +81,22 @@ class SegmentationDatasetFactory(DatasetFactory[SegmentationDataset]):
         splits = split_segmentation_metadata(df=metadata_df,
                                              split_config=split_config)
         transformations = get_transform_from_config(config)
+        cache_in_ram = config.trainconfig.cache_in_ram
         train_dataset = SegmentationDataset(config.dataconfig.data_root,
                                             splits.train,
                                             transformations.train,
-                                            MLWorkflowState.TRAIN)
+                                            MLWorkflowState.TRAIN,
+                                            cache_in_ram=cache_in_ram)
         val_dataset = SegmentationDataset(config.dataconfig.data_root,
                                           splits.val,
                                           transformations.val,
-                                          MLWorkflowState.VAL)
+                                          MLWorkflowState.VAL,
+                                          cache_in_ram=cache_in_ram)
         test_dataset = SegmentationDataset(config.dataconfig.data_root,
                                            splits.test,
                                            transformations.test,
-                                           MLWorkflowState.TEST)
+                                           MLWorkflowState.TEST,
+                                           cache_in_ram=cache_in_ram)
 
         # log basic info for observability
         try:

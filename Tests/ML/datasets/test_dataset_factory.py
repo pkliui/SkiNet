@@ -32,7 +32,7 @@ class DummyDatasetConfig:
         return self.split_config
 
 
-def _make_config(experiment_type: Any = ExperimentType.SEGMENTATION) -> ExperimentConfig:
+def _make_config(experiment_type: Any = ExperimentType.SEGMENTATION, cache_in_ram: bool = False) -> ExperimentConfig:
     """
     Helper to create a dummy ExperimentConfig for segmentation experiments,
     with a simple metadata DataFrame and a SplitConfig.
@@ -51,6 +51,7 @@ def _make_config(experiment_type: Any = ExperimentType.SEGMENTATION) -> Experime
         SimpleNamespace(
             experiment_type=experiment_type,
             dataconfig=DummyDatasetConfig(metadata=metadata_df, split_config=split_config, data_root=data_root),
+            trainconfig=SimpleNamespace(cache_in_ram=cache_in_ram),
         ),
     )
 
@@ -119,12 +120,13 @@ def test_segmentation_dataset_factory_creates_expected_split(monkeypatch: pytest
         so assertions can verify the factory wired everything correctly.
         """
 
-        def __init__(self, config: object, dataframe: pd.DataFrame, transform: object, mode: object) -> None:
+        def __init__(self, data_root: object, dataframe: pd.DataFrame, transform: object, mode: object, cache_in_ram: bool = True) -> None:
             created_datasets.append({
-                "config": config,
+                "data_root": data_root,
                 "dataframe": dataframe,
                 "transform": transform,
                 "mode": mode,
+                "cache_in_ram": cache_in_ram,
             })
 
     monkeypatch.setattr("SkiNet.ML.datasets.dataset_factory.split_segmentation_metadata",
@@ -137,17 +139,59 @@ def test_segmentation_dataset_factory_creates_expected_split(monkeypatch: pytest
     assert split.splits is fake_splits
     assert len(created_datasets) == 3
 
+    assert created_datasets[0]["data_root"] is config.dataconfig.data_root
     assert created_datasets[0]["dataframe"] is train_df
     assert created_datasets[0]["transform"] == "train_tf"
     assert created_datasets[0]["mode"] == MLWorkflowState.TRAIN
+    assert created_datasets[0]["cache_in_ram"] == config.trainconfig.cache_in_ram
 
+    assert created_datasets[1]["data_root"] is config.dataconfig.data_root
     assert created_datasets[1]["dataframe"] is val_df
     assert created_datasets[1]["transform"] == "val_tf"
     assert created_datasets[1]["mode"] == MLWorkflowState.VAL
+    assert created_datasets[1]["cache_in_ram"] == config.trainconfig.cache_in_ram
 
+    assert created_datasets[2]["data_root"] is config.dataconfig.data_root
     assert created_datasets[2]["dataframe"] is test_df
     assert created_datasets[2]["transform"] == "test_tf"
     assert created_datasets[2]["mode"] == MLWorkflowState.TEST
+    assert created_datasets[2]["cache_in_ram"] == config.trainconfig.cache_in_ram
+
+
+@pytest.mark.parametrize("cache_in_ram", [True, False])
+def test_segmentation_dataset_factory_forwards_cache_in_ram(monkeypatch: pytest.MonkeyPatch, cache_in_ram: bool) -> None:
+    """
+    Verify that cache_in_ram is read from config.trainconfig and forwarded
+    to every SegmentationDataset constructor call.
+    """
+    config = _make_config(cache_in_ram=cache_in_ram)
+    factory = SegmentationDatasetFactory()
+
+    train_df = pd.DataFrame({"sampleid": ["train"]})
+    val_df = pd.DataFrame({"sampleid": ["val"]})
+    test_df = pd.DataFrame({"sampleid": ["test"]})
+    fake_splits = DataFrameSplits(train=train_df, val=val_df, test=test_df)
+
+    monkeypatch.setattr(
+        "SkiNet.ML.datasets.dataset_factory.split_segmentation_metadata",
+        lambda df, split_config: fake_splits,
+    )
+    monkeypatch.setattr(
+        "SkiNet.ML.datasets.dataset_factory.get_transform_from_config",
+        lambda cfg: SimpleNamespace(train=None, val=None, test=None),
+    )
+
+    received_cache_flags: list[bool] = []
+
+    class FakeSegmentationDataset:
+        def __init__(self, data_root: object, dataframe: pd.DataFrame, transform: object, mode: object, cache_in_ram: bool = True) -> None:
+            received_cache_flags.append(cache_in_ram)
+
+    monkeypatch.setattr("SkiNet.ML.datasets.dataset_factory.SegmentationDataset", FakeSegmentationDataset)
+
+    factory.create_datasets(config)
+
+    assert received_cache_flags == [cache_in_ram, cache_in_ram, cache_in_ram]
 
 
 def test_create_segmentation_datasets_from_config_delegates_to_factory(

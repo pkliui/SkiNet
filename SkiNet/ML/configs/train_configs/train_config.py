@@ -110,6 +110,7 @@ class TrainConfig(BaseModel):
     num_workers: int | None = Field(default=None, ge=0)
     pin_memory: bool | None = Field(default=None)
     prefetch_factor: int | None = Field(default=None, ge=1)
+    cache_in_ram: bool = Field(default=True)
     # LightningModel params
     loss_name: LossFunctionKey = Field(
         default=LossFunctionKey.BCE_DICE,
@@ -118,6 +119,11 @@ class TrainConfig(BaseModel):
     optimizer_name: str = Field(default="adamw")
     lr: float = Field(default=1e-4, gt=0)
     weight_decay: float = Field(default=1e-4, ge=0)
+    optimal_threshold: float | None = Field(
+        default=None, ge=0.0, le=1.0,
+        description="Fixed sigmoid threshold to use instead of sweeping. "
+                    "When None (default), the threshold is found via grid search each validation epoch."
+    )
     seed: int = Field(default=42, ge=0)
     deterministic: bool = Field(default=True)
     # L.Trainer params

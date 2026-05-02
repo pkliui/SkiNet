@@ -2,34 +2,20 @@ from SkiNet.Utils.csv_headers import DATAPATH_HEADER, DATATYPE_HEADER, DATATYPE_
 from SkiNet.ML.transformations.transform_adapters import AlbumentationsSampleTransform
 from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
 from SkiNet.ML.datasets.sample_specs import Sample
+from SkiNet.ML.utils.model_utils import MLWorkflowState
 from torchvision.io import write_png
 import torch
 import pandas as pd
 import numpy as np
 import albumentations as A
-from typing import Any, cast
-from types import SimpleNamespace
 from pathlib import Path
 import pytest
-pytest.skip("temp disable", allow_module_level=True)
 
 
 CROP_SIZE = (512, 512)  # as per augmentations config
 IMG_SIZE = (572, 765)  # as in main_run dummy sample
 IMG_CHANNELS = 3  # as in main_run dummy sample
 MASK_SIZE = (572, 765)  # as in main_run dummy sample
-
-
-def _make_config(df: pd.DataFrame, data_root: Path) -> Any:
-    """
-    Create a configuration object for the dataset mimicking
-    config.dataconfig.metadata and config.dataconfig.data_root.
-    """
-    cfg = SimpleNamespace(
-        metadata=df,
-        data_root=str(data_root),
-    )
-    return SimpleNamespace(dataconfig=cfg)
 
 
 class IdentityTransform:
@@ -141,9 +127,13 @@ def test_segmentation_dataset_len(tmp_path: Path, rows: list[dict], expected_len
     ensuring that only valid samples are counted.
     """
     df = pd.DataFrame(rows)
-    config = _make_config(df, tmp_path)
-
-    dataset = SegmentationDataset(config=config, transform=IdentityTransform())
+    dataset = SegmentationDataset(
+        data_root=tmp_path,
+        dataframe=df,
+        transform=IdentityTransform(),
+        mode=MLWorkflowState.TRAIN,
+        cache_in_ram=False,
+    )
 
     assert len(dataset) == expected_len
 
@@ -172,13 +162,17 @@ def test_segmentation_dataset_get_raw_sample_preserves_loaded_shape_and_dtype(tm
             },
         ]
     )
-    config = _make_config(df, tmp_path)
-    config = cast(Any, config)
-    dataset = SegmentationDataset(config=config, transform=IdentityTransform())
+    dataset = SegmentationDataset(
+        data_root=tmp_path,
+        dataframe=df,
+        transform=IdentityTransform(),
+        mode=MLWorkflowState.TRAIN,
+        cache_in_ram=False,
+    )
 
     raw_sample = dataset.get_raw_sample(0)  # CHW, uint8
 
-    # decode_image returns (C, H, W) where C=3 for RGB imagesß
+    # decode_image returns (C, H, W) where C=3 for RGB images
     assert raw_sample.image.shape == (IMG_CHANNELS, IMG_SIZE[0], IMG_SIZE[1])
     # decode_image returns (C, H, W) where C=1 for grayscale masks
     assert raw_sample.mask.shape == (1, MASK_SIZE[0], MASK_SIZE[1])
@@ -271,9 +265,13 @@ def test_segmentation_dataset_getitem_returns_expected_shapes_and_dtypes_after_t
             },
         ]
     )
-    config = _make_config(df, tmp_path)
-    config = cast(Any, config)
-    dataset = SegmentationDataset(config=config, transform=transform)
+    dataset = SegmentationDataset(
+        data_root=tmp_path,
+        dataframe=df,
+        transform=transform,
+        mode=MLWorkflowState.TRAIN,
+        cache_in_ram=False,
+    )
 
     item = dataset[0]
 
@@ -311,8 +309,13 @@ def test_segmentation_dataset_getitem_bad_index_raises(
             },
         ]
     )
-    config = _make_config(df, tmp_path)
-    dataset = SegmentationDataset(config=config, transform=IdentityTransform())
+    dataset = SegmentationDataset(
+        data_root=tmp_path,
+        dataframe=df,
+        transform=IdentityTransform(),
+        mode=MLWorkflowState.TRAIN,
+        cache_in_ram=False,
+    )
 
     with pytest.raises(IndexError):
         _ = dataset[bad_index]
@@ -358,11 +361,14 @@ def test_segmentation_dataset_preserves_sample_id_order(tmp_path: Path, preserve
             },
         ]
     )
-    config = _make_config(df, tmp_path)
-    dataset = SegmentationDataset(config=config, transform=IdentityTransform())
+    dataset = SegmentationDataset(
+        data_root=tmp_path,
+        dataframe=df,
+        transform=IdentityTransform(),
+        mode=MLWorkflowState.TRAIN,
+        cache_in_ram=False,
+    )
 
-    # rebuild sample_specs using the module helper with the chosen ordering,
-    # then set dataset fields so the test verifies both modes without changing production code.
     from SkiNet.ML.datasets.sample_specs import create_valid_samplespecs
 
     specs = create_valid_samplespecs(df, preserve_original_order=preserve_original_order)
@@ -370,3 +376,76 @@ def test_segmentation_dataset_preserves_sample_id_order(tmp_path: Path, preserve
     dataset.sample_ids = list(specs.keys())
 
     assert dataset.sample_ids == expected_order
+
+
+def test_segmentation_dataset_cache_in_ram_serves_same_item_as_no_cache(tmp_path: Path) -> None:
+    """
+    cache_in_ram=True should produce identical __getitem__ output to cache_in_ram=False,
+    confirming that the cache path is exercised and doesn't alter the returned data.
+    """
+    image_rel_path, mask_rel_path = _write_png_sample_files(tmp_path)
+
+    df = pd.DataFrame(
+        [
+            {SAMPLEID_HEADER: "sample-1", DATATYPE_HEADER: DATATYPE_IMAGE, DATAPATH_HEADER: image_rel_path, "site": "A"},
+            {SAMPLEID_HEADER: "sample-1", DATATYPE_HEADER: DATATYPE_MASK, DATAPATH_HEADER: mask_rel_path, "site": "A"},
+        ]
+    )
+
+    transform = AlbumentationsSampleTransform(
+        pipeline=A.Compose([A.CenterCrop(height=CROP_SIZE[0], width=CROP_SIZE[1]), A.ToTensorV2(transpose_mask=True)]),
+        expects_tensor_output=True,
+    )
+
+    cached = SegmentationDataset(data_root=tmp_path, dataframe=df, transform=transform,
+                                 mode=MLWorkflowState.TRAIN, cache_in_ram=True)
+    uncached = SegmentationDataset(data_root=tmp_path, dataframe=df, transform=transform,
+                                   mode=MLWorkflowState.TRAIN, cache_in_ram=False)
+
+    item_cached = cached[0]
+    item_uncached = uncached[0]
+
+    assert torch.equal(item_cached["image"], item_uncached["image"])
+    assert torch.equal(item_cached["mask"], item_uncached["mask"])
+    assert item_cached["specs"] == item_uncached["specs"]
+
+
+def test_segmentation_dataset_cache_is_populated_on_init(tmp_path: Path) -> None:
+    """
+    When cache_in_ram=True, _cache should be a dict keyed by sample_id after __init__,
+    containing pre-loaded Sample objects.
+    """
+    image_rel_path, mask_rel_path = _write_png_sample_files(tmp_path)
+
+    df = pd.DataFrame(
+        [
+            {SAMPLEID_HEADER: "sample-1", DATATYPE_HEADER: DATATYPE_IMAGE, DATAPATH_HEADER: image_rel_path, "site": "A"},
+            {SAMPLEID_HEADER: "sample-1", DATATYPE_HEADER: DATATYPE_MASK, DATAPATH_HEADER: mask_rel_path, "site": "A"},
+        ]
+    )
+
+    dataset = SegmentationDataset(
+        data_root=tmp_path, dataframe=df, transform=IdentityTransform(), mode=MLWorkflowState.TRAIN, cache_in_ram=True
+    )
+
+    assert dataset._cache is not None
+    assert list(dataset._cache.keys()) == dataset.sample_ids
+    cached_sample = dataset._cache["sample-1"]
+    assert isinstance(cached_sample.image, torch.Tensor)
+    assert cached_sample.image.dtype == torch.uint8
+
+
+def test_segmentation_dataset_no_cache_is_none(tmp_path: Path) -> None:
+    """When cache_in_ram=False, _cache should remain None."""
+    df = pd.DataFrame(
+        [
+            {SAMPLEID_HEADER: "sample-1", DATATYPE_HEADER: DATATYPE_IMAGE, DATAPATH_HEADER: "images/img1.png", "site": "A"},
+            {SAMPLEID_HEADER: "sample-1", DATATYPE_HEADER: DATATYPE_MASK, DATAPATH_HEADER: "masks/mask1.png", "site": "A"},
+        ]
+    )
+
+    dataset = SegmentationDataset(
+        data_root=tmp_path, dataframe=df, transform=IdentityTransform(), mode=MLWorkflowState.TRAIN, cache_in_ram=False
+    )
+
+    assert dataset._cache is None

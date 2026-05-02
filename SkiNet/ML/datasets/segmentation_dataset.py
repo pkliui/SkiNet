@@ -36,9 +36,12 @@ class SegmentationDataset(BaseDataset):
                  data_root: Path,
                  dataframe: pd.DataFrame,
                  transform: SampleTransformAdapter,
-                 mode: MLWorkflowState) -> None:
+                 mode: MLWorkflowState,
+                 cache_in_ram: bool = True) -> None:
         """
         :param config: The experiment configuration containing dataset metadata and data root information.
+        :param cache_in_ram: If True, all samples are loaded from disk once at startup and kept in RAM.
+            Eliminates per-epoch disk I/O so workers only perform augmentation. Recommended for small datasets.
         """
         self.dataframe = dataframe
         """A pandas DataFrame containing metadata for the dataset. It should be provided directly
@@ -52,6 +55,16 @@ class SegmentationDataset(BaseDataset):
         """A list of sample IDs corresponding to the valid samples in the dataset, derived from the sample specifications."""
         self.transform = transform
         self.mode = mode
+
+        if cache_in_ram:
+            logger.info("Caching %d samples in RAM for %s split...", len(self.sample_ids), mode)
+            self._cache: dict[str, Sample] | None = {
+                sid: load_sample(self.sample_specs[sid], data_root=self.data_root)
+                for sid in self.sample_ids
+            }
+            logger.info("RAM cache ready for %s split.", mode)
+        else:
+            self._cache = None
 
     def __getitem__(self, index: int) -> dict[str, Any]:
         return self.get_sample_item(index)
@@ -73,9 +86,11 @@ class SegmentationDataset(BaseDataset):
 
         :return: A dictionary containing the image tensor, mask tensor, and sample specifications for the specified index.
         """
-        specs_item = self.sample_specs[self.sample_ids[index]]
-        sample = load_sample(specs_item,
-                             data_root=self.data_root)  # image and mask should be CHW, uint8
+        sid = self.sample_ids[index]
+        if self._cache is not None:
+            sample = self._cache[sid]
+        else:
+            sample = load_sample(self.sample_specs[sid], data_root=self.data_root)
 
         transformed_sample = self.transform(sample=sample)
 

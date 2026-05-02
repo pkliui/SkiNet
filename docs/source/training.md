@@ -25,6 +25,12 @@ chmod +x start_mlflow.sh
 ssh -N -L 5000:localhost:5000 ssh_connection_string_from_your_studio@ssh.lightning.ai
 ```
 
+### GPU utilisation
+
+```bash
+nvidia-smi dmon -s u
+```
+
 ## Set up training
 
 - All settings are expected to be specified in ```main_config.yaml```
