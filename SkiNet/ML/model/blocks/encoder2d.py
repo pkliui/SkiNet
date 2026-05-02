@@ -1,4 +1,4 @@
-from typing import Callable, cast
+from typing import Callable, Literal, cast
 
 import torch.nn as nn
 from torch import Tensor
@@ -9,31 +9,43 @@ from SkiNet.ML.utils.sampling.base_sampling import EncoderParams2D
 
 class Encoder2D(nn.Module):
     """
-    Encoder2D is an encoder block composed of a downsampling and a shape-preserving convolutional layers.
-    Instead of the standard ResNet pattern, where the shortcut starts from the block input, this encoder first
-    downsamples the input and then applies a local residual refinement on that intermediate representation:
+    Encoder2D is an encoder block composed of a downsampling and a shape-preserving convolutional layer.
 
-        h = Conv-BN-Act(x)
-        y = Conv-BN-Act(h) + h
+    Two residual modes are supported:
 
-    Here the first convolution typically uses stride > 1, so the original block input and the output of the second
-    convolution generally have mismatched spatial dimensions. Reusing the output of the first convolution as the skip
-    path preserves a direct additive route through the downsampled features while letting the second convolution learn
-    a refinement:
-    - He et al., "Deep Residual Learning for Image Recognition" (CVPR 2016)
-    - He et al., "Identity Mappings in Deep Residual Networks" (ECCV 2016)
+    ``local_refinement``:
+        Post-activation pattern. The first conv downsamples, the second refines at the downsampled
+        resolution, and the skip connection reuses the downsampled intermediate — not the original
+        block input:
 
-    :param in_channels: Number of input channels.
-    :param out_channels: Number of output channels.
-    :param conv_params: An `EncoderParams2D` instance with validated kernel, stride, dilation, and computed padding.
-    :param apply_bias: If True, adds a learnable bias to the output. Note that this parameter is ignored and set to False in Conv2dLayer
-        when `apply_batchnorm=True` because batch normalization includes its own learnable parameters.
-    :param apply_batchnorm: If True, applies batch normalization after convolution.
-    :param activation: Non-linear activation function applied after batch normalization. If None, no activation is applied.
-    :param use_residual: If True, enables a skip connection that adds the first convolution's output to the final output of the block.
-    :param layer_number: The layer number within the encoder block. The upper-most layer is 1.
+            h = Conv-BN-Act(x)          # downsamples
+            y = Conv-BN-Act(h) + h      # refines; skip from h, not x
 
-    :return: Output tensor after applying convolution, optional batch normalization, and optional activation.
+        Because x and y have mismatched spatial dimensions, a true identity shortcut from x is not
+        possible. Using h as the skip preserves a direct additive path through the downsampled features.
+
+    ``he2``:
+        Pre-activation pattern (He et al., "Identity Mappings in Deep Residual Networks", ECCV 2016).
+        BN and activation are applied before each conv, keeping the residual branch as a clean identity:
+
+            h = Conv(BN-Act(x))         # downsamples; no BN/Act inside conv
+            y = Conv(BN-Act(h)) + P(x)  # refines; P is a 1×1 projection shortcut
+
+        Requires ``use_residual=True`` — enforced at construction.
+
+    References:
+        - He et al., "Deep Residual Learning for Image Recognition" (CVPR 2016)
+        - He et al., "Identity Mappings in Deep Residual Networks" (ECCV 2016)
+
+    :param layer_number: Position of this block within the encoder stack; 1 is the topmost layer.
+    :param in_channels: Number of input channels into the encoder block.
+    :param out_channels: Number of output channels out of the encoder block.
+    :param conv_params: Validated kernel, stride, dilation, and padding for the convolutional layers.
+    :param apply_bias: If True, adds a learnable bias. Ignored (forced False) when ``apply_batchnorm=True``
+        at Conv2dLayer construction because BN subsumes the bias.
+    :param activation: Factory for the non-linear activation (e.g. ``nn.ReLU``).
+    :param use_residual: If True, adds a skip connection. Must be True for ``he2`` and if not, raises an error.
+    :param residual_mode: Residual pattern — ``"local_refinement"`` or ``"he2"``. Defaults to ``"he2"``.
     """
 
     def __init__(self,
@@ -42,42 +54,97 @@ class Encoder2D(nn.Module):
                  out_channels: int,
                  conv_params: EncoderParams2D,
                  apply_bias: bool,
-                 apply_batchnorm: bool,
                  activation: Callable[[], nn.Module],
-                 use_residual: bool):
+                 use_residual: bool,
+                 residual_mode: Literal["local_refinement",
+                                        "he2"] = "he2"):
         super().__init__()
-
-        self.use_residual = use_residual
         self.layer_number = layer_number
+        self.out_channels = out_channels
+        self.use_residual = use_residual
+        self.residual_mode = residual_mode
+
         self.merging_layer = False
         """Denotes if the layer merges the output of a decoder with a skip connection. Required for the forward method of the UNet."""
 
-        # downsampling convolutional layer
-        self.conv2d_layer1 = Conv2dLayer(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel=conv_params.kernel,
-            stride=conv_params.stride,
-            dilation=conv_params.dilation,
-            padding=conv_params.padding,
-            apply_bias=apply_bias,
-            apply_batchnorm=apply_batchnorm,
-            activation=activation)
+        if self.residual_mode == "local_refinement":
+            self.batchnorm2d_out = nn.BatchNorm2d(out_channels)
+            self.activation = activation()
 
-        # use stride = 1 in the second layer to keep the size of the downsampled output
-        self.conv2d_layer2 = Conv2dLayer(
-            in_channels=out_channels,
-            out_channels=out_channels,
-            kernel=conv_params.kernel,
-            stride=(1, 1),
-            dilation=conv_params.dilation,
-            padding=conv_params.padding,
-            apply_bias=apply_bias,
-            apply_batchnorm=apply_batchnorm,
-            activation=activation)
+            self.conv_downsample = Conv2dLayer(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel=conv_params.kernel,
+                stride=conv_params.stride,
+                dilation=conv_params.dilation,
+                padding=conv_params.padding,
+                apply_bias=apply_bias,
+                apply_batchnorm=True,
+                activation=activation)
+
+            # stride=1 keeps the spatial size of the downsampled output
+            self.conv_refine = Conv2dLayer(
+                in_channels=out_channels,
+                out_channels=out_channels,
+                kernel=conv_params.kernel,
+                stride=(1, 1),
+                dilation=conv_params.dilation,
+                padding=conv_params.padding,
+                apply_bias=apply_bias,
+                apply_batchnorm=True,
+                activation=activation)
+
+        elif self.residual_mode == "he2":
+            if not use_residual:
+                raise ValueError("use_residual=False is incompatible with he2 and is ignored")
+
+            # batchnorm2d_in normalises in_channels features; batchnorm2d_out normalises out_channels features
+            self.batchnorm2d_in = nn.BatchNorm2d(in_channels)
+            self.batchnorm2d_out = nn.BatchNorm2d(out_channels)
+            self.activation = activation()
+
+            self.conv_no_BNAct_downsample = Conv2dLayer(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel=conv_params.kernel,
+                stride=conv_params.stride,
+                dilation=conv_params.dilation,
+                padding=conv_params.padding,
+                apply_bias=apply_bias,
+                apply_batchnorm=False,
+                activation=None)
+
+            # stride=1 keeps the spatial size of the downsampled output
+            self.conv_no_BNAct_refine = Conv2dLayer(
+                in_channels=out_channels,
+                out_channels=out_channels,
+                kernel=conv_params.kernel,
+                stride=(1, 1),
+                dilation=conv_params.dilation,
+                padding=conv_params.padding,
+                apply_bias=apply_bias,
+                apply_batchnorm=False,
+                activation=None)
+
+            # 1×1 projection shortcut to match spatial and channel dimensions of the block output
+            self.shortcut = Conv2dLayer(
+                in_channels=in_channels,
+                out_channels=out_channels,
+                kernel=(1, 1),
+                stride=conv_params.stride,
+                dilation=(1, 1),
+                padding=(0, 0),
+                apply_bias=apply_bias,
+                apply_batchnorm=False,
+                activation=None)
 
     def forward(self, x: Tensor) -> Tensor:
-        x = self.conv2d_layer1(x)
-        conv2 = self.conv2d_layer2(x)
-        # Residual refinement over the downsampled feature map, not a shortcut from the original block input.
-        return cast(Tensor, conv2 + x if self.use_residual else conv2)
+        if self.residual_mode == "local_refinement":
+            conv1 = self.conv_downsample(x)
+            conv2 = self.conv_refine(conv1)
+            # skip from the downsampled intermediate, not the original block input
+            return cast(Tensor, conv2 + conv1 if self.use_residual else conv2)
+        elif self.residual_mode == "he2":
+            conv1 = self.conv_no_BNAct_downsample(self.activation(self.batchnorm2d_in(x)))
+            conv2 = self.conv_no_BNAct_refine(self.activation(self.batchnorm2d_out(conv1)))
+            return cast(Tensor, conv2 + self.shortcut(x))

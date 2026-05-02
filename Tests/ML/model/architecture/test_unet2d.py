@@ -425,3 +425,25 @@ def test_forward_with_validation_disabled_does_not_validate() -> None:
     mock_keys.assert_not_called()
     mock_count.assert_not_called()
     mock_log.assert_not_called()
+
+
+def test_forward_with_validation_enabled_calls_validators() -> None:
+    """
+    With validate_forward=True, forward should call all three validation helpers exactly once.
+    """
+    x = torch.randn(1, 3, 64, 64)
+
+    model = UNet2D(in_channels=3, out_channels_layer1=8, number_of_layers=4,
+                   num_output_classes=1, validate_forward=True)
+    model.eval()
+
+    with patch.object(model, "_validate_skip_keys") as mock_keys, \
+            patch.object(model, "_validate_skip_count") as mock_count, \
+            patch.object(model, "_log_near_zero_skips") as mock_log, \
+            torch.no_grad():
+        y = model(x)
+
+    assert y.shape == (1, 1, 64, 64)
+    mock_keys.assert_called_once()
+    mock_count.assert_called_once()
+    mock_log.assert_called_once()

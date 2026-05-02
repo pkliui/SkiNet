@@ -29,6 +29,7 @@ class EncoderPath:
     encoders: nn.ModuleList
     out_channels: int
 
+
 @dataclass(frozen=True)
 class DecoderPath:
     """
@@ -52,7 +53,8 @@ class DecoderPath:
     def __post_init__(self) -> None:
         # Invariant 1: Pairing count
         if len(self.decoders) != len(self.mergeblocks):
-            err = "Decoder count %s != merge block count %s. Decoders and merge blocks must be paired 1:1." % (len(self.decoders), len(self.mergeblocks))
+            err = "Decoder count %s != merge block count %s. Decoders and merge blocks must be paired 1:1." % (
+                len(self.decoders), len(self.mergeblocks))
             logger.error(err)
             raise ValueError(err)
 
@@ -77,9 +79,11 @@ class DecoderPath:
             shallowest_decoder_out = self.decoders[-1].out_channels
             if self.out_channels != shallowest_decoder_out:
                 err = "Output channel mismatch: "\
-                    "DecoderPath.out_channels=%s != shallowest_decoder.out_channels=%s" % (self.out_channels, shallowest_decoder_out)
+                    "DecoderPath.out_channels=%s != shallowest_decoder.out_channels=%s" % (
+                        self.out_channels, shallowest_decoder_out)
                 logger.error(err)
                 raise ValueError(err)
+
 
 class UNet2D(BaseSegmentation):
     """
@@ -168,7 +172,6 @@ class UNet2D(BaseSegmentation):
                                   out_channels=out_channels,
                                   conv_params=self.layer1_params,
                                   apply_bias=False,
-                                  apply_batchnorm=True,
                                   activation=nn.ReLU,
                                   use_residual=True,
                                   layer_number=1))
@@ -182,7 +185,6 @@ class UNet2D(BaseSegmentation):
                                       out_channels=out_channels,
                                       conv_params=self.params,
                                       apply_bias=False,
-                                      apply_batchnorm=True,
                                       activation=nn.ReLU,
                                       use_residual=True,
                                       layer_number=layer_number))
@@ -223,7 +225,8 @@ class UNet2D(BaseSegmentation):
                                       decoder_params=self.decoder_params,
                                       activation=nn.ReLU))
             mergeblocks.append(Merge2DBlock(layer_number=layer_number,
-                                            in_channels=out_channels,
+                                            in_channels_from_decoder=out_channels,
+                                            in_channels_from_skip=out_channels,
                                             out_channels=out_channels,
                                             conv_params=self.params,
                                             activation=nn.ReLU))
