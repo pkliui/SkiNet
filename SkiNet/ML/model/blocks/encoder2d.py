@@ -148,3 +148,5 @@ class Encoder2D(nn.Module):
             conv1 = self.conv_no_BNAct_downsample(self.activation(self.batchnorm2d_in(x)))
             conv2 = self.conv_no_BNAct_refine(self.activation(self.batchnorm2d_out(conv1)))
             return cast(Tensor, conv2 + self.shortcut(x))
+        else:
+            raise ValueError(f"Unknown residual_mode: {self.residual_mode!r}")

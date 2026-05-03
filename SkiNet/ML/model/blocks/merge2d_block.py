@@ -155,3 +155,5 @@ class Merge2DBlock(nn.Module):
         elif self.residual_mode == "local_refinement":
             h = self.activation(self.batchnorm2d_out(sum_of_convs))
             return cast(Tensor, self.conv_refine(h) + h)
+        else:
+            raise ValueError(f"Unknown residual_mode: {self.residual_mode!r}")

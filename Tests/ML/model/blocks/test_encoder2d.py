@@ -241,6 +241,20 @@ class TestEncoder2D:
     # local_refinement-specific structural tests
     # ------------------------------------------------------------------
 
+    def test_encoder2d_invalid_residual_mode_raises_in_forward(self) -> None:
+        """forward() raises ValueError for an unrecognised residual_mode (guards the else branch)."""
+        encoder = Encoder2D(in_channels=3,
+                            out_channels=6,
+                            conv_params=get_encoder_params_2d(kernel=3, stride=1, dilation=1),
+                            use_residual=True,
+                            apply_bias=False,
+                            activation=ReLU,
+                            layer_number=0,
+                            residual_mode="he2")
+        encoder.residual_mode = "invalid_mode"  # type: ignore[assignment]
+        with pytest.raises(ValueError, match="invalid_mode"):
+            encoder(randn(1, 3, 8, 8).float())
+
     def test_encoder2d_local_refinement_use_residual_false(self) -> None:
         """local_refinement with use_residual=False produces the same shape as use_residual=True."""
         params = get_encoder_params_2d(kernel=3, stride=2, dilation=1)

@@ -402,6 +402,30 @@ def test_log_near_zero_skips_logs_warning(caplog: pytest.LogCaptureFixture) -> N
                for record in caplog.records), "Expected a WARNING about Layer 2 near-zero skip magnitude"
 
 # --------------------------------------------------
+# Residual mode combinations
+# --------------------------------------------------
+
+@pytest.mark.parametrize("encoder_residual_mode", ["he2", "local_refinement"])
+@pytest.mark.parametrize("merge_residual_mode", ["he2", "he1", "local_refinement"])
+def test_unet2d_residual_mode_combinations_forward(encoder_residual_mode: str,
+                                                   merge_residual_mode: str) -> None:
+    """All valid encoder × merge mode combinations produce the correct output shape."""
+    x = torch.randn(1, 3, 64, 64)
+    model = UNet2D(in_channels=3,
+                   out_channels_layer1=4,
+                   number_of_layers=4,
+                   num_output_classes=1,
+                   encoder_residual_mode=encoder_residual_mode,  # type: ignore[arg-type]
+                   merge_residual_mode=merge_residual_mode)  # type: ignore[arg-type]
+    model.eval()
+    with torch.no_grad():
+        y = model(x)
+    assert y.shape == (1, 1, 64, 64)
+    assert model.encoder_residual_mode == encoder_residual_mode
+    assert model.merge_residual_mode == merge_residual_mode
+
+
+# --------------------------------------------------
 # Integration Tests: Validation During Forward Pass
 # --------------------------------------------------
 

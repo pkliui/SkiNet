@@ -76,6 +76,20 @@ def test_merge2d_block_merging_layer_flag() -> None:
     assert merge_block.merging_layer is True
 
 
+def test_merge2d_block_invalid_residual_mode_raises_in_forward() -> None:
+    """forward() raises ValueError for an unrecognised residual_mode (guards the else branch)."""
+    params = get_encoder_params_2d(kernel=(3, 3), stride=(1, 1), dilation=(1, 1))
+    block = Merge2DBlock(layer_number=0,
+                         in_channels_from_skip=4,
+                         in_channels_from_decoder=4,
+                         out_channels=4,
+                         conv_params=params)
+    block.residual_mode = "invalid_mode"  # type: ignore[assignment]
+    x = randn(1, 4, 8, 8)
+    with pytest.raises(ValueError, match="invalid_mode"):
+        block(x, x)
+
+
 def test_merge2d_block_shape_mismatch_raises() -> None:
     """forward() must raise when decoder output and skip connection shapes differ."""
     params = get_encoder_params_2d(kernel=(3, 3), stride=(1, 1), dilation=(1, 1))

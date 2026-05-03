@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import cast
+from typing import Literal, cast
 
 import torch.nn as nn
 from torch import Tensor
@@ -100,6 +100,9 @@ class UNet2D(nn.Module):
     :param num_output_classes: Number of output classes for segmentation. Default is 1.
     :param model_name: Name of the model.
     :param validate_forward: If True, perform validation checks on skip connections during the forward pass. Default is False.
+    :param encoder_residual_mode: Residual mode used in encoder blocks. Default is "he2".
+    :param merge_residual_mode: Residual mode used in merge blocks. Default is "he2".
+
     """
 
     def __init__(self,
@@ -111,7 +114,9 @@ class UNet2D(nn.Module):
                  number_of_layers: int = 5,
                  num_output_classes: int = 1,
                  model_name: str = "UNet2D",
-                 validate_forward: bool = False) -> None:
+                 validate_forward: bool = False,
+                 encoder_residual_mode: Literal["local_refinement", "he2"] = "he2",
+                 merge_residual_mode: Literal["local_refinement", "he1", "he2"] = "he2") -> None:
 
         super().__init__()
 
@@ -124,6 +129,8 @@ class UNet2D(nn.Module):
         self.num_output_classes = num_output_classes
         self.model_name = model_name
         self.validate_forward = validate_forward
+        self.encoder_residual_mode = encoder_residual_mode
+        self.merge_residual_mode = merge_residual_mode
 
         self.layer1_params = get_encoder_params_2d(kernel=self.kernel, stride=1, dilation=self.dilation)
         """As encoder's layer 1 is not downsampling, compute its convolution parameters separately"""
@@ -173,7 +180,8 @@ class UNet2D(nn.Module):
                                   apply_bias=False,
                                   activation=nn.ReLU,
                                   use_residual=True,
-                                  layer_number=1))
+                                  layer_number=1,
+                                  residual_mode=self.encoder_residual_mode))
 
         # each subsequent encoder layer is downsampling by stride and doubles the number of channels at the output
         for layer_number in range(2, self.number_of_layers+1):
@@ -186,7 +194,8 @@ class UNet2D(nn.Module):
                                       apply_bias=False,
                                       activation=nn.ReLU,
                                       use_residual=True,
-                                      layer_number=layer_number))
+                                      layer_number=layer_number,
+                                      residual_mode=self.encoder_residual_mode))
 
         # the number of channels passed to the deepest decoder's layer is out_channels, the number of channels output by the deepest encoder layer
         return EncoderPath(encoders=encoders,
@@ -228,6 +237,7 @@ class UNet2D(nn.Module):
                                             in_channels_from_skip=out_channels,
                                             out_channels=out_channels,
                                             conv_params=self.params,
+                                            residual_mode=self.merge_residual_mode,
                                             activation=nn.ReLU))
             # update the number of channels for the next decoder layer
             in_channels = out_channels
