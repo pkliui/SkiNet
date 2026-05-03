@@ -21,6 +21,7 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.num_workers is not None  # resolves to os.cpu_count()
     assert cfg.pin_memory is not None  # auto-resolved from accelerator
     assert cfg.prefetch_factor is None
+    assert cfg.cache_in_ram is True
     assert cfg.loss_name == LossFunctionKey.BCE_DICE
     assert cfg.optimizer_name == "adamw"
     assert cfg.lr == 1e-4
@@ -279,6 +280,16 @@ def test_train_config_loss_name_in_defaults_assertion() -> None:
     """test_train_config_defaults_are_valid should also cover loss_name — add this assertion there."""
     cfg = TrainConfig()
     assert cfg.loss_name == LossFunctionKey.BCE_DICE
+
+# ------ Test cache_in_ram ------
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_train_config_cache_in_ram_accepts_bool(value: bool) -> None:
+    """cache_in_ram should accept True and False and round-trip the value."""
+    cfg = TrainConfig(cache_in_ram=value)
+    assert cfg.cache_in_ram is value
+
 
 # ------ Test prefetch_factor validator ------
 
