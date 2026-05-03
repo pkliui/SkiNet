@@ -4,6 +4,7 @@ import torch
 import logging
 from lightning.pytorch.utilities.types import OptimizerLRScheduler
 from torchmetrics.classification import BinaryF1Score, BinaryJaccardIndex
+from torchmetrics.functional.classification import binary_f1_score
 
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.train_configs.train_config import ReduceOnPlateauConfig
@@ -18,29 +19,41 @@ class LightningModel(L.LightningModule):
     def __init__(self,
                  model: torch.nn.Module,
                  loss_fn: torch.nn.Module,
-                 num_classes: int,
                  lr: float,
                  optimizer_name: str,
                  weight_decay: float,
-                 lr_scheduler_config: ReduceOnPlateauConfig):
+                 lr_scheduler_config: ReduceOnPlateauConfig,
+                 optimal_threshold: float | None = None):
         """
         :param model: backbone segmentation network (returns raw logits)
         :param loss_fn: loss function applied to logits and binary float masks
-        :param num_classes: number of output classes (1 for binary segmentation)
         :param lr: initial learning rate
         :param optimizer_name: "adam" or "adamw"
         :param weight_decay: L2 regularisation coefficient
         :param lr_scheduler_config: ReduceLROnPlateau scheduler settings
+        :param optimal_threshold: fixed sigmoid threshold to use instead of sweeping.
+            When None (default), the threshold is found via grid search each validation epoch.
+            If specified, it is assumed that it is the optimal value found previously in
+            the threshold sweep or any other regular value, e.g. 0.5.
+            The threshold is used to obtain masks' predictions out of probabilities
+            and in computation of Dice metrics.
         """
         super().__init__()
         self.save_hyperparameters(ignore=["model", "loss_fn"])
         self.model = model
         self.loss_fn = loss_fn
-        self.num_classes = num_classes
         self.lr = lr
         self.optimizer_name = optimizer_name.lower()
         self.weight_decay = weight_decay
         self.lr_scheduler_config = lr_scheduler_config
+
+        # Optimal threshold - Register as a buffer so that checkpoints contain the threshold value at the best epoch
+        # Float attributes are invisible to the checkpoint system
+        # start at 0.5, update each val epoch
+        self.optimal_threshold: torch.Tensor
+        self.register_buffer("optimal_threshold", torch.tensor(0.5))
+        self._fixed_optimal_threshold = optimal_threshold
+
         # Train mode metrics
         self.train_dice = BinaryF1Score()
         self.train_iou = BinaryJaccardIndex()
@@ -50,11 +63,6 @@ class LightningModel(L.LightningModule):
         self.test_dice = BinaryF1Score()
         self.test_iou = BinaryJaccardIndex()
 
-        # Optimal threshold - Register as a buffer so that checkpoints contain the threshold value at the best epoch
-        # Float attributes are invisible to the checkpoint system
-        # start at 0.5, update each val epoch
-        self.optimal_threshold: torch.Tensor
-        self.register_buffer("optimal_threshold", torch.tensor(0.5))
         # Initialise lists to keep validation and ground truth probs for finding the optimal threshold
         self._val_probs: list[torch.Tensor] = []
         self._val_masks: list[torch.Tensor] = []
@@ -101,6 +109,9 @@ class LightningModel(L.LightningModule):
         using probabilities from all batches saved during validation.
 
         Log the best threshold and the best Dice metrics.
+
+        If self._fixed_optimal_threshold is not None, then use this value as the optimal threshold
+        and to compute Dice metrics (for experiments with a fixed threshold value)
         """
         if not self._val_probs:
             return
@@ -122,10 +133,15 @@ class LightningModel(L.LightningModule):
             return
 
         fixed_thr_preds = (all_probs >= 0.5).long()
-        fixed_thr_dice = BinaryF1Score().to(all_probs.device)(fixed_thr_preds, all_targets).item()
+        fixed_thr_dice = binary_f1_score(fixed_thr_preds, all_targets).item()
 
-        best_result = find_best_threshold(all_probs, all_targets)
-        best_thr, best_dice = best_result["best_threshold"], best_result["best_dice"]
+        if self._fixed_optimal_threshold is not None:
+            best_thr = self._fixed_optimal_threshold
+            best_preds = (all_probs >= best_thr).long()
+            best_dice = binary_f1_score(best_preds, all_targets).item()
+        else:
+            best_result = find_best_threshold(all_probs, all_targets)
+            best_thr, best_dice = best_result["best_threshold"], best_result["best_dice"]
 
         self.optimal_threshold.fill_(best_thr)
         self.log("val_optimal_threshold", self.optimal_threshold,
@@ -139,14 +155,6 @@ class LightningModel(L.LightningModule):
         if not torch.is_floating_point(mask):
             mask = mask.float()
         return (mask >= 0.5).float()
-
-    def _get_current_lr(self) -> float | None:
-        """Return the current learning rate from the first optimizer, or None if no trainer is attached."""
-        if self.trainer is None or not self.trainer.optimizers:
-            return None
-        optimizer: torch.optim.Optimizer = self.trainer.optimizers[0]
-        lr_current: float = optimizer.param_groups[0]["lr"]
-        return lr_current
 
     @staticmethod
     def _tensor_debug_summary(name: str, tensor: torch.Tensor) -> str:
@@ -330,8 +338,8 @@ def build_lightning_model(main_config: ExperimentConfig) -> LightningModel:
     loss_fn = build_loss(train_cfg.loss_name)
     return LightningModel(model=model,
                           loss_fn=loss_fn,
-                          num_classes=1,
                           lr=train_cfg.lr,
                           optimizer_name=train_cfg.optimizer_name,
                           weight_decay=train_cfg.weight_decay,
-                          lr_scheduler_config=train_cfg.lr_scheduler_config)
+                          lr_scheduler_config=train_cfg.lr_scheduler_config,
+                          optimal_threshold=train_cfg.optimal_threshold)

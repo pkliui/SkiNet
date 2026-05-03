@@ -18,7 +18,6 @@ def lm() -> LightningModel:
     return LightningModel(
         model=nn.Identity(),
         loss_fn=nn.BCEWithLogitsLoss(),
-        num_classes=1,
         lr=1e-3,
         optimizer_name="adam",
         weight_decay=0.0,
