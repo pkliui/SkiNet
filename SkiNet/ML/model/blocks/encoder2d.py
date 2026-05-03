@@ -68,9 +68,6 @@ class Encoder2D(nn.Module):
         """Denotes if the layer merges the output of a decoder with a skip connection. Required for the forward method of the UNet."""
 
         if self.residual_mode == "local_refinement":
-            self.batchnorm2d_out = nn.BatchNorm2d(out_channels)
-            self.activation = activation()
-
             self.conv_downsample = Conv2dLayer(
                 in_channels=in_channels,
                 out_channels=out_channels,
