@@ -99,7 +99,9 @@ class UNet2D(nn.Module):
         The number of decoder layers is number_of_layers - 1 and there is one more additional last convolutional layer.
     :param num_output_classes: Number of output classes for segmentation. Default is 1.
     :param model_name: Name of the model.
-    :param validate_forward: If True, perform validation checks on skip connections during the forward pass. Default is False.
+    :param validate_forward: If True, perform structural validation checks (skip keys/count) during the forward pass. Default is True.
+    :param debug_forward: If True, log warnings for near-zero skip connections during the forward pass.
+        Runs tensor reductions on GPU every step — keep False in production. Default is False.
     :param encoder_residual_mode: Residual mode used in encoder blocks. Default is "he2".
     :param merge_residual_mode: Residual mode used in merge blocks. Default is "he2".
 
@@ -114,7 +116,8 @@ class UNet2D(nn.Module):
                  number_of_layers: int = 5,
                  num_output_classes: int = 1,
                  model_name: str = "UNet2D",
-                 validate_forward: bool = False,
+                 validate_forward: bool = True,
+                 debug_forward: bool = False,
                  encoder_residual_mode: Literal["local_refinement", "he2"] = "he2",
                  merge_residual_mode: Literal["local_refinement", "he1", "he2"] = "he2") -> None:
 
@@ -129,6 +132,7 @@ class UNet2D(nn.Module):
         self.num_output_classes = num_output_classes
         self.model_name = model_name
         self.validate_forward = validate_forward
+        self.debug_forward = debug_forward
         self.encoder_residual_mode = encoder_residual_mode
         self.merge_residual_mode = merge_residual_mode
 
@@ -324,6 +328,8 @@ class UNet2D(nn.Module):
         if self.validate_forward:
             self._validate_skip_keys(skip_connections_dict)
             self._validate_skip_count(skip_connections_dict)
+
+        if self.debug_forward:
             self._log_near_zero_skips(skip_connections_dict)
 
         # Decoder path with skip connections

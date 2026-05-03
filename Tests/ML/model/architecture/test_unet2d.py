@@ -431,12 +431,12 @@ def test_unet2d_residual_mode_combinations_forward(encoder_residual_mode: str,
 
 def test_forward_with_validation_disabled_does_not_validate() -> None:
     """
-    With validate_forward=False, forward should not call any validation helpers.
+    With validate_forward=False and debug_forward=False, forward should not call any validation helpers.
     """
     x = torch.randn(1, 3, 64, 64)
 
     model = UNet2D(in_channels=3, out_channels_layer1=8, number_of_layers=4,
-                   num_output_classes=1, validate_forward=False)
+                   num_output_classes=1, validate_forward=False, debug_forward=False)
     model.eval()
 
     with patch.object(model, "_validate_skip_keys") as mock_keys, \
@@ -451,14 +451,55 @@ def test_forward_with_validation_disabled_does_not_validate() -> None:
     mock_log.assert_not_called()
 
 
-def test_forward_with_validation_enabled_calls_validators() -> None:
+def test_forward_with_validation_enabled_calls_structural_validators() -> None:
     """
-    With validate_forward=True, forward should call all three validation helpers exactly once.
+    With validate_forward=True, forward should call skip-key and skip-count checks but not the
+    GPU-bound near-zero log (that requires debug_forward=True).
     """
     x = torch.randn(1, 3, 64, 64)
 
     model = UNet2D(in_channels=3, out_channels_layer1=8, number_of_layers=4,
-                   num_output_classes=1, validate_forward=True)
+                   num_output_classes=1, validate_forward=True, debug_forward=False)
+    model.eval()
+
+    with patch.object(model, "_validate_skip_keys") as mock_keys, \
+            patch.object(model, "_validate_skip_count") as mock_count, \
+            patch.object(model, "_log_near_zero_skips") as mock_log, \
+            torch.no_grad():
+        y = model(x)
+
+    assert y.shape == (1, 1, 64, 64)
+    mock_keys.assert_called_once()
+    mock_count.assert_called_once()
+    mock_log.assert_not_called()
+
+
+def test_forward_with_debug_enabled_calls_log_near_zero_skips() -> None:
+    """
+    With debug_forward=True, forward should call _log_near_zero_skips exactly once.
+    """
+    x = torch.randn(1, 3, 64, 64)
+
+    model = UNet2D(in_channels=3, out_channels_layer1=8, number_of_layers=4,
+                   num_output_classes=1, validate_forward=False, debug_forward=True)
+    model.eval()
+
+    with patch.object(model, "_log_near_zero_skips") as mock_log, \
+            torch.no_grad():
+        y = model(x)
+
+    assert y.shape == (1, 1, 64, 64)
+    mock_log.assert_called_once()
+
+
+def test_forward_with_both_flags_enabled_calls_all_validators() -> None:
+    """
+    With validate_forward=True and debug_forward=True, all three helpers should be called.
+    """
+    x = torch.randn(1, 3, 64, 64)
+
+    model = UNet2D(in_channels=3, out_channels_layer1=8, number_of_layers=4,
+                   num_output_classes=1, validate_forward=True, debug_forward=True)
     model.eval()
 
     with patch.object(model, "_validate_skip_keys") as mock_keys, \

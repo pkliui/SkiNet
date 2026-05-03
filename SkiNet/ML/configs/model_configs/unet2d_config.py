@@ -26,7 +26,9 @@ class UNet2DModelConfig(BaseModelConfig):
     :param encoder_residual_mode: Residual mode used in encoder blocks. Default is "he2".
     :param merge_residual_mode: Residual mode used in merge blocks. Default is "he2".
     :param model_name: Name of the model.
-    :param validate_forward: If True, perform validation checks on skip connections during the forward pass. Default is False.
+    :param validate_forward: If True, perform structural validation checks (skip keys/count) during the forward pass. Default is True.
+    :param debug_forward: If True, log warnings for near-zero skip connections.
+        Runs tensor reductions on GPU every step — keep False in production. Default is False.
     """
 
     kind: Literal["unet2d"] = "unet2d"
@@ -48,7 +50,8 @@ class UNet2DModelConfig(BaseModelConfig):
 
     # runtime / debugging
     model_name: str = "UNet2D"
-    validate_forward: bool = False
+    validate_forward: bool = True
+    debug_forward: bool = False
 
     @model_validator(mode="after")
     def _validate_model_inputs(self) -> "UNet2DModelConfig":

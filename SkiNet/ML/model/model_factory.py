@@ -25,6 +25,7 @@ def create_model(main_config: ExperimentConfig) -> UNet2D:
             num_output_classes=model_cfg.num_output_classes,
             model_name=model_cfg.model_name,
             validate_forward=model_cfg.validate_forward,
+            debug_forward=model_cfg.debug_forward,
             encoder_residual_mode=model_cfg.encoder_residual_mode,
             merge_residual_mode=model_cfg.merge_residual_mode,
         )

@@ -17,56 +17,62 @@ TRANSFORM_CONFIG:
   spatial_augmentation:
     square_symmetry_apply: True
     square_symmetry_p: 0.5
-    affine_apply: True
+    affine_apply: False
     affine_scale: [0.8, 1.0]
     affine_translate_percent: {"x": [-0.05, 0.05], "y": [-0.05, 0.05]}
-    affine_rotate: [-45, 45]
-    affine_shear: {"x": [-15, 15], "y": [-15, 15]}
-    perspective_apply: True
+    affine_rotate: [-20, 20]
+    affine_shear: {"x": [0, 0], "y": [0, 0]}
+    perspective_apply: False
     perspective_scale: [0.05, 0.1]
     perspective_p: 0.2
-    elastic_apply: True
+    elastic_apply: False
     elastic_alpha: 120
     elastic_sigma: 10
     elastic_p: 0.3
   photometric_augmentation:
-    color_jitter_apply: True
+    color_jitter_apply: False
     color_jitter_brightness: 0.2
     color_jitter_contrast: 0.2
     color_jitter_saturation: 0.3
     color_jitter_hue: 0.05
     color_jitter_p: 0.5
-    gaussian_blur_apply: True
+    gaussian_blur_apply: False
     gaussian_blur_sigma_limit: [0.5, 2.0]
     gaussian_blur_p: 0.2
-    gaussian_noise_apply: True
+    gaussian_noise_apply: False
     gaussian_noise_std_range: [0.05, 0.15]
     gaussian_noise_p: 0.2
 MODEL_CONFIG:
+  validate_forward: true
+  debug_fiorward: false
+  encoder_residual_mode: "he2"        # "he2" | "local_refinement"
+  merge_residual_mode: "local_refinement"          # "he2" | "he1" | "local_refinement"
 SWEEP_CONFIG:
   monitor: "val_best_dice_at_threshold"
   direction: "maximize"
-  experiment_name: "optuna_sweep_ph2"
+  experiment_name: "optuna_sweep"
   lr: [3e-4, 1e-4]
   weight_decay: [1e-4, 1e-3]
   batch_size: [16, 32]
 TRAIN_CONFIG:
   log_dir: "lightning_logs"
-  experiment_name: "optuna_sweep"
+  experiment_name: "ab_unet2d-ph2_enc-he2_merge-local_refinement"
   run_test_after_fit: false
   test_on_val_split: false
-  batch_size: 16
+  batch_size: 8
   num_workers: 4
   pin_memory: true
-  prefetch_factor: 4
+  prefetch_factor: 8
+  cache_in_ram: true  # set false for datasets too large to fit in RAM
   loss_name: "bce_dice"
   optimizer_name: "adamw"
   lr: 3e-4
   weight_decay: 1e-4
+  optimal_threshold: 0.5
   seed: 100
   deterministic: true
   max_epochs: 150
-  accelerator: "cpu"
+  accelerator: "gpu"
   devices: 1
   log_every_n_steps: 1
   check_val_every_n_epoch: 1
@@ -79,7 +85,7 @@ TRAIN_CONFIG:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
     min_delta: 0.005
-    patience: 20
+    patience: 30
     strict: true
     check_finite: true
     stopping_threshold:
@@ -87,7 +93,7 @@ TRAIN_CONFIG:
   checkpoint_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
-    save_top_k: 3
+    save_top_k: 1
     save_last: true
     filename: "epoch{epoch:03d}"
   litlogger_config:
@@ -103,5 +109,5 @@ TRAIN_CONFIG:
   lr_scheduler_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
-    patience: 5
+    patience: 3
     factor: 0.5

@@ -50,6 +50,7 @@ def trainconfig() -> TrainConfig:
                 "num_output_classes": 1,
                 "model_name": "UNet2D",
                 "validate_forward": False,
+                "debug_forward": False,
                 "encoder_residual_mode": "he2",
                 "merge_residual_mode": "he2",
             }
@@ -63,7 +64,8 @@ def trainconfig() -> TrainConfig:
                               number_of_layers=4,
                               num_output_classes=2,
                               model_name="UNet2D",
-                              validate_forward=True),
+                              validate_forward=True,
+                              debug_forward=True),
             UNet2D,
             {
                 "in_channels": 3,
@@ -75,6 +77,7 @@ def trainconfig() -> TrainConfig:
                 "num_output_classes": 2,
                 "model_name": "UNet2D",
                 "validate_forward": True,
+                "debug_forward": True,
                 "encoder_residual_mode": "he2",
                 "merge_residual_mode": "he2",
             },

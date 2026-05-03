@@ -10,14 +10,15 @@ from SkiNet.ML.utils.typing_utils import IntOrTuple2d
     [
         # Valid config, all defaults
         ({}, {"in_channels": 3, "out_channels_layer1": 16, "number_of_layers": 5, "num_output_classes": 1,
-              "kernel": 3, "stride": 2, "dilation": 1, "model_name": "UNet2D", "validate_forward": False,
-              "encoder_residual_mode": "he2", "merge_residual_mode": "he2", "kind": "unet2d"}),
+              "kernel": 3, "stride": 2, "dilation": 1, "model_name": "UNet2D", "validate_forward": True,
+              "debug_forward": False, "encoder_residual_mode": "he2", "merge_residual_mode": "he2", "kind": "unet2d"}),
         # Valid config, custom values
         ({"in_channels": 3, "out_channels_layer1": 8, "number_of_layers": 4, "num_output_classes": 2,
-          "kernel": (3, 3), "stride": (2, 2), "dilation": (1, 1), "model_name": "UNet2D", "validate_forward": True},
+          "kernel": (3, 3), "stride": (2, 2), "dilation": (1, 1), "model_name": "UNet2D", "validate_forward": True,
+          "debug_forward": True},
          {"in_channels": 3, "out_channels_layer1": 8, "number_of_layers": 4, "num_output_classes": 2,
           "kernel": (3, 3), "stride": (2, 2), "dilation": (1, 1), "model_name": "UNet2D", "validate_forward": True,
-          "encoder_residual_mode": "he2", "merge_residual_mode": "he2", "kind": "unet2d"}),
+          "debug_forward": True, "encoder_residual_mode": "he2", "merge_residual_mode": "he2", "kind": "unet2d"}),
         # Valid config, non-default residual modes
         ({"encoder_residual_mode": "local_refinement", "merge_residual_mode": "he1"},
          {"encoder_residual_mode": "local_refinement", "merge_residual_mode": "he1"}),
