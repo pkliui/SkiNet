@@ -8,7 +8,9 @@ if [[ "$PROJECT_PATH" != /* ]]; then
 fi
 
 DB_PATH="${PROJECT_PATH}/mlflow.db"
-ARTIFACT_PATH="${PROJECT_PATH}/mlruns"
+# MLFLOW_HOST_ARTIFACT_PATH may be injected from the host when running inside Docker
+# so that artifact URIs in the DB resolve correctly outside the container.
+ARTIFACT_PATH="${MLFLOW_HOST_ARTIFACT_PATH:-${PROJECT_PATH}/mlruns}"
 LOG_DIR="${PROJECT_PATH}/logs"
 MLFLOW_STDOUT_LOG="${LOG_DIR}/mlflow.stdout.log"
 MLFLOW_STDERR_LOG="${LOG_DIR}/mlflow.stderr.log"

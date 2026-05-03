@@ -70,7 +70,6 @@ PYTHON_BIN="${PYTHON_BIN:-python}"
 
 # Data mount path on Lightning Storage
 LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
-#LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2_002-032/"
 # Data mount path inside the container
 CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"
 
@@ -158,6 +157,7 @@ if [[ "$RUN_TRAINING" == "true" ]]; then
     --gpus all \
     --ipc=host \
     -e PYTHONUNBUFFERED=1 \
+    -e MLFLOW_HOST_ARTIFACT_PATH="$HOST_REPO/mlruns" \
     --env-file "$LIGHTNING_ENV_FILE" \
     -v "$HOME/.lightning:/root/.lightning:ro" \
     --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
