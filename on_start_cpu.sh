@@ -43,7 +43,7 @@ set -Eeuo pipefail
 # Set default values for environment variables if they are not already set
 
 # Image name on Docker Hub
-IMAGE="pkliui/skinet:v8cpu"
+IMAGE="pkliui/skinet:v9cpu"
 
 # Determine a safe default for the home directory
 DEFAULT_HOME="$HOME"
@@ -59,7 +59,8 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 
 
 # Data mount path on Lightning Storage
-LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2_002-032/"
+#LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2_002-032/"
+LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
 # Data mount path inside the container
 CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"
 
