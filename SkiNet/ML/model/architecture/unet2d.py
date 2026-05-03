@@ -5,7 +5,6 @@ from typing import cast
 import torch.nn as nn
 from torch import Tensor
 
-from SkiNet.ML.model.architecture.base_segmentation import BaseSegmentation
 from SkiNet.ML.model.blocks.conv2d_layer import Conv2dLayer
 from SkiNet.ML.model.blocks.decoder2d import Decoder2D
 from SkiNet.ML.model.blocks.encoder2d import Encoder2D
@@ -85,7 +84,7 @@ class DecoderPath:
                 raise ValueError(err)
 
 
-class UNet2D(BaseSegmentation):
+class UNet2D(nn.Module):
     """
     UNet 2D model
 
@@ -217,7 +216,7 @@ class UNet2D(BaseSegmentation):
         mergeblocks = nn.ModuleList()
 
         # each subsequent decoder layer is upsampling by stride and halves the number of channels at the output
-        for (idx, layer_number) in enumerate(range(self.number_of_layers, 1, -1)):
+        for layer_number in range(self.number_of_layers, 1, -1):
             out_channels = in_channels // 2
             decoders.append(Decoder2D(layer_number=layer_number,
                                       in_channels=in_channels,
