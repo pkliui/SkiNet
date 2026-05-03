@@ -46,9 +46,9 @@ def setup_logging_and_callbacks(*, main_config: ExperimentConfig) -> TrainerComp
 
     # read training configuration
     train_cfg = main_config.trainconfig
-    # set run name with timestamp for uniqueness
+    # set run name with seed and timestamp for uniqueness
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    run_name = f"{train_cfg.experiment_name}_{timestamp}"
+    run_name = f"{train_cfg.experiment_name}_seed{train_cfg.seed}_{timestamp}"
 
     # --- Callbacks for logging system metrics to available loggers  ---
 
