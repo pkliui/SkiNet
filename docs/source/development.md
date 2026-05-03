@@ -23,7 +23,27 @@ Important notes
 - If you need to run inside the container with FUSE support, you must run the container with appropriate capabilities and devices (see examples below)
 - images are labelled with the environment's hash
 
-### Ways to run the containers
+### Ways to build and run the containers
+
+
+*** Build and push CPU and GPU images to the Hub ***
+
+```bash main_docker_build.sh```
+
+
+*** Manually build and push images to the Hub ***
+
+- To build and push an image to the Hub, run the following:
+
+```bash
+ENV_HASH=$(sha256sum environment.yaml | cut -c1-64)
+IMAGE_TAG="pkliui/skinet:v9cpu"
+docker build \
+  --build-arg ENV_HASH=$ENV_HASH \
+  --target gpu \
+  -t $IMAGE_TAG .
+docker push $IMAGE_TAG
+```
 
 *** Quick build & run commands ***
 - For quick experimenting and debugging purposes, use the following commands:
@@ -44,21 +64,6 @@ Run container bind-mount repo locally:
 docker run -it --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/workplace/SkiNet skinet:cpu bash
 ```
 
-*** Build and push images to the Hub ***
-
-- To build and push an image to the Hub, run the following:
-
-```bash
-ENV_HASH=$(sha256sum environment.yaml | cut -c1-64)
-IMAGE_TAG="pkliui/skinet:v9cpu"
-docker build \
-  --build-arg ENV_HASH=$ENV_HASH \
-  --target gpu \
-  -t $IMAGE_TAG .
-docker push $IMAGE_TAG
-```
-
-- Or run ```bash main_docker_build.sh```
 
 ### Additional options
 
@@ -213,7 +218,10 @@ lsof -iTCP:6006 -sTCP:LISTEN -n -P
 kill <PID>
 ```
 
-
+### Force save file from command line
+sudo tee file_name.py > /dev/null << 'EOF'
+FILE-CONTENT
+EOF
 
 ### Login to Codex
 
