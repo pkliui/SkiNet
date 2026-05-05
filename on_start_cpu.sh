@@ -21,15 +21,17 @@
 # 2. Pull the specified Docker image
 # 3. Run a container from the image, mounting the repo and the Lightning Storage folder into the container
 # 4. Start MLFlow server in the background in this container (start_mlflow.sh is expected in the same as this script)
-# 5. Container is available for interactive development
+# 5.Depending on command MODE (see example), container is either available for interactive development
+# or will do a test-only run.
 
 ##########################################
 #  --------------- USAGE ------------------
 
-# Run container with CPU
-# bash on_start_cpu.sh
+# Run container with CPU in interactive development mode
+# MODE=interactive bash on_start_cpu.sh
 
-
+# Run test-only on a checkpoint
+# MODE=test CHECKPOINT=/path/to/checkpoint.ckpt bash on_start_cpu.sh
 
 ########################################################################################################
 
@@ -41,6 +43,11 @@
 set -Eeuo pipefail
 
 # Set default values for environment variables if they are not already set
+
+# Mode of execution
+MODE="${MODE:-interactive}" # "interactive" = set up container, "test" = test-only run
+CHECKPOINT="${CHECKPOINT:-}"
+
 
 # Image name on Docker Hub
 IMAGE="pkliui/skinet:v9cpu"
@@ -125,20 +132,47 @@ fi
 echo "==> Setting MLflow port mapping host:container to 5000:5000"
 echo "==> RUNNING container and MLflow server in background"
 
-docker run --rm -it\
-  -p 5000:5000 \
-  --ipc=host \
-  --env-file "$LIGHTNING_ENV_FILE" \
-  -v "$HOME/.lightning:/root/.lightning:ro" \
-  --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
-  --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
-  -w "$CONTAINER_REPO" \
-  "$IMAGE" \
-  bash -c "
-  set -e
-  ./start_mlflow.sh &
-  sleep 3
-  exec bash"
+if [[ "$MODE" == "test" ]]; then
+  if [[ -z "$CHECKPOINT" ]]; then
+    echo "ERROR: MODE=test requires CHECKPOINT to be set"
+    exit 1
+  fi
+  # Map the host checkpoint path into the container under the repo mount
+  CONTAINER_CHECKPOINT="$CONTAINER_REPO/$(realpath --relative-to="$HOST_REPO" "$CHECKPOINT")"
+  echo "==> Running test-only with checkpoint: $CONTAINER_CHECKPOINT"
+  docker run --rm \
+    -p 5000:5000 \
+    --ipc=host \
+    --env-file "$LIGHTNING_ENV_FILE" \
+    -v "$HOME/.lightning:/root/.lightning:ro" \
+    --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
+    --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
+    -w "$CONTAINER_REPO" \
+    "$IMAGE" \
+    bash -c "
+    set -e
+    ./start_mlflow.sh &
+    sleep 3
+    python3 -u main_run.py --config main_config.yaml --test-only --checkpoint '$CONTAINER_CHECKPOINT'"
+elif [[ "$MODE" == "interactive" ]]; then
+  docker run --rm -it \
+    -p 5000:5000 \
+    --ipc=host \
+    --env-file "$LIGHTNING_ENV_FILE" \
+    -v "$HOME/.lightning:/root/.lightning:ro" \
+    --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
+    --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
+    -w "$CONTAINER_REPO" \
+    "$IMAGE" \
+    bash -c "
+    set -e
+    ./start_mlflow.sh &
+    sleep 3
+    exec bash"
+else
+  echo "ERROR: Unknown MODE='$MODE'. Valid values: interactive, test"
+  exit 1
+fi
 rm -f "$LIGHTNING_ENV_FILE"
 echo "==> Done. Docker is running. MLFlow is available at http://localhost:5000"
 echo "==> Attach Shell to the running container in VSC Containers tab to develop inside the container"
