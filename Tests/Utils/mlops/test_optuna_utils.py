@@ -106,6 +106,7 @@ class TestValidateSearchSpace:
             "lr": [1e-3, 1e-4],
             "weight_decay": [0.0, 1e-5],
             "batch_size": [8, 16],
+            "num_workers": [4, 8],
         }
 
         validate_search_space(search_space, _EXPECTED_KEYS)
@@ -124,6 +125,7 @@ class TestValidateSearchSpace:
             "lr": [1e-3],
             "weight_decay": [0.0],
             "batch_size": [16],
+            "num_workers": [4],
             "momentum": [0.9],
         }
 

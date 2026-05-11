@@ -13,6 +13,7 @@ class DatasetKey(Enum):
     It is used to retrieve the correct path on the Azure datastore for that dataset.
     """
     PH2 = "PH2_DATASET"
+    ISIC2017 = "ISIC2017_DATASET"
 
 
 @unique
@@ -64,6 +65,7 @@ class HyperparamKey(str, Enum):
     LR = "lr"
     WEIGHT_DECAY = "weight_decay"
     BATCH_SIZE = "batch_size"
+    NUM_WORKERS = "num_workers"
 
 
 @unique

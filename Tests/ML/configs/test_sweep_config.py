@@ -35,11 +35,13 @@ def test_sweep_config_search_space_contains_all_keys() -> None:
     assert space[HyperparamKey.LR] == cfg.lr
     assert space[HyperparamKey.WEIGHT_DECAY] == cfg.weight_decay
     assert space[HyperparamKey.BATCH_SIZE] == cfg.batch_size
+    assert space[HyperparamKey.NUM_WORKERS] == cfg.num_workers
     #
     # assert hyperparameters in the search_space and in config are not the same objects
     assert space[HyperparamKey.LR] is not cfg.lr
     assert space[HyperparamKey.WEIGHT_DECAY] is not cfg.weight_decay
     assert space[HyperparamKey.BATCH_SIZE] is not cfg.batch_size
+    assert space[HyperparamKey.NUM_WORKERS] is not cfg.num_workers
 
 
 @pytest.mark.parametrize("direction", ["maximize", "minimize"])
