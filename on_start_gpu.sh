@@ -1,184 +1,134 @@
-#!/bin/bash
-
-# This script runs every time your Studio starts, from your home directory.
-
-# Logs from previous runs can be found in ~/.lightning_studio/logs/
-
-# List files under fast_load that need to load quickly on start (e.g. model checkpoints).
-#
-# ! fast_load
-# <your file here>
-
-# Add your startup commands below.
-#
-# Example: streamlit run my_app.py
-# Example: gradio my_app.py
-
 #!/usr/bin/env bash
-
-# This script is intended to be run on Lightning Studio with GPU. It will:
-# 1. Clone the SkiNet repo (or update it if it already exists)
-# 2. Pull the specified Docker image
-# 3. Run a fresh Docker container, mounting the repo and the Lightning Storage folder into the container
-# 4. Start MLFlow server in the background in this container (start_mlflow.sh is expected in the same as this script)
-# 5. Automatically run either a regular training run or an Optuna hyperparameter sweep, depending on command MODE (see example)
-# 6. Release GPU once ready
-
-##########################################
-#  --------------- USAGE ------------------
-
-# Run a training job
-# RUN_TRAINING=true MODE=train bash on_start_gpu.sh
-
-# Run training with different seeds
-# RUN_TRAINING=true MODE=seeds SEEDS="42 123 256 512 1024" bash on_start_gpu.sh
-
-# Run an Optuna sweep
-# RUN_TRAINING=true MODE=sweep bash on_start_gpu.sh
-
-########################################################################################################
-
-# NOTE: It is assumed that you uploaded your data into the Lightning Storage and that it is in folders
-# specified under PATH_ON_DATASTORE in repos/SkiNet/SkiNet/Azure/azure_settings.yaml
-
-########################################################################################################
+#
+# on_start_gpu.sh — SkiNet training launcher for Lightning Studio GPU sessions.
+#
+# Clones/updates the SkiNet repo, pulls the Docker image, launches a container
+# with GPU access and Lightning Storage mounted, starts MLflow, and runs the
+# requested training job. Optionally releases the GPU when done.
+#
+# Logs from previous runs: ~/.lightning_studio/logs/
+#
+# ── USAGE ────────────────────────────────────────────────────────────────────
+#
+#   Single training run:
+#     MODE=train bash on_start_gpu.sh
+#
+#   Multi-seed run with YAML-defined encoder/merge modes:
+#     MODE=seeds SEEDS="1 2 3 4 5" bash on_start_gpu.sh
+#
+#   Multi-seed run with explicit encoder/merge modes (overrides YAML config):
+#     ENCODER_MODES="local_refinement he2 se" MERGE_MODES="local_refinement he2 attention_gate" MODE=seeds SEEDS="1 2 3 4 5" bash on_start_gpu.sh
+#
+#   Optuna sweep with non-default metric:
+#     MODE=sweep SWEEP_MONITOR=val_best_dice_at_threshold SWEEP_DIRECTION=maximize bash on_start_gpu.sh
+#
+#   Dry run — build command but skip container launch:
+#     RUN_TRAINING=false MODE=train bash on_start_gpu.sh
+#
+#   Keep GPU after training (default: release):
+#     RELEASE_GPU=false MODE=train bash on_start_gpu.sh
+#
+# ── INPUT VARIABLES ──────────────────────────────────────────────────────────
+#
+#   MODE              Required. One of: train | seeds | sweep
+#   RUN_TRAINING      Launch the container. Default: true
+#   RELEASE_GPU       Switch to CPU after training. Default: true
+#
+#   CONFIG_FILE       YAML config filename (resolved inside the container workdir).
+#                     Default: main_config.yaml
+#
+#   -- seeds mode --
+#   SEEDS             Required. Space-separated seed values (run_seeds.py has no default).
+#   ENCODER_MODES     Space-separated encoder modes. Omit to use YAML config value.
+#   MERGE_MODES       Space-separated merge modes.   Omit to use YAML config value.
+#
+#   -- sweep mode --
+#   SWEEP_MONITOR     Metric to optimise. Default: val_best_dice_at_threshold
+#   SWEEP_DIRECTION   maximize | minimize.  Default: maximize
+#
+#   -- repository --
+#   REPO_URL          Git remote. Default: https://github.com/pkliui/SkiNet.git
+#   BRANCH            Branch to check out. Default: train
+#   HOST_REPO         Local clone path.   Default: ~/repos/SkiNet
+#   CONTAINER_REPO    Mount point inside the container. Default: /workplace/SkiNet
+#
+#   -- paths --
+#   CONTAINER_MOUNT_PATH  Data mount point inside the container. Default: /mnt/data
+#
+#   -- misc --
+#   PYTHON_BIN        Python binary. Default: python
+#
+# ── NOTES ────────────────────────────────────────────────────────────────────
+#
+#   Data is read from Lightning Storage at /teamspace/lightning_storage/ph2/.
+#   Ensure your data is uploaded there before running (path configured in
+#   repos/SkiNet/SkiNet/Azure/azure_settings.yaml under PATH_ON_DATASTORE).
+#
+# ─────────────────────────────────────────────────────────────────────────────
 
 set -Eeuo pipefail
 
-RUN_TRAINING="${RUN_TRAINING:-true}"  # set to true to run training automatically
-MODE="${MODE:-seeds}"  # "train" = main_run.py, "sweep" = optuna_sweep.py
-
-LIGHTNING_ENV_FILE=""
-trap '[[ -n "$LIGHTNING_ENV_FILE" ]] && rm -f "$LIGHTNING_ENV_FILE"' EXIT
-
-
-# Image name on Docker Hub
+# ── Docker image ──────────────────────────────────────────────────────────────
 IMAGE="pkliui/skinet:v9gpu"
 
-# Determine a safe default for the home directory
-DEFAULT_HOME="$HOME"
+# ── Training control ──────────────────────────────────────────────────────────
+RUN_TRAINING="${RUN_TRAINING:-true}"
+RELEASE_GPU="${RELEASE_GPU:-true}"
+MODE="${MODE:-seeds}"
 
-# Set repository variables
+# ── Config file ───────────────────────────────────────────────────────────────
+CONFIG_FILE="${CONFIG_FILE:-main_config.yaml}"
+
+# ── Mode-specific arguments ───────────────────────────────────────────────────
+SEEDS="${SEEDS:-}"                 # seeds mode: required — run_seeds.py has no default
+ENCODER_MODES="${ENCODER_MODES:-}" # seeds mode: overrides YAML encoder_mode if set
+MERGE_MODES="${MERGE_MODES:-}"     # seeds mode: overrides YAML merge_mode if set
+
+SWEEP_MONITOR="${SWEEP_MONITOR:-val_best_dice_at_threshold}" # sweep mode: metric to optimise
+SWEEP_DIRECTION="${SWEEP_DIRECTION:-maximize}"               # sweep mode: maximize | minimize
+
+# ── Repository ────────────────────────────────────────────────────────────────
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
-HOST_REPO="${HOST_REPO:-$DEFAULT_HOME/repos/SkiNet}"
+HOST_REPO="${HOST_REPO:-$HOME/repos/SkiNet}"
 CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
 BRANCH="${BRANCH:-train}"
 
-# Set Python binary
-PYTHON_BIN="${PYTHON_BIN:-python}"
-
-
-# Data mount path on Lightning Storage
-LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
-# Data mount path inside the container
+# ── Data paths ────────────────────────────────────────────────────────────────
+#LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
+#LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/isic2017/"
+LIGHTNING_MOUNT_PATH="/teamspace/studios/this_studio/isic2017/"
 CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"
 
-echo "Running with the following configuration:"
-echo "DEFAULT_HOME=$DEFAULT_HOME"
-echo "REPO_URL=$REPO_URL"
-echo "HOST_REPO=$HOST_REPO"
-echo "CONTAINER_REPO=$CONTAINER_REPO"
-echo "BRANCH=$BRANCH"
-echo "PYTHON_BIN=$PYTHON_BIN"
-echo "LIGHTNING_MOUNT_PATH=$LIGHTNING_MOUNT_PATH"
-echo "CONTAINER_MOUNT_PATH=$CONTAINER_MOUNT_PATH"
+# ── Python binary ─────────────────────────────────────────────────────────────
+PYTHON_BIN="${PYTHON_BIN:-python}"
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "ERROR: docker is not installed"
-  exit 1
-fi
+# ── Internal state ────────────────────────────────────────────────────────────
+LIGHTNING_ENV_FILE=""
+CONTAINER_NAME=""
+_GPU_RELEASED=false
 
-if ! command -v git >/dev/null 2>&1; then
-  echo "ERROR: git is not installed"
-  exit 1
-fi
+# ── Config summary ────────────────────────────────────────────────────────────
+echo "==> Configuration:"
+echo "    MODE=$MODE  RUN_TRAINING=$RUN_TRAINING  RELEASE_GPU=$RELEASE_GPU"
+echo "    CONFIG_FILE=$CONFIG_FILE"
+echo "    SEEDS='$SEEDS'  ENCODER_MODES='$ENCODER_MODES'  MERGE_MODES='$MERGE_MODES'"
+echo "    SWEEP_MONITOR=$SWEEP_MONITOR  SWEEP_DIRECTION=$SWEEP_DIRECTION"
+echo "    REPO_URL=$REPO_URL  BRANCH=$BRANCH"
+echo "    HOST_REPO=$HOST_REPO  CONTAINER_REPO=$CONTAINER_REPO"
+echo "    LIGHTNING_MOUNT_PATH=$LIGHTNING_MOUNT_PATH  CONTAINER_MOUNT_PATH=$CONTAINER_MOUNT_PATH"
+echo "    PYTHON_BIN=$PYTHON_BIN"
 
-# Clone or update the repo on the host
-HOST_REPO_PARENT="$(dirname "$HOST_REPO")"
-mkdir -p "$HOST_REPO_PARENT"
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-# Update repo if it exists, otherwise clone it
-if [[ -d "$HOST_REPO/.git" ]]; then
-  echo "==> Repo already exists, updating it"
-  git -C "$HOST_REPO" fetch origin
-  git -C "$HOST_REPO" checkout "$BRANCH"
-  git -C "$HOST_REPO" pull --ff-only origin "$BRANCH"
-else
-  if [[ -d "$HOST_REPO" ]] && [[ -n "$(ls -A "$HOST_REPO" 2>/dev/null)" ]]; then
-    echo "ERROR: $HOST_REPO exists but is not a git repo and is not empty"
-    exit 1
+release_gpu() {
+  [[ "$_GPU_RELEASED" == "true" ]] && return
+  _GPU_RELEASED=true
+  if [[ "$RELEASE_GPU" != "true" ]]; then
+    echo "==> RELEASE_GPU=false — skipping GPU release."
+    return
   fi
-  echo "==> Cloning repo into $HOST_REPO"
-  rm -rf "$HOST_REPO"
-  git clone "$REPO_URL" "$HOST_REPO"
-  git -C "$HOST_REPO" checkout "$BRANCH"
-fi
-
-echo "==> Pulling Docker image $IMAGE"
-docker pull "$IMAGE"
-
-echo "==> Setting up Lightning"
-LIGHTNING_ENV_FILE="$(mktemp)"
-env | grep '^LIGHTNING_' > "$LIGHTNING_ENV_FILE" || true
-
-echo "==> Selecting the Python command based on MODE"
-SEEDS="${SEEDS:-1 2 3 4 5}"  # space-separated list of seeds, used only when MODE=seeds
-
-if [[ "$MODE" == "sweep" ]]; then
-  PYTHON_CMD="$PYTHON_BIN -u optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize"
-elif [[ "$MODE" == "seeds" ]]; then
-  PYTHON_CMD="$PYTHON_BIN -u run_seeds.py --config main_config.yaml --seeds $SEEDS"
-elif [[ "$MODE" == "train" ]]; then
-  PYTHON_CMD="$PYTHON_BIN -u main_run.py --config main_config.yaml"
-else
-  echo "ERROR: Unknown MODE='$MODE'. Valid values: train, sweep, seeds"
-  exit 1
-fi
-
-echo "==> Selected command to run in Docker is $PYTHON_CMD"
-
-if [[ "$RUN_TRAINING" == "true" ]]; then
-
-    echo "==> Preparing to run a fresh container"
-
-    # Kill any existing MLflow process on port 5000
-    if lsof -ti:5000 &>/dev/null; then
-    echo "Port 5000 in use — killing existing process..."
-    kill -9 $(lsof -ti:5000) 2>/dev/null || true
-    sleep 1
-    fi
-
-  echo "==> Setting MLflow port mapping host:container to 5000:5000"
-  echo "==> RUNNING container non-interactively and MLflow server in background"
-  echo "==> Command to run is $PYTHON_CMD"
-  CONTAINER_NAME="skinet-$(date +%s)"
-  docker run --name "$CONTAINER_NAME" \
-    -p 5000:5000 \
-    --gpus all \
-    --ipc=host \
-    -e PYTHONUNBUFFERED=1 \
-    -e MLFLOW_HOST_ARTIFACT_PATH="$HOST_REPO/mlruns" \
-    --env-file "$LIGHTNING_ENV_FILE" \
-    -v "$HOME/.lightning:/root/.lightning:ro" \
-    --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
-    --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
-    -w "$CONTAINER_REPO" \
-    "$IMAGE" \
-    bash -c "
-      set -e
-      ./start_mlflow.sh &
-      sleep 3
-      exec $PYTHON_CMD
-    " && DOCKER_EXIT=0 || DOCKER_EXIT=$?
-
-  echo "==> Docker exited with code $DOCKER_EXIT"
-  if [[ $DOCKER_EXIT -eq 0 ]]; then
-    echo "==> Training succeeded. Cleaning up container..."
-    docker rm "$CONTAINER_NAME"
-    echo "==> Container removed. Waiting for GPU to detach..."
-    sleep 10
-    echo "==> Releasing GPU..."
-    python3 -c "
+  echo "==> Releasing GPU..."
+  python3 -c "
 from lightning_sdk import Studio, Machine
 studio = Studio()
 try:
@@ -188,14 +138,150 @@ except Exception as e:
     print(f'switch_machine(CPU) failed: {e}')
     print('Please switch to CPU manually in the Lightning UI.')
 "
-    echo "==> Done."
-  else
-    echo "==> Container '$CONTAINER_NAME' exited with code $DOCKER_EXIT. Keeping for debugging."
-    echo "==> To re-enter: docker start $CONTAINER_NAME && docker exec -it $CONTAINER_NAME bash"
-    echo "==> To clean up when done: docker rm $CONTAINER_NAME"
-    echo "==> GPU NOT released — switch to CPU manually in the Lightning UI if needed."
+}
+
+cleanup() {
+  local sig="${1:-EXIT}"
+  [[ -n "$LIGHTNING_ENV_FILE" ]] && rm -f "$LIGHTNING_ENV_FILE"
+  if [[ "$sig" == "INT" || "$sig" == "TERM" ]]; then
+    echo ""
+    echo "==> Interrupted ($sig). Stopping container if running..."
+    if [[ -n "$CONTAINER_NAME" ]]; then
+      docker stop "$CONTAINER_NAME" 2>/dev/null || true
+      docker rm   "$CONTAINER_NAME" 2>/dev/null || true
+      echo "==> Container '$CONTAINER_NAME' removed."
+    fi
+    echo "==> Waiting for GPU to detach..."
+    sleep 10
   fi
+  release_gpu
+}
+
+trap 'cleanup EXIT' EXIT
+trap 'cleanup INT;  exit 130' INT
+trap 'cleanup TERM; exit 143' TERM
+
+# ── Pre-flight checks ─────────────────────────────────────────────────────────
+
+for cmd in docker git; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: $cmd is not installed"
+    exit 1
+  fi
+done
+
+# ── Clone or update repo ──────────────────────────────────────────────────────
+
+mkdir -p "$(dirname "$HOST_REPO")"
+
+if [[ -d "$HOST_REPO/.git" ]]; then
+  echo "==> Repo exists — fetching and updating branch '$BRANCH'"
+  git -C "$HOST_REPO" fetch origin
+  git -C "$HOST_REPO" checkout "$BRANCH"
+  git -C "$HOST_REPO" pull --ff-only origin "$BRANCH"
 else
-  echo "==> RUN_TRAINING=false, skipping training. Start container manually."
-  echo "==> To run training automatically, set RUN_TRAINING=true in your environment."
+  if [[ -d "$HOST_REPO" ]] && [[ -n "$(ls -A "$HOST_REPO" 2>/dev/null)" ]]; then
+    echo "ERROR: $HOST_REPO exists but is not a git repo and is not empty"
+    exit 1
+  fi
+  echo "==> Cloning $REPO_URL into $HOST_REPO (branch: $BRANCH)"
+  rm -rf "$HOST_REPO"
+  git clone "$REPO_URL" "$HOST_REPO"
+  git -C "$HOST_REPO" checkout "$BRANCH"
+fi
+
+# ── Pull Docker image ─────────────────────────────────────────────────────────
+
+echo "==> Pulling Docker image $IMAGE"
+docker pull "$IMAGE"
+
+# ── Collect Lightning env vars ────────────────────────────────────────────────
+
+LIGHTNING_ENV_FILE="$(mktemp)"
+env | grep '^LIGHTNING_' > "$LIGHTNING_ENV_FILE" || true
+
+# ── Build Python command ──────────────────────────────────────────────────────
+
+echo "==> Building Python command for MODE='$MODE'"
+
+if [[ "$MODE" == "sweep" ]]; then
+  PYTHON_CMD="$PYTHON_BIN -u optuna_sweep.py --config $CONFIG_FILE --monitor $SWEEP_MONITOR --direction $SWEEP_DIRECTION"
+
+elif [[ "$MODE" == "seeds" ]]; then
+  if [[ -z "$SEEDS" ]]; then
+    echo "ERROR: MODE=seeds requires SEEDS to be set (run_seeds.py has no default)"
+    exit 1
+  fi
+  PYTHON_CMD="$PYTHON_BIN -u run_seeds.py --config $CONFIG_FILE --seeds $SEEDS"
+  [[ -n "$ENCODER_MODES" ]] && PYTHON_CMD="$PYTHON_CMD --encoder-modes $ENCODER_MODES"
+  [[ -n "$MERGE_MODES" ]]   && PYTHON_CMD="$PYTHON_CMD --merge-modes $MERGE_MODES"
+
+elif [[ "$MODE" == "train" ]]; then
+  PYTHON_CMD="$PYTHON_BIN -u main_run.py --config $CONFIG_FILE"
+
+else
+  echo "ERROR: Unknown MODE='$MODE'. Valid values: train | seeds | sweep"
+  exit 1
+fi
+
+echo "==> Command: $PYTHON_CMD"
+
+# ── Launch container ──────────────────────────────────────────────────────────
+
+if [[ "$RUN_TRAINING" != "true" ]]; then
+  echo "==> RUN_TRAINING=false — skipping container launch."
+  echo "==> To launch manually: docker run ... $PYTHON_CMD"
+  exit 0
+fi
+
+echo "==> Preparing container..."
+
+# Kill any existing process holding MLflow's port
+if lsof -ti:5000 &>/dev/null; then
+  echo "==> Port 5000 in use — killing existing process..."
+  kill -9 "$(lsof -ti:5000)" 2>/dev/null || true
+  sleep 1
+fi
+
+mkdir -p "$HOST_REPO/mlruns"
+
+CONTAINER_NAME="skinet-$(date +%s)"
+echo "==> Starting container '$CONTAINER_NAME' (MLflow → host:5000, training non-interactive)"
+
+docker run --name "$CONTAINER_NAME" \
+  -p 5000:5000 \
+  --gpus all \
+  --ipc=host \
+  -e PYTHONUNBUFFERED=1 \
+  -e MLFLOW_HOST_ARTIFACT_PATH="$HOST_REPO/mlruns" \
+  --env-file "$LIGHTNING_ENV_FILE" \
+  -v "$HOME/.lightning:/root/.lightning:ro" \
+  --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
+  --mount "type=bind,src=$HOST_REPO/mlruns,dst=$HOST_REPO/mlruns" \
+  --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
+  -w "$CONTAINER_REPO" \
+  "$IMAGE" \
+  bash -c "
+    set -e
+    ./start_mlflow.sh
+    exec $PYTHON_CMD
+  " && DOCKER_EXIT=0 || DOCKER_EXIT=$?
+
+echo "==> Docker exited with code $DOCKER_EXIT"
+
+if [[ $DOCKER_EXIT -eq 0 ]]; then
+  echo "==> Training succeeded — removing container..."
+  docker rm "$CONTAINER_NAME"
+  CONTAINER_NAME=""
+  echo "==> Waiting for GPU to detach..."
+  sleep 10
+  release_gpu
+  echo "==> Done."
+else
+  echo "==> Container '$CONTAINER_NAME' failed (exit $DOCKER_EXIT) — keeping for debugging."
+  echo "    Re-enter:  docker start $CONTAINER_NAME && docker exec -it $CONTAINER_NAME bash"
+  echo "    Clean up:  docker rm $CONTAINER_NAME"
+  echo "==> Waiting for GPU to detach..."
+  sleep 10
+  release_gpu
 fi
