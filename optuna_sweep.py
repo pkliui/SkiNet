@@ -141,7 +141,8 @@ def main() -> None:
                         help="Optional number of trials to run. Defaults to full grid (n_combos).")
     parser.add_argument("--monitor", type=str, default="val_best_dice_at_threshold", help="Metric to optimize")
     parser.add_argument("--direction", type=str, default="maximize", choices=["maximize", "minimize"])
-    parser.add_argument("--experiment", type=str, default="optuna_sweep", help="MLflow experiment name")
+    parser.add_argument("--experiment", type=str, default=None,
+                        help="MLflow experiment name (overrides SWEEP_CONFIG.experiment_name in YAML)")
     args = parser.parse_args()
 
     # load the main config
@@ -159,7 +160,8 @@ def main() -> None:
     else:
         logger.warning("MLflow tracking URI is not set in config. Using default local file storage. "
                        "Set 'trainconfig.mlflow_config.tracking_uri' to log to a remote server or different location.")
-    mlflow.set_experiment(args.experiment)
+    experiment_name = args.experiment or main_config.sweepconfig.experiment_name or "optuna_sweep"
+    mlflow.set_experiment(experiment_name)
 
     # Define the PARENT run that wraps the entire study — all trials appear as children beneath it
     with mlflow.start_run(run_name=f"optuna_study_{main_config.trainconfig.experiment_name}_{args.monitor}") as _:
