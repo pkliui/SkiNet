@@ -31,6 +31,7 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.max_epochs == 1
     assert cfg.accelerator == "auto"
     assert cfg.devices == "auto"
+    assert cfg.strategy == "auto"
     assert cfg.precision is not None  # auto-resolved from accelerator at construction time
     assert cfg.log_every_n_steps == 1
     assert cfg.check_val_every_n_epoch == 1
@@ -443,3 +444,32 @@ def test_explicit_pin_memory_is_not_overridden() -> None:
     """
     cfg = TrainConfig(accelerator="gpu", pin_memory=False)
     assert cfg.pin_memory is False
+
+
+# ------ Test strategy field ------
+
+
+def test_train_config_strategy_default_is_auto() -> None:
+    """strategy should default to 'auto', letting Lightning choose."""
+    cfg = TrainConfig()
+    assert cfg.strategy == "auto"
+
+
+@pytest.mark.parametrize("strategy", ["auto", "ddp", "ddp_spawn", "dp", "fsdp"])
+def test_train_config_strategy_accepts_valid_values(strategy: str) -> None:
+    """strategy should accept any string value that Lightning supports."""
+    cfg = TrainConfig(strategy=strategy)
+    assert cfg.strategy == strategy
+
+
+def test_train_config_strategy_ddp_with_devices_2() -> None:
+    """strategy='ddp' and devices=2 should both be stored without modification."""
+    cfg = TrainConfig(devices=2, strategy="ddp")
+    assert cfg.devices == 2
+    assert cfg.strategy == "ddp"
+
+
+def test_train_config_strategy_appears_in_defaults_assertion() -> None:
+    """strategy='auto' must be present in the defaults covered by test_train_config_defaults_are_valid."""
+    cfg = TrainConfig()
+    assert cfg.strategy == "auto"

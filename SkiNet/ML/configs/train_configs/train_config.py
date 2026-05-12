@@ -130,6 +130,7 @@ class TrainConfig(BaseModel):
     max_epochs: int = Field(default=1, ge=1)
     accelerator: str = Field(default="auto")
     devices: str | int = Field(default="auto")
+    strategy: str = Field(default="auto")
     precision: PrecisionType | None = Field(default=None)
     log_every_n_steps: int = Field(default=1, ge=1)
     check_val_every_n_epoch: int = Field(default=1, ge=1)

@@ -52,6 +52,7 @@ def train_and_evaluate(main_config: ExperimentConfig, *, visualize: bool = True)
                               callbacks=trainersetup.callbacks,
                               accelerator=train_cfg.accelerator,
                               devices=train_cfg.devices,
+                              strategy=train_cfg.strategy,
                               precision=train_cfg.precision,
                               log_every_n_steps=train_cfg.log_every_n_steps,
                               deterministic=deterministic,
@@ -132,6 +133,7 @@ def test_only(main_config: ExperimentConfig, checkpoint_path: Path) -> dict[str,
                               callbacks=trainersetup.callbacks,
                               accelerator=train_cfg.accelerator,
                               devices=train_cfg.devices,
+                              strategy=train_cfg.strategy,
                               precision=train_cfg.precision,
                               plugins=[_LegacyCheckpointIO()])
 
