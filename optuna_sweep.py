@@ -50,6 +50,10 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         cfg = deepcopy(main_config)
         train_cfg = cfg.trainconfig
 
+        # Each trial runs on a single GPU. Using devices>1 causes Lightning to spawn
+        # a rank-1 process that re-runs this script and starts a duplicate independent sweep.
+        train_cfg.devices = 1
+
         # define the search space targets and reassign the respective configs
         lr = cast(float, trial.suggest_categorical(HyperparamKey.LR, search_space[HyperparamKey.LR]))
         weight_decay = cast(float, trial.suggest_categorical(HyperparamKey.WEIGHT_DECAY, search_space[HyperparamKey.WEIGHT_DECAY]))
