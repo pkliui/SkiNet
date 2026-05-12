@@ -1,5 +1,7 @@
 import logging
+import os
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -58,10 +60,16 @@ class SegmentationDataset(BaseDataset):
 
         if cache_in_ram:
             logger.info("Caching %d samples in RAM for %s split...", len(self.sample_ids), mode)
-            self._cache: dict[str, Sample] | None = {
-                sid: load_sample(self.sample_specs[sid], data_root=self.data_root)
-                for sid in self.sample_ids
-            }
+            cache: dict[str, Sample] = {}
+            max_workers = min(os.cpu_count() or 4, 8)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(load_sample, self.sample_specs[sid], self.data_root): sid
+                    for sid in self.sample_ids
+                }
+                for future in as_completed(futures):
+                    cache[futures[future]] = future.result()
+            self._cache: dict[str, Sample] | None = cache
             logger.info("RAM cache ready for %s split.", mode)
         else:
             self._cache = None

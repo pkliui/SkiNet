@@ -23,6 +23,7 @@ class LightningModel(L.LightningModule):
                  optimizer_name: str,
                  weight_decay: float,
                  lr_scheduler_config: ReduceOnPlateauConfig,
+                 use_lr_scheduler: bool = True,
                  optimal_threshold: float | None = None):
         """
         :param model: backbone segmentation network (returns raw logits)
@@ -46,6 +47,7 @@ class LightningModel(L.LightningModule):
         self.optimizer_name = optimizer_name.lower()
         self.weight_decay = weight_decay
         self.lr_scheduler_config = lr_scheduler_config
+        self.use_lr_scheduler = use_lr_scheduler
 
         # Optimal threshold - Register as a buffer so that checkpoints contain the threshold value at the best epoch
         # Float attributes are invisible to the checkpoint system
@@ -273,9 +275,14 @@ class LightningModel(L.LightningModule):
 
     def configure_optimizers(self) -> OptimizerLRScheduler:
         """
-        Build the optimizer and ReduceLROnPlateau scheduler from the stored config.
+        Build the optimizer and optionally a ReduceLROnPlateau scheduler.
 
-        :return: Lightning-compatible dict with "optimizer" and "lr_scheduler" keys
+        The scheduler is omitted when use_lr_scheduler=False, which keeps the
+        learning rate fixed for the duration of training (e.g. hardware sweeps,
+        early-stage experiments where LR decay would confound results).
+
+        :return: optimizer alone, or Lightning-compatible dict with "optimizer"
+                 and "lr_scheduler" keys when the scheduler is enabled
         :raises ValueError: if optimizer_name is not "adam" or "adamw"
         """
         if self.optimizer_name == "adam":
@@ -284,6 +291,9 @@ class LightningModel(L.LightningModule):
             optim = torch.optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         else:
             raise ValueError(f"Unsupported optimizer_name '{self.optimizer_name}'. Supported: ['adam', 'adamw']")
+
+        if not self.use_lr_scheduler:
+            return cast(OptimizerLRScheduler, optim)
 
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optim,
                                                                mode=self.lr_scheduler_config.mode,
@@ -342,4 +352,5 @@ def build_lightning_model(main_config: ExperimentConfig) -> LightningModel:
                           optimizer_name=train_cfg.optimizer_name,
                           weight_decay=train_cfg.weight_decay,
                           lr_scheduler_config=train_cfg.lr_scheduler_config,
+                          use_lr_scheduler=train_cfg.use_lr_scheduler,
                           optimal_threshold=train_cfg.optimal_threshold)
