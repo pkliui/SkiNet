@@ -215,13 +215,26 @@ fi
 
 # ── ISIC 2017: preprocessing ──────────────────────────────────────────────────
 # Data is already present via Kaggle input — only preprocessing is needed.
+# The preprocessor writes isic2017_metadata.csv into data_root, so data_root
+# must be writable. /kaggle/input is read-only, so we copy the dataset to a
+# writable staging dir and re-point the symlink before preprocessing.
 
 if [[ "$DATASET" == "isic2017" ]]; then
+  ISIC2017_WRITABLE_DIR="/kaggle/working/isic2017_data"
+  if [[ ! -d "$ISIC2017_WRITABLE_DIR" ]]; then
+    echo "==> ISIC 2017: copying dataset to writable path $ISIC2017_WRITABLE_DIR ..."
+    cp -r "$DATA_DIR/." "$ISIC2017_WRITABLE_DIR"
+    echo "==> ISIC 2017: copy complete."
+  else
+    echo "==> ISIC 2017: writable copy already exists at $ISIC2017_WRITABLE_DIR"
+  fi
+  # Re-point the symlink (or update DATA_DIR) so training also reads from writable path
+  ln -sfn "$ISIC2017_WRITABLE_DIR" "$CONTAINER_MOUNT_PATH"
   echo "==> ISIC 2017: running metadata CSV preprocessing..."
   cd "$HOST_REPO"
   "$PYTHON_BIN" -m SkiNet.ML.datasets.preprocessing.metadata_csv_factory \
     --dataset-key-str ISIC2017 \
-    --local-data-root "$CONTAINER_MOUNT_PATH"
+    --local-data-root "$ISIC2017_WRITABLE_DIR"
   echo "==> ISIC 2017: preprocessing complete."
 fi
 
