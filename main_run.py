@@ -1,3 +1,6 @@
+import cv2
+cv2.setNumThreads(0)  # prevent OpenCV from spawning per-worker thread pools that contend under DataLoader multiprocessing
+
 from typing import Any, Callable
 from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.dataloaders.create_dataloaders import DataLoaders, create_segmentation_dataloaders

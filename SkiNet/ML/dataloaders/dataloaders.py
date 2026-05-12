@@ -8,7 +8,13 @@ from torch.utils.data._utils.collate import default_collate
 
 
 def default_worker_init_fn(worker_id: int) -> None:
-    """Seed each worker process for reproducibility."""
+    """
+    Initialize worker process with a consistent seed and OpenCV configuration.
+
+    - Seed each worker process for reproducibility.
+    - Set OpenCV to single-threaded mode to avoid contention between CPU worker processes."""
+    import cv2
+    cv2.setNumThreads(0)
     seed = torch.initial_seed() % 2**32
     np.random.seed(seed)
     random.seed(seed)
