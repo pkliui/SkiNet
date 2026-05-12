@@ -35,6 +35,7 @@ mlflow server \
   --default-artifact-root "${DEFAULT_ARTIFACT_ROOT}" \
   --host 0.0.0.0 \
   --port 5000 \
+  --allow-origins '*' \
   >"${MLFLOW_STDOUT_LOG}" 2>"${MLFLOW_STDERR_LOG}" &
 
 MLFLOW_PID=$!
