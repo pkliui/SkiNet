@@ -6,6 +6,7 @@ import logging
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint, LearningRateMonitor
 from lightning.pytorch.loggers import MLFlowLogger
 from SkiNet.Utils.logging.system_metrics import SystemMetricsThreadCallback
+from SkiNet.Utils.logging.throughput import ThroughputCallback
 from SkiNet.Utils.mlops.mlflow_callbacks import MLflowTrainingArtifactsCallback
 from SkiNet.Utils.logging.mlflow_logging import (_log_mlflow_run_metadata,
                                                  _log_fit_and_optimizer_params_to_mlflow,
@@ -53,6 +54,7 @@ def setup_logging_and_callbacks(*, main_config: ExperimentConfig) -> TrainerComp
     # --- Callbacks for logging system metrics to available loggers  ---
 
     lightning_callbacks.append(SystemMetricsThreadCallback(interval_sec=train_cfg.system_metrics_interval_sec))
+    lightning_callbacks.append(ThroughputCallback())
 
     # --- Callbacks for early stopping in Lightning  ---
 
