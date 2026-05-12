@@ -1,7 +1,7 @@
 GENERAL_CONFIG:
   experiment_type: "segmentation"
   model: "UNET2D_MODEL"
-  dataset: "PH2_DATASET"
+  dataset: "ISIC2017_DATASET"
 DATA_CONFIG:
   local_data_root:
   azure_data: True
@@ -12,10 +12,10 @@ TRANSFORM_CONFIG:
   crop:
     crop_apply: True
     crop_type: "random_resized_crop"
-    size: [512, 512]
+    size: [256, 256]
     scale: [0.8, 1.0]
   spatial_augmentation:
-    square_symmetry_apply: True
+    square_symmetry_apply: False
     square_symmetry_p: 0.5
     affine_apply: False
     affine_scale: [0.8, 1.0]
@@ -29,6 +29,9 @@ TRANSFORM_CONFIG:
     elastic_alpha: 120
     elastic_sigma: 10
     elastic_p: 0.3
+  normalization_mode: "standard"
+  normalization_mean: [0.699, 0.556, 0.5121]
+  normalization_std:  [0.1576, 0.1562, 0.1706]
   photometric_augmentation:
     color_jitter_apply: False
     color_jitter_brightness: 0.2
@@ -43,43 +46,44 @@ TRANSFORM_CONFIG:
     gaussian_noise_std_range: [0.05, 0.15]
     gaussian_noise_p: 0.2
 MODEL_CONFIG:
-  validate_forward: true
-  debug_fiorward: false
-  encoder_residual_mode: "he2"        # "he2" | "local_refinement"
-  merge_residual_mode: "local_refinement"          # "he2" | "he1" | "local_refinement"
+  validate_forward: false
+  debug_forward: false
+  encoder_residual_mode: "local_refinement"   # "local_refinement" | "he2" | "se"
+  merge_residual_mode: "local_refinement"     # "local_refinement" | "he1" | "he2" | "attention_gate"
+  se_reduction: 16                            # SE bottleneck ratio; ignored when encoder_residual_mode != "se"
 SWEEP_CONFIG:
-  monitor: "val_best_dice_at_threshold"
+  monitor: "perf/samples_per_sec"
   direction: "maximize"
-  experiment_name: "optuna_sweep"
-  lr: [3e-4, 1e-4]
-  weight_decay: [1e-4, 1e-3]
-  batch_size: [16, 32]
+  experiment_name: "test-sweep_batch_size_unet2d-isic2017-1"
+  lr: [3e-4]
+  weight_decay: [1e-4]
+  batch_size: [8, 16, 32, 64, 128]
 TRAIN_CONFIG:
   log_dir: "lightning_logs"
-  experiment_name: "ab_unet2d-ph2_enc-he2_merge-local_refinement"
+  experiment_name: "test-sweep_batch_size_unet2d-isic2017-1"
   run_test_after_fit: false
   test_on_val_split: false
   batch_size: 8
-  num_workers: 4
+  num_workers: 2
   pin_memory: true
-  prefetch_factor: 8
-  cache_in_ram: true  # set false for datasets too large to fit in RAM
+  prefetch_factor: 2
+  cache_in_ram: false  # set false for datasets too large to fit in RAM
   loss_name: "bce_dice"
   optimizer_name: "adamw"
   lr: 3e-4
   weight_decay: 1e-4
   optimal_threshold: 0.5
   seed: 100
-  deterministic: true
-  max_epochs: 150
-  accelerator: "gpu"
+  deterministic: false
+  max_epochs: 3
+  accelerator: "auto"
   devices: 1
   log_every_n_steps: 1
-  check_val_every_n_epoch: 1
+  check_val_every_n_epoch: 999999
   num_sanity_val_steps: 0
   use_mlflow_logger: true
-  use_litlogger_logger: true
-  use_early_stopping: true
+  use_litlogger_logger: false
+  use_early_stopping: false
   use_checkpoint: true
   early_stopping_config:
     monitor: "val_best_dice_at_threshold"
@@ -93,8 +97,8 @@ TRAIN_CONFIG:
   checkpoint_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
-    save_top_k: 1
-    save_last: true
+    save_top_k: 0
+    save_last: false
     filename: "epoch{epoch:03d}"
   litlogger_config:
     teamspace: "l-pkliui"
@@ -104,8 +108,9 @@ TRAIN_CONFIG:
   mlflow_config:
     fallback_to_local_mlflow: false
     tracking_uri: "http://127.0.0.1:5000" # OK
-    log_model: "all"
+    log_model: false
     log_model_summary: true
+  use_lr_scheduler: false
   lr_scheduler_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"

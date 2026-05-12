@@ -145,8 +145,10 @@ if [[ "$MODE" == "test" ]]; then
   docker run --rm \
     -p 5000:5000 \
     --ipc=host \
+    --user "$(id -u):$(id -g)" \
+    -e HOME="$CONTAINER_REPO" \
     --env-file "$LIGHTNING_ENV_FILE" \
-    -v "$HOME/.lightning:/root/.lightning:ro" \
+    -v "$HOME/.lightning:$CONTAINER_REPO/.lightning:ro" \
     --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
     --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
     -w "$CONTAINER_REPO" \
@@ -160,8 +162,10 @@ elif [[ "$MODE" == "interactive" ]]; then
   docker run --rm -it \
     -p 5000:5000 \
     --ipc=host \
+    --user "$(id -u):$(id -g)" \
+    -e HOME="$CONTAINER_REPO" \
     --env-file "$LIGHTNING_ENV_FILE" \
-    -v "$HOME/.lightning:/root/.lightning:ro" \
+    -v "$HOME/.lightning:$CONTAINER_REPO/.lightning:ro" \
     --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
     --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
     -w "$CONTAINER_REPO" \

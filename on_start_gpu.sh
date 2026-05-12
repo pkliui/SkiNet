@@ -316,10 +316,12 @@ docker run --name "$CONTAINER_NAME" \
   -p 5000:5000 \
   --gpus all \
   --ipc=host \
+  --user "$(id -u):$(id -g)" \
+  -e HOME="$CONTAINER_REPO" \
   -e PYTHONUNBUFFERED=1 \
   -e MLFLOW_HOST_ARTIFACT_PATH="$HOST_REPO/mlruns" \
   --env-file "$LIGHTNING_ENV_FILE" \
-  -v "$HOME/.lightning:/root/.lightning:ro" \
+  -v "$HOME/.lightning:$CONTAINER_REPO/.lightning:ro" \
   --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
   --mount "type=bind,src=$HOST_REPO/mlruns,dst=$HOST_REPO/mlruns" \
   --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
