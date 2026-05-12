@@ -2,6 +2,11 @@
 Compute per-channel mean and std of the training split for use with
 normalization_mode: "standard" in TRANSFORM_CONFIG.
 
+Works with any dataset configured in main_config.yaml. For datasets that have
+predefined splits (e.g. ISIC 2017), the official training split is used automatically.
+For datasets without predefined splits (e.g. PH2), the random split defined by
+split_train_size / split_random_seed is used.
+
 Usage:
     python compute_dataset_stats.py --config main_config.yaml
 
@@ -98,14 +103,14 @@ def compute_stats(cfg_path: Path) -> tuple[list[float], list[float]]:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Compute PH2 training-set channel mean and std.")
+    ap = argparse.ArgumentParser(description="Compute training-set channel mean and std for any configured dataset.")
     ap.add_argument("--config", type=Path, default=Path("main_config.yaml"),
                     help="Path to experiment YAML config (default: main_config.yaml)")
     args = ap.parse_args()
 
     mean, std = compute_stats(args.config)
 
-    print("\n--- Paste into main_config.yaml under TRANSFORM_CONFIG ---")
+    print("\n--- Paste into your config YAML under TRANSFORM_CONFIG ---")
     print("  normalization_mode: \"standard\"")
     print(f"  normalization_mean: {mean}")
     print(f"  normalization_std:  {std}")

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from SkiNet.ML.datasets.dataset_factory import (
     SegmentationDatasetFactory,
+    _split_by_predefined_column,
     create_segmentation_datasets_from_config,
     _get_dataset_factory,
 )
@@ -21,10 +22,17 @@ class DummyDatasetConfig:
     Dummy dataset config to provide necessary attributes and methods for testing the dataset factory.
     """
 
-    def __init__(self, metadata: pd.DataFrame, split_config: SplitConfig, data_root: Path) -> None:
+    def __init__(
+        self,
+        metadata: pd.DataFrame,
+        split_config: SplitConfig,
+        data_root: Path,
+        predefined_split_column: str | None = None,
+    ) -> None:
         self.metadata = metadata
         self.split_config = split_config
         self.data_root = data_root
+        self.predefined_split_column = predefined_split_column
 
     def get_split_config(self) -> SplitConfig:
         # In a real implementation, this involves more complex logic to determine the split config,
@@ -32,7 +40,11 @@ class DummyDatasetConfig:
         return self.split_config
 
 
-def _make_config(experiment_type: Any = ExperimentType.SEGMENTATION, cache_in_ram: bool = False) -> ExperimentConfig:
+def _make_config(
+    experiment_type: Any = ExperimentType.SEGMENTATION,
+    cache_in_ram: bool = False,
+    predefined_split_column: str | None = None,
+) -> ExperimentConfig:
     """
     Helper to create a dummy ExperimentConfig for segmentation experiments,
     with a simple metadata DataFrame and a SplitConfig.
@@ -50,7 +62,12 @@ def _make_config(experiment_type: Any = ExperimentType.SEGMENTATION, cache_in_ra
         ExperimentConfig,
         SimpleNamespace(
             experiment_type=experiment_type,
-            dataconfig=DummyDatasetConfig(metadata=metadata_df, split_config=split_config, data_root=data_root),
+            dataconfig=DummyDatasetConfig(
+                metadata=metadata_df,
+                split_config=split_config,
+                data_root=data_root,
+                predefined_split_column=predefined_split_column,
+            ),
             trainconfig=SimpleNamespace(cache_in_ram=cache_in_ram),
         ),
     )
@@ -216,3 +233,102 @@ def test_create_segmentation_datasets_from_config_delegates_to_factory(
 
     result = create_segmentation_datasets_from_config(config)
     assert result is expected_split
+
+
+# -----------------------------------------------------------------------
+# _split_by_predefined_column
+# -----------------------------------------------------------------------
+
+def test_split_by_predefined_column_routes_rows_correctly() -> None:
+    """
+    Rows whose predefined_split value is 'train', 'val', or 'test' must end up
+    in the matching DataFrameSplits partition.
+    """
+    df = pd.DataFrame({
+        "sampleid": ["a", "b", "c", "d", "e"],
+        "split": ["train", "val", "test", "train", "val"],
+    })
+    splits = _split_by_predefined_column(df, "split")
+    assert list(splits.train["sampleid"]) == ["a", "d"]
+    assert list(splits.val["sampleid"]) == ["b", "e"]
+    assert list(splits.test["sampleid"]) == ["c"]
+
+
+def test_split_by_predefined_column_drops_unknown_values() -> None:
+    """Rows with values other than train/val/test must be silently excluded."""
+    df = pd.DataFrame({
+        "sampleid": ["a", "b", "c"],
+        "split": ["train", "unknown", "test"],
+    })
+    splits = _split_by_predefined_column(df, "split")
+    assert list(splits.train["sampleid"]) == ["a"]
+    assert splits.val.empty
+    assert list(splits.test["sampleid"]) == ["c"]
+
+
+def test_split_by_predefined_column_returns_copies() -> None:
+    """Modifying a returned partition must not mutate the original DataFrame."""
+    df = pd.DataFrame({"sampleid": ["a"], "split": ["train"], "value": [1]})
+    splits = _split_by_predefined_column(df, "split")
+    splits.train["value"] = 99
+    assert df.loc[0, "value"] == 1
+
+
+# -----------------------------------------------------------------------
+# Factory uses predefined splits when predefined_split_column is set
+# -----------------------------------------------------------------------
+
+def test_factory_uses_predefined_column_instead_of_random_split(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    When predefined_split_column is set on the config, the factory must route
+    rows by that column and must NOT call split_segmentation_metadata.
+    """
+    df = pd.DataFrame({
+        "sampleid": ["a", "b", "c"],
+        "predefined_split": ["train", "val", "test"],
+    })
+    split_config = SplitConfig(train_size=0.6, val_size=0.2, test_size=0.2, stratify_column=None, random_seed=42)
+    data_root = Path("somepath")
+    config = cast(
+        ExperimentConfig,
+        SimpleNamespace(
+            experiment_type=ExperimentType.SEGMENTATION,
+            dataconfig=DummyDatasetConfig(
+                metadata=df,
+                split_config=split_config,
+                data_root=data_root,
+                predefined_split_column="predefined_split",
+            ),
+            trainconfig=SimpleNamespace(cache_in_ram=False),
+        ),
+    )
+
+    random_split_called = []
+
+    def fake_split_segmentation_metadata(**kwargs: object) -> DataFrameSplits:
+        random_split_called.append(True)
+        raise AssertionError("split_segmentation_metadata must not be called when predefined_split_column is set")
+
+    monkeypatch.setattr("SkiNet.ML.datasets.dataset_factory.split_segmentation_metadata",
+                        fake_split_segmentation_metadata)
+    monkeypatch.setattr("SkiNet.ML.datasets.dataset_factory.get_transform_from_config",
+                        lambda cfg: SimpleNamespace(train=None, val=None, test=None))
+
+    created: list[dict[str, object]] = []
+
+    class FakeSegmentationDataset:
+        def __init__(self, data_root: object, dataframe: pd.DataFrame, transform: object, mode: object, cache_in_ram: bool = False) -> None:
+            created.append({"mode": mode, "sampleids": list(dataframe["sampleid"])})
+
+    monkeypatch.setattr("SkiNet.ML.datasets.dataset_factory.SegmentationDataset", FakeSegmentationDataset)
+
+    result = SegmentationDatasetFactory().create_datasets(config)
+
+    assert not random_split_called
+    assert created[0]["mode"] == MLWorkflowState.TRAIN
+    assert created[0]["sampleids"] == ["a"]
+    assert created[1]["mode"] == MLWorkflowState.VAL
+    assert created[1]["sampleids"] == ["b"]
+    assert created[2]["mode"] == MLWorkflowState.TEST
+    assert created[2]["sampleids"] == ["c"]
+    assert list(result.splits.train["sampleid"]) == ["a"]

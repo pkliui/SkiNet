@@ -109,3 +109,63 @@ def test_basedataconfig_deepcopy_clears_metadata_cache(tmp_path: Path) -> None:
     loaded = copy.metadata  # copy must still lazy-load correctly
     assert set(loaded.columns) == {"a", "b"}
     assert loaded.iloc[0]["a"] == 1
+
+
+def test_basedataconfig_missing_local_data_root_raises(tmp_path: Path) -> None:
+    """Accessing metadata without local_data_root when azure_data=False must raise."""
+    cfg = DummyConfig(azure_data=False, azure_blob_mount_point=None, local_data_root=None)
+    with pytest.raises(ValueError, match="local_data_root"):
+        _ = cfg.metadata
+
+
+# -----------------------------------------------------------------------
+# predefined_split_column
+# -----------------------------------------------------------------------
+
+def test_basedataconfig_predefined_split_column_defaults_to_none() -> None:
+    """BaseDataConfig must default predefined_split_column to None."""
+    cfg = DummyConfig(azure_data=False, local_data_root="/dummy", azure_blob_mount_point=None)
+    assert cfg.predefined_split_column is None
+
+
+def test_basedataconfig_predefined_split_column_can_be_set() -> None:
+    """predefined_split_column must accept any string value."""
+    cfg = DummyConfig(azure_data=False, local_data_root="/dummy", azure_blob_mount_point=None, predefined_split_column="my_split_col")
+    assert cfg.predefined_split_column == "my_split_col"
+
+
+# -----------------------------------------------------------------------
+# get_split_config
+# -----------------------------------------------------------------------
+
+def test_basedataconfig_get_split_config_defaults() -> None:
+    """get_split_config must reflect the default field values."""
+    from SkiNet.Utils.data.split_data import SplitConfig
+    cfg = DummyConfig(azure_data=False, local_data_root="/dummy", azure_blob_mount_point=None)
+    sc = cfg.get_split_config()
+    assert isinstance(sc, SplitConfig)
+    assert sc.train_size == 0.6
+    assert sc.val_size == 0.2
+    assert sc.test_size == 0.2
+    assert sc.random_seed == 42
+    assert sc.stratify_column is None
+
+
+def test_basedataconfig_get_split_config_forwards_custom_values() -> None:
+    """get_split_config must forward explicitly set field values."""
+    cfg = DummyConfig(
+        azure_data=False,
+        local_data_root="/dummy",
+        azure_blob_mount_point=None,
+        split_train_size=0.7,
+        split_val_size=0.15,
+        split_test_size=0.15,
+        split_random_seed=7,
+        split_stratify_column="diagnosis",
+    )
+    sc = cfg.get_split_config()
+    assert sc.train_size == 0.7
+    assert sc.val_size == 0.15
+    assert sc.test_size == 0.15
+    assert sc.random_seed == 7
+    assert sc.stratify_column == "diagnosis"

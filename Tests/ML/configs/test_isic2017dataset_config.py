@@ -14,6 +14,7 @@ from SkiNet.Utils.csv_headers import (
     DATAPATH_HEADER,
     DATATYPE_HEADER,
     ISIC2017_MELANOMA_HEADER,
+    ISIC2017_PREDEFINED_SPLIT_HEADER,
     ISIC2017_SEBORRHEIC_KERATOSIS_HEADER,
     SAMPLEID_HEADER,
 )
@@ -130,6 +131,22 @@ def test_get_split_config_sizes_forwarded() -> None:
     assert sc.val_size == 0.2
     assert sc.test_size == 0.1
     assert sc.random_seed == 99
+
+
+# -----------------------------------------------------------------------
+# predefined_split_column
+# -----------------------------------------------------------------------
+
+def test_predefined_split_column_defaults_to_isic2017_header() -> None:
+    """ISIC2017 uses official challenge splits by default."""
+    cfg = ISIC2017DatasetConfig(local_data_root="/dummy")  # type: ignore
+    assert cfg.predefined_split_column == ISIC2017_PREDEFINED_SPLIT_HEADER
+
+
+def test_predefined_split_column_can_be_disabled() -> None:
+    """Setting predefined_split_column=None falls back to random splitting."""
+    cfg = ISIC2017DatasetConfig(local_data_root="/dummy", predefined_split_column=None)  # type: ignore
+    assert cfg.predefined_split_column is None
 
 
 # -----------------------------------------------------------------------

@@ -66,6 +66,12 @@ class BaseDataConfig(BaseModel):
     split_stratify_column: str | None = Field(default=None, description="Column name in the metadata CSV to use for"
                                               "stratified splitting into train/val/test splits. Should be a column  "
                                               "in the metadata CSV that has categorical labels for stratification. ")
+    predefined_split_column: str | None = Field(
+        default=None,
+        description="When set, the dataset factory uses this column's values ('train'/'val'/'test') "
+                    "to assign each row to its split instead of performing a random split. "
+                    "split_train_size / split_val_size / split_test_size are ignored in this case.",
+    )
 
     METADATA_CSV_NAME: ClassVar[str]
     REQUIRED_COLUMNS: ClassVar[frozenset[str]] = frozenset()

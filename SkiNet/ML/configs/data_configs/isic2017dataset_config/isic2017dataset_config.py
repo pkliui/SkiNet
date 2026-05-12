@@ -5,7 +5,8 @@ from pydantic import Field
 
 from SkiNet.ML.configs.data_configs.base_data_config import BaseDataConfig
 from SkiNet.Utils.csv_headers import (DATAPATH_HEADER, DATATYPE_HEADER, ISIC2017_MELANOMA_HEADER,
-                                      ISIC2017_SEBORRHEIC_KERATOSIS_HEADER, SAMPLEID_HEADER)
+                                      ISIC2017_PREDEFINED_SPLIT_HEADER, ISIC2017_SEBORRHEIC_KERATOSIS_HEADER,
+                                      SAMPLEID_HEADER)
 from SkiNet.Utils.experiment_keys import DatasetKey
 from SkiNet.Utils.project_paths import ISIC2017_CSV_NAME
 from SkiNet.Utils.data.split_data import SplitConfig
@@ -50,6 +51,11 @@ class ISIC2017DatasetConfig(BaseDataConfig):
     ```
     """
     kind: Literal["isic2017"] = Field("isic2017", description="Dataset kind identifier for config selection and validation.")
+    predefined_split_column: str | None = Field(
+        default=ISIC2017_PREDEFINED_SPLIT_HEADER,
+        description="Use the official ISIC 2017 challenge splits recorded in this column. "
+                    "Set to None to fall back to a random split via split_train_size/val/test.",
+    )
     split_stratify_column: ISIC2017StratificationOptions | None = Field(
         default=ISIC2017StratificationOptions.ISIC2017_MELANOMA,
         description="Column name in the metadata CSV to use for stratified splitting into train/val/test splits. "
