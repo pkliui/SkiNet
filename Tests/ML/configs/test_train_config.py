@@ -58,6 +58,7 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.mlflow_config.tracking_uri is None
     assert cfg.mlflow_config.log_model == "all"
     assert cfg.mlflow_config.log_model_summary is True
+    assert cfg.use_lr_scheduler is True
     assert cfg.lr_scheduler_config.monitor == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
     assert cfg.lr_scheduler_config.mode == "max"
     assert cfg.lr_scheduler_config.patience == 5
@@ -289,6 +290,16 @@ def test_train_config_cache_in_ram_accepts_bool(value: bool) -> None:
     """cache_in_ram should accept True and False and round-trip the value."""
     cfg = TrainConfig(cache_in_ram=value)
     assert cfg.cache_in_ram is value
+
+
+# ------ Test use_lr_scheduler ------
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_train_config_use_lr_scheduler_accepts_bool(value: bool) -> None:
+    """use_lr_scheduler should accept True and False and round-trip the value."""
+    cfg = TrainConfig(use_lr_scheduler=value)
+    assert cfg.use_lr_scheduler is value
 
 
 # ------ Test prefetch_factor validator ------

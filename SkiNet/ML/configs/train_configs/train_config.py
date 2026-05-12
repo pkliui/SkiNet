@@ -26,7 +26,7 @@ class CheckpointConfig(BaseModel):
     # ok For segmentation, sometimes Dice/IoU is a better “best model” criterion than validation loss, depending on what you care about.
     monitor: MetricsKey = Field(default=MetricsKey.default_monitor())
     mode: Literal["min", "max"] = Field(default="max")  # ok ModelCheckpoint
-    save_top_k: int = Field(default=1, ge=1)  # ok ModelCheckpoint
+    save_top_k: int = Field(default=1, ge=0)  # ok ModelCheckpoint
     save_last: bool = Field(default=True)  # ok ModelCheckpoint
     filename: str = Field(default="epoch{epoch:03d}")  # ok
 
@@ -142,6 +142,7 @@ class TrainConfig(BaseModel):
     litlogger_config: LitLoggerConfig = Field(default_factory=LitLoggerConfig)
 
     # --- Other configs ---
+    use_lr_scheduler: bool = Field(default=True)
     lr_scheduler_config: ReduceOnPlateauConfig = Field(default_factory=ReduceOnPlateauConfig)
 
     #  --- Other callbacks params ---
