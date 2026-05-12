@@ -1,7 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
-from SkiNet.ML.configs.config_creator import PH2_UNet_ConfigCreator
+from SkiNet.ML.configs.config_creator import ISIC2017_UNet_ConfigCreator, PH2_UNet_ConfigCreator
+from SkiNet.ML.configs.data_configs.isic2017dataset_config.isic2017dataset_config import ISIC2017DatasetConfig
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
@@ -157,3 +158,66 @@ def test_ph2_unet_config_creator_uses_default_transformconfig_when_not_overridde
     assert config.transformconfig.crop.scale == (0.8, 1.0)
     assert config.transformconfig.photometric_augmentation.color_jitter_apply is False
     assert config.transformconfig.photometric_augmentation.color_jitter_p == 0.5
+
+
+# ======================================================================
+# ISIC2017_UNet_ConfigCreator
+# ======================================================================
+
+def test_isic2017_unet_config_creator_returns_experiment_config_default() -> None:
+    creator = ISIC2017_UNet_ConfigCreator()
+    config = creator.create_config()
+
+    assert isinstance(config, ExperimentConfig)
+    assert config.experiment_name == "unet2d_isic2017_experiment"
+    assert config.experiment_type == ExperimentType.SEGMENTATION
+    assert config.description == "UNet2D on ISIC2017 dataset"
+
+    assert isinstance(config.dataconfig, ISIC2017DatasetConfig)
+    assert isinstance(config.modelconfig, UNet2DModelConfig)
+    assert isinstance(config.trainconfig, TrainConfig)
+    assert isinstance(config.transformconfig, TransformConfig)
+    assert isinstance(config.sweepconfig, SweepConfig)
+
+
+@pytest.mark.parametrize(
+    "dataconfig_kwargs,transformconfig_kwargs,modelconfig_kwargs,trainconfig_kwargs,sweepconfig_kwargs",
+    [
+        ({}, {}, {}, {}, {}),
+        (None, None, None, None, None),
+    ],
+)
+def test_isic2017_unet_config_creator_accepts_empty_or_none_kwargs(
+    dataconfig_kwargs: dict | None,
+    transformconfig_kwargs: dict | None,
+    modelconfig_kwargs: dict | None,
+    trainconfig_kwargs: dict | None,
+    sweepconfig_kwargs: dict | None,
+) -> None:
+    creator = ISIC2017_UNet_ConfigCreator()
+    config = creator.create_config(
+        dataconfig_kwargs=dataconfig_kwargs,
+        transformconfig_kwargs=transformconfig_kwargs,
+        modelconfig_kwargs=modelconfig_kwargs,
+        trainconfig_kwargs=trainconfig_kwargs,
+        sweepconfig_kwargs=sweepconfig_kwargs,
+    )
+
+    assert isinstance(config, ExperimentConfig)
+    assert isinstance(config.dataconfig, ISIC2017DatasetConfig)
+    assert isinstance(config.transformconfig, TransformConfig)
+    assert isinstance(config.modelconfig, UNet2DModelConfig)
+    assert isinstance(config.trainconfig, TrainConfig)
+    assert isinstance(config.sweepconfig, SweepConfig)
+
+
+def test_isic2017_unet_config_creator_custom_experiment_name() -> None:
+    creator = ISIC2017_UNet_ConfigCreator()
+    config = creator.create_config(experiment_name="isic2017_custom_run")
+    assert config.experiment_name == "isic2017_custom_run"
+
+
+def test_isic2017_unet_config_creator_default_experiment_name_unchanged() -> None:
+    creator = ISIC2017_UNet_ConfigCreator()
+    config = creator.create_config()
+    assert config.experiment_name == "unet2d_isic2017_experiment"

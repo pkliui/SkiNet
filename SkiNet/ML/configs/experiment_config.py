@@ -4,13 +4,14 @@ from typing import Annotated, Union
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
+from SkiNet.ML.configs.data_configs.isic2017dataset_config.isic2017dataset_config import ISIC2017DatasetConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.configs.train_configs.sweep_config import SweepConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 from SkiNet.Utils.experiment_keys import ExperimentType
 
-DataConfig = Annotated[Union[PH2DatasetConfig], Field(discriminator="kind")]
+DataConfig = Annotated[Union[PH2DatasetConfig, ISIC2017DatasetConfig], Field(discriminator="kind")]
 ModelConfig = Annotated[Union[UNet2DModelConfig], Field(discriminator="kind")]
 
 logger = logging.getLogger(__name__)

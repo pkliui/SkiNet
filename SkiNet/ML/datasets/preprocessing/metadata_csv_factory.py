@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Union
 
 from SkiNet.ML.datasets.preprocessing.base_csv_builder import AzureCSVBuilder, LocalCSVBuilder
+from SkiNet.ML.datasets.preprocessing.isic2017_csv_builder import ISIC2017AzureCSVBuilder, ISIC2017LocalCSVBuilder
 from SkiNet.ML.datasets.preprocessing.ph2_csv_builder import PH2AzureCSVBuilder, PH2LocalCSVBuilder
 from SkiNet.Utils.experiment_keys import DatasetKey
 
@@ -46,6 +47,24 @@ class PH2MetadataFactory(MetadataFactory):
         return PH2AzureCSVBuilder()
 
 
+class ISIC2017MetadataFactory(MetadataFactory):
+    """
+    Factory class for creating ISIC 2017 dataset metadata in local and Azure environments.
+    """
+
+    def get_local_csv_builder(self, arg: argparse.Namespace) -> LocalCSVBuilder:
+        """
+        Create a LocalCSVBuilder instance for the ISIC 2017 dataset.
+        """
+        return ISIC2017LocalCSVBuilder(arg)
+
+    def get_azure_csv_builder(self) -> AzureCSVBuilder:
+        """
+        Create an AzureCSVBuilder instance for the ISIC 2017 dataset.
+        """
+        return ISIC2017AzureCSVBuilder()
+
+
 def get_factory(dataset_key: DatasetKey) -> MetadataFactory:
     """
     Get a specific factory for creating metadata based on the dataset key.
@@ -55,7 +74,8 @@ def get_factory(dataset_key: DatasetKey) -> MetadataFactory:
     """
 
     factories = {
-        DatasetKey.PH2: PH2MetadataFactory()
+        DatasetKey.PH2: PH2MetadataFactory(),
+        DatasetKey.ISIC2017: ISIC2017MetadataFactory(),
     }
 
     if dataset_key in factories:

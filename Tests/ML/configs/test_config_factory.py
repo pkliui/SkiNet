@@ -2,8 +2,13 @@ import logging
 
 import pytest
 
-from SkiNet.ML.configs.config_creator import PH2_UNet_ConfigCreator
-from SkiNet.ML.configs.config_factory import ConfigFactory, PH2_UNet_ConfigFactory, get_config_factory
+from SkiNet.ML.configs.config_creator import ISIC2017_UNet_ConfigCreator, PH2_UNet_ConfigCreator
+from SkiNet.ML.configs.config_factory import (
+    ConfigFactory,
+    ISI2017_UNet_ConfigFactory,
+    PH2_UNet_ConfigFactory,
+    get_config_factory,
+)
 from SkiNet.Utils.experiment_keys import DatasetKey, ModelKey
 
 
@@ -19,6 +24,7 @@ def test_config_factory_is_abstract() -> None:
     "model_key,dataset_key,expected_factory_type",
     [
         (ModelKey.UNET2D, DatasetKey.PH2, PH2_UNet_ConfigFactory),
+        (ModelKey.UNET2D, DatasetKey.ISIC2017, ISI2017_UNet_ConfigFactory),
     ],
 )
 def testget_config_factory_valid(model_key: ModelKey, dataset_key: DatasetKey, expected_factory_type: type) -> None:
@@ -73,3 +79,9 @@ def test_factory_get_config_creator_returns_expected_creator() -> None:
     factory = get_config_factory(ModelKey.UNET2D, DatasetKey.PH2)
     creator = factory.get_config_creator()
     assert isinstance(creator, PH2_UNet_ConfigCreator)
+
+
+def test_isic2017_factory_get_config_creator_returns_expected_creator() -> None:
+    factory = get_config_factory(ModelKey.UNET2D, DatasetKey.ISIC2017)
+    creator = factory.get_config_creator()
+    assert isinstance(creator, ISIC2017_UNet_ConfigCreator)

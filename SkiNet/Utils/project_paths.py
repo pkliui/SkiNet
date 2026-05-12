@@ -70,6 +70,24 @@ PH2_IMAGE_PATTERN_AZURE = "**_Dermoscopic_Image/**.png"
 PH2_MASK_PATTERN_AZURE = "**_lesion/**.png"
 
 
+# ISIC 2017 dataset
+# NB: For the dataset keys see SkiNet.ML.configs.datasets.dataset_keys.DatasetKey class
+ISIC2017_CSV_NAME = "isic2017_metadata.csv"
+
+# Names of the three ground-truth diagnosis CSV files as provided by the ISIC 2017 challenge
+ISIC2017_TRAIN_GT_CSV_NAME = "ISIC-2017_Training_Part3_GroundTruth.csv"
+ISIC2017_VAL_GT_CSV_NAME = "ISIC-2017_Validation_Part3_GroundTruth.csv"
+ISIC2017_TEST_GT_CSV_NAME = "ISIC-2017_Test_v2_Part3_GroundTruth.csv"
+
+# Glob patterns for local file system
+ISIC2017_IMAGE_PATTERN_LOCAL = "ISIC-2017_*_Data/*/*.jpg"
+ISIC2017_MASK_PATTERN_LOCAL = "ISIC-2017_*_Part1_GroundTruth/*/*_segmentation.png"
+
+# Glob patterns for Azure file system
+ISIC2017_IMAGE_PATTERN_AZURE = "**_Data/**.jpg"
+ISIC2017_MASK_PATTERN_AZURE = "**_Part1_GroundTruth/**_segmentation.png"
+
+
 # ______________Data-related for Azure machine_____________
 # Path to a directory on Azure where data from Azure Blob Container is mounted
 AZURE_MOUNT_PATH: Path = Path("/mnt/azure_blob_data/")

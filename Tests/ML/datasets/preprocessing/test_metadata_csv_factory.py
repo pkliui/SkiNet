@@ -5,7 +5,13 @@ from typing import Any
 import pytest
 import os
 
-from SkiNet.ML.datasets.preprocessing.metadata_csv_factory import PH2MetadataFactory, get_factory, main
+from SkiNet.ML.datasets.preprocessing.isic2017_csv_builder import ISIC2017AzureCSVBuilder, ISIC2017LocalCSVBuilder
+from SkiNet.ML.datasets.preprocessing.metadata_csv_factory import (
+    ISIC2017MetadataFactory,
+    PH2MetadataFactory,
+    get_factory,
+    main,
+)
 from SkiNet.ML.datasets.preprocessing.ph2_csv_builder import PH2AzureCSVBuilder, PH2LocalCSVBuilder
 from SkiNet.Utils.experiment_keys import DatasetKey
 
@@ -105,6 +111,39 @@ def test_main_raises_on_both_local_and_azure(arg: argparse.Namespace) -> None:
     """
     with pytest.raises(ValueError, match="Do not provide --local-data-root when using --azure-data"):
         main(arg)
+
+
+def test_get_factory_returns_isic2017_factory() -> None:
+    """Confirm get_factory returns an ISIC2017MetadataFactory for the ISIC2017 dataset key."""
+    factory = get_factory(DatasetKey.ISIC2017)
+    assert isinstance(factory, ISIC2017MetadataFactory)
+
+
+@pytest.fixture
+def local_arg_isic2017(tmp_path: pytest.TempPathFactory) -> argparse.Namespace:
+    return argparse.Namespace(local_data_root=str(tmp_path), dataset_key_str="ISIC2017", azure_data=False)
+
+
+@pytest.fixture
+def azure_arg_isic2017() -> argparse.Namespace:
+    return argparse.Namespace(local_data_root=None, dataset_key_str="ISIC2017", azure_data=True)
+
+
+@pytest.mark.parametrize("factory_cls, builder_cls, arg_fixture", [
+    (ISIC2017MetadataFactory, ISIC2017LocalCSVBuilder, "local_arg_isic2017"),
+    (ISIC2017MetadataFactory, ISIC2017AzureCSVBuilder, "azure_arg_isic2017"),
+])
+def test_isic2017_factory_returns_correct_builder(
+    factory_cls: type, builder_cls: type, arg_fixture: str, request: pytest.FixtureRequest
+) -> None:
+    """Confirm ISIC2017MetadataFactory returns the correct builder for local and Azure environments."""
+    factory = factory_cls()
+    arg = request.getfixturevalue(arg_fixture)
+    if builder_cls is ISIC2017LocalCSVBuilder:
+        builder = factory.get_local_csv_builder(arg)
+    else:
+        builder = factory.get_azure_csv_builder()
+    assert isinstance(builder, builder_cls)
 
 
 def test_enum_conversion_invalid_key() -> None:
