@@ -1,7 +1,10 @@
+from typing import Literal, cast
+
 import albumentations as A
 
 from SkiNet.ML.configs.transform_configs.augment_config import PhotoAugmentConfig, SpatialAugmentConfig
 from SkiNet.ML.configs.transform_configs.crop_config import CropConfig
+from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 
 
 def get_crop_transforms(config: CropConfig) -> list[A.BasicTransform]:
@@ -88,10 +91,29 @@ def get_photometric_transforms(config: PhotoAugmentConfig) -> list[A.BasicTransf
     return transforms_list
 
 
-def get_postprocess_transforms() -> list[A.BasicTransform]:
+def get_postprocess_transforms(config: TransformConfig | None = None) -> list[A.BasicTransform]:
     """
     Returns a list of post-processing transformations to be applied after all augmentations.
-    This typically includes normalization and conversion to tensor format.
     """
-    # Per-image normalization: removes device/lighting bias; intentionally not ImageNet stats
-    return [A.Normalize(normalization="image_per_channel", p=1.0), A.ToTensorV2(transpose_mask=True)]
+    if config is None:
+        mode = "image_per_channel"
+        mean = std = None
+    else:
+        mode = config.normalization_mode
+        mean = config.normalization_mean
+        std = config.normalization_std
+
+    if mode == "standard":
+        if mean is None or std is None:
+            raise ValueError(
+                "normalization_mode='standard' requires normalization_mean and normalization_std "
+                "to be set in TRANSFORM_CONFIG. Run compute_dataset_stats.py to obtain them."
+            )
+        normalize = A.Normalize(normalization="standard", mean=mean, std=std, p=1.0)
+    else:
+        normalize = A.Normalize(
+            normalization=cast(Literal["standard", "image", "image_per_channel", "min_max", "min_max_per_channel"], mode),
+            p=1.0,
+        )
+
+    return [normalize, A.ToTensorV2(transpose_mask=True)]

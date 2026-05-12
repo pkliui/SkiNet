@@ -95,7 +95,7 @@ def get_transform_from_config(cfg: ExperimentConfig) -> TransformsContainer:
         cfg.transformconfig.spatial_augmentation)
     photometric_transforms = get_photometric_transforms(
         cfg.transformconfig.photometric_augmentation)
-    postprocess_transforms = get_postprocess_transforms()
+    postprocess_transforms = get_postprocess_transforms(cfg.transformconfig)
     compose_kwargs = _resolve_compose_kwargs(cfg)
 
     train_pipeline = _build_transform(
