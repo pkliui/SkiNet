@@ -26,3 +26,4 @@ this_studio.code-workspace
 /docs/.buildinfo
 /docs/searchindex.js
 /docs/objects.inv
+on_start_kaggle.sh
