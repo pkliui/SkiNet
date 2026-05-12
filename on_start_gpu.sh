@@ -28,6 +28,10 @@
 #   Keep GPU after training (default: release):
 #     RELEASE_GPU=false MODE=train bash on_start_gpu.sh
 #
+#   Select dataset (default: ph2):
+#     DATASET=ph2      MODE=seeds SEEDS="1 2 3" bash on_start_gpu.sh
+#     DATASET=isic2017 MODE=seeds SEEDS="1 2 3" bash on_start_gpu.sh
+#
 # ── INPUT VARIABLES ──────────────────────────────────────────────────────────
 #
 #   MODE              Required. One of: train | seeds | sweep
@@ -46,6 +50,15 @@
 #   SWEEP_MONITOR     Metric to optimise. Default: val_best_dice_at_threshold
 #   SWEEP_DIRECTION   maximize | minimize.  Default: maximize
 #
+#   -- dataset --
+#   DATASET           Dataset to use. One of: ph2 | isic2017. Default: ph2
+#                     ph2:      read from Lightning Storage (must be uploaded beforehand).
+#                     isic2017: downloaded from Kaggle on first run, preprocessed once.
+#   ISIC_OUT_DIR      Local download path for ISIC 2017.
+#                     Default: /teamspace/studios/this_studio/isic2017
+#   KAGGLE_DATASET    Kaggle dataset slug for ISIC 2017.
+#                     Default: johnchfr/isic-2017
+#
 #   -- repository --
 #   REPO_URL          Git remote. Default: https://github.com/pkliui/SkiNet.git
 #   BRANCH            Branch to check out. Default: train
@@ -60,9 +73,14 @@
 #
 # ── NOTES ────────────────────────────────────────────────────────────────────
 #
-#   Data is read from Lightning Storage at /teamspace/lightning_storage/ph2/.
-#   Ensure your data is uploaded there before running (path configured in
-#   repos/SkiNet/SkiNet/Azure/azure_settings.yaml under PATH_ON_DATASTORE).
+#   PH2:      data is read from Lightning Storage at /teamspace/lightning_storage/ph2/.
+#             Ensure your data is uploaded there before running (path configured in
+#             repos/SkiNet/SkiNet/Azure/azure_settings.yaml under PATH_ON_DATASTORE).
+#
+#   ISIC2017: data is downloaded from Kaggle to $ISIC_OUT_DIR on the first run.
+#             Subsequent runs skip the download (directory non-empty) but always
+#             re-run metadata CSV preprocessing. Requires the kaggle CLI and a
+#             valid ~/.kaggle/kaggle.json credentials file.
 #
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -84,7 +102,7 @@ SEEDS="${SEEDS:-}"                 # seeds mode: required — run_seeds.py has n
 ENCODER_MODES="${ENCODER_MODES:-}" # seeds mode: overrides YAML encoder_mode if set
 MERGE_MODES="${MERGE_MODES:-}"     # seeds mode: overrides YAML merge_mode if set
 
-SWEEP_MONITOR="${SWEEP_MONITOR:-val_best_dice_at_threshold}" # sweep mode: metric to optimise
+SWEEP_MONITOR="${SWEEP_MONITOR:-perf/samples_per_sec}" # sweep mode: metric to optimise perf/samples_per_sec, val_best_dice_at_threshold
 SWEEP_DIRECTION="${SWEEP_DIRECTION:-maximize}"               # sweep mode: maximize | minimize
 
 # ── Repository ────────────────────────────────────────────────────────────────
@@ -94,10 +112,23 @@ CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
 BRANCH="${BRANCH:-train}"
 
 # ── Data paths ────────────────────────────────────────────────────────────────
-#LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
-#LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/isic2017/"
-LIGHTNING_MOUNT_PATH="/teamspace/studios/this_studio/isic2017/"
+DATASET="${DATASET:-ph2}"                  # ph2 | isic2017
 CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"
+
+case "$DATASET" in
+  ph2)
+    LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
+    ;;
+  isic2017)
+    ISIC_OUT_DIR="${ISIC_OUT_DIR:-/teamspace/studios/this_studio/isic2017/ISIC2017DATA}"
+    KAGGLE_DATASET="${KAGGLE_DATASET:-johnchfr/isic-2017}"
+    LIGHTNING_MOUNT_PATH="$ISIC_OUT_DIR"
+    ;;
+  *)
+    echo "ERROR: Unknown DATASET='$DATASET'. Valid values: ph2 | isic2017"
+    exit 1
+    ;;
+esac
 
 # ── Python binary ─────────────────────────────────────────────────────────────
 PYTHON_BIN="${PYTHON_BIN:-python}"
@@ -115,7 +146,7 @@ echo "    SEEDS='$SEEDS'  ENCODER_MODES='$ENCODER_MODES'  MERGE_MODES='$MERGE_MO
 echo "    SWEEP_MONITOR=$SWEEP_MONITOR  SWEEP_DIRECTION=$SWEEP_DIRECTION"
 echo "    REPO_URL=$REPO_URL  BRANCH=$BRANCH"
 echo "    HOST_REPO=$HOST_REPO  CONTAINER_REPO=$CONTAINER_REPO"
-echo "    LIGHTNING_MOUNT_PATH=$LIGHTNING_MOUNT_PATH  CONTAINER_MOUNT_PATH=$CONTAINER_MOUNT_PATH"
+echo "    DATASET=$DATASET  LIGHTNING_MOUNT_PATH=$LIGHTNING_MOUNT_PATH  CONTAINER_MOUNT_PATH=$CONTAINER_MOUNT_PATH"
 echo "    PYTHON_BIN=$PYTHON_BIN"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -194,6 +225,39 @@ fi
 
 echo "==> Pulling Docker image $IMAGE"
 docker pull "$IMAGE"
+
+# ── ISIC 2017: download + preprocess ─────────────────────────────────────────
+# Only runs when DATASET=isic2017. Download is skipped when data is already
+# present; preprocessing always runs (it is idempotent and fast).
+
+if [[ "$DATASET" == "isic2017" ]]; then
+  if ! command -v kaggle >/dev/null 2>&1; then
+    echo "==> kaggle CLI not found — installing..."
+    pip install --quiet kaggle
+  fi
+
+  mkdir -p "$ISIC_OUT_DIR"
+
+  if [[ -z "$(ls -A "$ISIC_OUT_DIR" 2>/dev/null)" ]]; then
+    echo "==> ISIC 2017: directory empty — downloading dataset to $ISIC_OUT_DIR"
+    kaggle datasets download -d "$KAGGLE_DATASET" -p "$ISIC_OUT_DIR" --unzip
+  else
+    echo "==> ISIC 2017: data already present in $ISIC_OUT_DIR — skipping download."
+  fi
+
+  echo "==> ISIC 2017: running metadata CSV preprocessing..."
+  docker run --rm \
+      --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
+      --mount "type=bind,src=$ISIC_OUT_DIR,dst=$CONTAINER_MOUNT_PATH" \
+      -w "$CONTAINER_REPO" \
+      "$IMAGE" \
+      "$PYTHON_BIN" -m SkiNet.ML.datasets.preprocessing.metadata_csv_factory \
+      --dataset-key-str ISIC2017 \
+      --local-data-root "$CONTAINER_MOUNT_PATH"
+
+  echo "==> ISIC 2017: setup complete."
+fi
+
 
 # ── Collect Lightning env vars ────────────────────────────────────────────────
 
