@@ -1,16 +1,17 @@
+%%writefile /kaggle/working/SkiNet/main_config.yaml
 GENERAL_CONFIG:
   experiment_type: "segmentation"
   model: "UNET2D_MODEL"
   dataset: "ISIC2017_DATASET"
 DATA_CONFIG:
-  local_data_root:
-  azure_data: True
+  local_data_root: "/kaggle/working/isic2017_data_256/"
+  azure_data: False
   azure_blob_mount_point: "/mnt/data/"
   split_random_seed: 100
 TRANSFORM_CONFIG:
   seed_value: 100
   crop:
-    crop_apply: True
+    crop_apply: False
     crop_type: "random_resized_crop"
     size: [256, 256]
     scale: [0.8, 1.0]
@@ -54,20 +55,22 @@ MODEL_CONFIG:
 SWEEP_CONFIG:
   monitor: "perf/samples_per_sec"
   direction: "maximize"
-  experiment_name: "test-sweep_batch_size_unet2d-isic2017-1"
+  experiment_name: "test-sweep_batch_size_unet2d-isic2017-256-cached-3"
   lr: [3e-4]
   weight_decay: [1e-4]
-  batch_size: [8, 16, 32, 64, 128]
+  num_workers: [1]
+  batch_size: [4, 8, 16, 32, 64]
 TRAIN_CONFIG:
   log_dir: "lightning_logs"
-  experiment_name: "test-sweep_batch_size_unet2d-isic2017-1"
+  experiment_name: "test-sweep_batch_size_unet2d-isic2017-256-cached-3"
   run_test_after_fit: false
   test_on_val_split: false
+  use_torch_compile: true
   batch_size: 8
-  num_workers: 2
+  num_workers: 1
   pin_memory: true
   prefetch_factor: 2
-  cache_in_ram: false  # set false for datasets too large to fit in RAM
+  cache_in_ram: true  # set false for datasets too large to fit in RAM
   loss_name: "bce_dice"
   optimizer_name: "adamw"
   lr: 3e-4
@@ -78,14 +81,13 @@ TRAIN_CONFIG:
   max_epochs: 3
   accelerator: "auto"
   devices: 2
-  strategy: "ddp"
   log_every_n_steps: 1
   check_val_every_n_epoch: 999999
   num_sanity_val_steps: 0
   use_mlflow_logger: true
   use_litlogger_logger: false
   use_early_stopping: false
-  use_checkpoint: true
+  use_checkpoint: false
   early_stopping_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"

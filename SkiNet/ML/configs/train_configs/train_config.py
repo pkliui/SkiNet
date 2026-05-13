@@ -111,6 +111,7 @@ class TrainConfig(BaseModel):
     pin_memory: bool | None = Field(default=None)
     prefetch_factor: int | None = Field(default=None, ge=1)
     cache_in_ram: bool = Field(default=True)
+    use_torch_compile: bool = Field(default=False)
     # LightningModel params
     loss_name: LossFunctionKey = Field(
         default=LossFunctionKey.BCE_DICE,
