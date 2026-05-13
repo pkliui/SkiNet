@@ -311,7 +311,12 @@ class LightningModel(L.LightningModule):
         Log the gradient scaler attribute.
         If sufficiently high (e.g. >=1024), no gradient clipping required,
         if it monotonically decaying to 1, add clipping
+
+        scaler.get_scale() forces a CUDA sync — only log every 50 steps to avoid
+        serialising the async backward+optimizer pipeline on every step.
         """
+        if self.trainer.global_step % 50 != 0:
+            return
         scaler = getattr(self.trainer.precision_plugin, "scaler", None)
         if scaler is not None:
             self.log("grad_scale", scaler.get_scale(), prog_bar=True, on_step=True)

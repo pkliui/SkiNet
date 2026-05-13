@@ -23,10 +23,16 @@ mkdir -p "${LOG_DIR}"
 echo "==> MLflow backend: ${BACKEND_STORE_URI}"
 echo "==> MLflow artifacts: ${DEFAULT_ARTIFACT_ROOT}"
 
+# Migrate schema if the DB already exists (e.g. copied from a previous session)
+if [[ -f "${DB_PATH}" ]]; then
+  echo "==> Upgrading MLflow DB schema..."
+  mlflow db upgrade "${BACKEND_STORE_URI}"
+  echo "==> Schema upgrade complete."
+fi
+
 # Kill any existing MLflow process on port 5000
-if lsof -ti:5000 &>/dev/null; then
-  echo "==> Port 5000 in use — killing existing process..."
-  kill -9 $(lsof -ti:5000) 2>/dev/null || true
+if pkill -9 -f "mlflow server" 2>/dev/null; then
+  echo "==> Killed existing mlflow server process"
   sleep 1
 fi
 
