@@ -103,7 +103,7 @@ class LightningModel(L.LightningModule):
         }
         for name, metric in metrics.items():
             self.log(name, metric(preds, target), on_step=False, on_epoch=True, prog_bar=True, logger=True,
-                     batch_size=preds.shape[0])
+                     batch_size=preds.shape[0], sync_dist=True)
 
     def _compute_and_log_threshold_search_metrics_for_sigmoid(self) -> None:
         """
@@ -131,7 +131,7 @@ class LightningModel(L.LightningModule):
         if torch.unique(all_targets).numel() < 2:
             logger.warning("Validation targets contain only one class — skipping threshold sweep. "
                            "Logging val_best_dice_at_threshold=0.0 as sentinel.")
-            self.log("val_best_dice_at_threshold", 0.0, on_step=False, on_epoch=True, prog_bar=False, logger=True)
+            self.log("val_best_dice_at_threshold", 0.0, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
             return
 
         fixed_thr_preds = (all_probs >= 0.5).long()
@@ -147,10 +147,10 @@ class LightningModel(L.LightningModule):
 
         self.optimal_threshold.fill_(best_thr)
         self.log("val_optimal_threshold", self.optimal_threshold,
-                 on_step=False, on_epoch=True, prog_bar=True, logger=True)
-        self.log("val_best_dice_at_threshold", best_dice, on_step=False, on_epoch=True, prog_bar=True, logger=True)
+                 on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
+        self.log("val_best_dice_at_threshold", best_dice, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
         self.log("val_dice_threshold_gain", best_dice - fixed_thr_dice,
-                 on_step=False, on_epoch=True, prog_bar=False, logger=True)
+                 on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
 
     @staticmethod
     def _prepare_mask(mask: torch.Tensor) -> torch.Tensor:
@@ -217,7 +217,7 @@ class LightningModel(L.LightningModule):
         loss: torch.Tensor = self.loss_fn(logits, mask)
         self._raise_if_non_finite(f"{prefix}/loss", loss, batch_idx)
         self.log(f"{prefix}_loss", loss, on_step=False, on_epoch=True,
-                 prog_bar=(prefix == "val"), logger=True, batch_size=x.shape[0])
+                 prog_bar=(prefix == "val"), logger=True, batch_size=x.shape[0], sync_dist=True)
 
         probs = self._compute_and_log_segmentation_metrics_from_logits_and_mask(prefix, logits, mask)
 
@@ -226,7 +226,7 @@ class LightningModel(L.LightningModule):
         if prefix == "val":
             self._val_probs.append(probs.detach().reshape(-1))
             self._val_masks.append(mask.detach().reshape(-1))
-            self.log("val_threshold_used", self.optimal_threshold, on_step=False, on_epoch=True, logger=True)
+            self.log("val_threshold_used", self.optimal_threshold, on_step=False, on_epoch=True, logger=True, sync_dist=True)
         return loss
 
     def training_step(self, batch: dict[str, torch.Tensor], batch_idx: int) -> torch.Tensor:
@@ -243,16 +243,19 @@ class LightningModel(L.LightningModule):
         if x is None or mask is None:
             raise ValueError(f"Batch is missing 'image' or 'mask' keys. Found keys: {list(batch.keys())}")
         mask = self._prepare_mask(mask)
-        self._raise_if_non_finite("train/image", x, batch_idx)
-        self._raise_if_non_finite("train/mask", mask, batch_idx)
         logger.debug(f"Training step - batch_idx: {batch_idx}, input image shape: {x.shape}, mask shape: {mask.shape}")
 
         # get the logits and compute and log loss
         logits = self.model(x)
-        self._raise_if_non_finite("train/logits", logits, batch_idx)
         t_loss: torch.Tensor = self.loss_fn(logits, mask)
-        self._raise_if_non_finite("train/loss", t_loss, batch_idx)
-        self.log("train_loss", t_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=x.shape[0])
+
+        # NaN/Inf checks force CUDA synchronisation on every step — restrict to warm-up steps only.
+        if self.trainer.global_step < 3:
+            self._raise_if_non_finite("train/image", x, batch_idx)
+            self._raise_if_non_finite("train/mask", mask, batch_idx)
+            self._raise_if_non_finite("train/logits", logits, batch_idx)
+            self._raise_if_non_finite("train/loss", t_loss, batch_idx)
+        self.log("train_loss", t_loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=x.shape[0], sync_dist=True)
 
         _ = self._compute_and_log_segmentation_metrics_from_logits_and_mask("train", logits, mask)
 

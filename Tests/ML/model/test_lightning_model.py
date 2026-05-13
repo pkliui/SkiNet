@@ -220,7 +220,7 @@ def test_threshold_search_logs_sentinel_on_single_class(lm: LightningModel) -> N
         lm._compute_and_log_threshold_search_metrics_for_sigmoid()
     mock_log.assert_called_once_with(
         "val_best_dice_at_threshold", 0.0,
-        on_step=False, on_epoch=True, prog_bar=False, logger=True,
+        on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True,
     )
 
 

@@ -1,6 +1,7 @@
 import time
 from typing import Any
 import lightning as L
+import torch
 
 
 class ThroughputCallback(L.Callback):
@@ -29,6 +30,8 @@ class ThroughputCallback(L.Callback):
                            outputs: Any,
                            batch: Any,
                            batch_idx: int) -> None:
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
         elapsed = time.perf_counter() - self._t0
         # trainer.train_dataloader may be a CombinedLoader wrapping the real DataLoader
         raw_loader = trainer.train_dataloader
