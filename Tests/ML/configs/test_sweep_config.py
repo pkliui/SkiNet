@@ -19,6 +19,8 @@ def test_sweep_config_defaults() -> None:
     assert 3e-4 in cfg.lr
     assert 1e-4 in cfg.weight_decay
     assert 16 in cfg.batch_size
+    assert 4 in cfg.num_workers
+    assert 2 in cfg.prefetch_factor
 
 
 def test_sweep_config_search_space_contains_all_keys() -> None:
@@ -36,12 +38,14 @@ def test_sweep_config_search_space_contains_all_keys() -> None:
     assert space[HyperparamKey.WEIGHT_DECAY] == cfg.weight_decay
     assert space[HyperparamKey.BATCH_SIZE] == cfg.batch_size
     assert space[HyperparamKey.NUM_WORKERS] == cfg.num_workers
+    assert space[HyperparamKey.PREFETCH_FACTOR] == cfg.prefetch_factor
     #
     # assert hyperparameters in the search_space and in config are not the same objects
     assert space[HyperparamKey.LR] is not cfg.lr
     assert space[HyperparamKey.WEIGHT_DECAY] is not cfg.weight_decay
     assert space[HyperparamKey.BATCH_SIZE] is not cfg.batch_size
     assert space[HyperparamKey.NUM_WORKERS] is not cfg.num_workers
+    assert space[HyperparamKey.PREFETCH_FACTOR] is not cfg.prefetch_factor
 
 
 @pytest.mark.parametrize("direction", ["maximize", "minimize"])
@@ -78,10 +82,11 @@ def test_sweep_config_custom_search_space() -> None:
     When callers override parts of the sweep definition, the exported search
     space should reflect those exact values instead of falling back to defaults.
     """
-    cfg = SweepConfig(lr=[1e-3, 1e-4, 1e-5], batch_size=[8, 16])
+    cfg = SweepConfig(lr=[1e-3, 1e-4, 1e-5], batch_size=[8, 16], prefetch_factor=[4, 8])
 
     assert cfg.search_space[HyperparamKey.LR] == [1e-3, 1e-4, 1e-5]
     assert cfg.search_space[HyperparamKey.BATCH_SIZE] == [8, 16]
+    assert cfg.search_space[HyperparamKey.PREFETCH_FACTOR] == [4, 8]
 
 
 def test_sweep_config_search_space_mutation_does_not_affect_config() -> None:
@@ -96,6 +101,8 @@ def test_sweep_config_search_space_mutation_does_not_affect_config() -> None:
     space = cfg.search_space
     space[HyperparamKey.LR].append(1e-5)
     space[HyperparamKey.BATCH_SIZE][0] = 99
+    space[HyperparamKey.PREFETCH_FACTOR].append(16)
 
     assert cfg.lr == [3e-4, 1e-4]
     assert cfg.batch_size == [16, 32]
+    assert cfg.prefetch_factor == [2, 4]

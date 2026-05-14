@@ -59,6 +59,7 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         weight_decay = cast(float, trial.suggest_categorical(HyperparamKey.WEIGHT_DECAY, search_space[HyperparamKey.WEIGHT_DECAY]))
         batch_size = cast(int, trial.suggest_categorical(HyperparamKey.BATCH_SIZE, search_space[HyperparamKey.BATCH_SIZE]))
         num_workers = cast(int, trial.suggest_categorical(HyperparamKey.NUM_WORKERS, search_space[HyperparamKey.NUM_WORKERS]))
+        prefetch_factor = cast(int, trial.suggest_categorical(HyperparamKey.PREFETCH_FACTOR, search_space[HyperparamKey.PREFETCH_FACTOR]))
 
         # scale LR linearly with batch size, anchored to the smallest batch in the sweep
         # so sampled LR values always represent the rate at the sweep's reference batch size,
@@ -70,8 +71,9 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         train_cfg.weight_decay = weight_decay
         train_cfg.batch_size = batch_size
         train_cfg.num_workers = num_workers
+        train_cfg.prefetch_factor = prefetch_factor
 
-        run_name = f"trial_{trial.number}_lr{lr}_wd{weight_decay}_bs{batch_size}_nw{num_workers}"
+        run_name = f"trial_{trial.number}_lr{lr}_wd{weight_decay}_bs{batch_size}_nw{num_workers}_pf{prefetch_factor}"
 
         # Define a CHILD run for the current combination of hyperparameters
         with mlflow.start_run(run_name=run_name, nested=True) as child_run:
@@ -84,6 +86,7 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
             mlflow.log_param("weight_decay", weight_decay)
             mlflow.log_param("batch_size", batch_size)
             mlflow.log_param("num_workers", num_workers)
+            mlflow.log_param("prefetch_factor", prefetch_factor)
 
             # Get the fit-time validation metrics
             metrics = train_and_evaluate(cfg, visualize=False)

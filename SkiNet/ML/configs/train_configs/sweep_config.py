@@ -15,6 +15,7 @@ class SweepConfig(BaseModel):
     weight_decay: list[float] = Field(default_factory=lambda: [1e-4, 1e-3])
     batch_size: list[int] = Field(default_factory=lambda: [16, 32])
     num_workers: list[int] = Field(default_factory=lambda: [4, 8])
+    prefetch_factor: list[int] = Field(default_factory=lambda: [2, 4])
 
     @property
     def search_space(self) -> dict[str, list]:
@@ -22,5 +23,6 @@ class SweepConfig(BaseModel):
             HyperparamKey.LR: self.lr.copy(),
             HyperparamKey.WEIGHT_DECAY: self.weight_decay.copy(),
             HyperparamKey.BATCH_SIZE: self.batch_size.copy(),
-            HyperparamKey.NUM_WORKERS: self.num_workers.copy()
+            HyperparamKey.NUM_WORKERS: self.num_workers.copy(),
+            HyperparamKey.PREFETCH_FACTOR: self.prefetch_factor.copy(),
         }
