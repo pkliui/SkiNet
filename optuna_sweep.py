@@ -38,6 +38,16 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
             - weight_decay: L2 regularisation strength
             - batch_size: number of samples per training batch
 
+        .. note::
+            ``train_cfg.devices`` is forced to ``1`` regardless of the YAML config.
+            Lightning DDP spawns one process per GPU, and each spawned process
+            re-enters ``__main__``, which would relaunch ``main()`` and start a
+            duplicate independent study on every non-zero rank. This affects any
+            multi-GPU setup, including Kaggle T4 x2. Running each trial on a single
+            GPU is the correct approach here; parallelism comes from running multiple
+            Optuna trials concurrently (separate processes/machines), not from
+            intra-trial DDP.
+
         :param trial: Optuna Trial object used to sample hyperparameters and
                     report intermediate/final values back to the study.
         :return: The value of the monitored metric (e.g. ``val_dice``) for this
@@ -52,6 +62,8 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
 
         # Each trial runs on a single GPU. Using devices>1 causes Lightning to spawn
         # a rank-1 process that re-runs this script and starts a duplicate independent sweep.
+        # This applies to any multi-GPU environment (e.g. Kaggle T4 x2): DDP re-enters
+        # __main__ on every rank, so rank-1+ would each launch their own independent study.
         train_cfg.devices = 1
 
         # define the search space targets and reassign the respective configs
@@ -113,10 +125,9 @@ def main() -> None:
     wrap the entire study, then launches an Optuna GridSampler study where each
     trial is logged as a nested MLflow child run.
 
-    The search space is fixed to:
-        - lr: [3e-4, 1e-4]          # base LRs at min(batch_size) in the sweep; scaled linearly per trial
-        - weight_decay: [1e-4, 1e-3]
-        - batch_size: [16, 32]
+    The search space is loaded dynamically from ``SWEEP_CONFIG.search_space`` in the
+    YAML config (see ``SweepConfig``). Each key must be a ``HyperparamKey`` member;
+    values are lists of candidates passed to Optuna's sampler.
 
     CLI arguments:
         --config      Path to the experiment YAML config file (required). This is the main_config.yaml file containing
