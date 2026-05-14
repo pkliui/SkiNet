@@ -3,10 +3,12 @@ from typing import Callable, Literal, cast
 import torch.nn as nn
 from torch import Tensor
 
-from SkiNet.ML.model.blocks.encoder2d_residual_blocks import He2Encoder, LocalRefinementEncoder, SEEncoder
+from SkiNet.ML.model.blocks.encoder2d_residual_blocks import (ClassicalEncoder, He2Encoder, LocalRefinementEncoder,
+                                                              SEEncoder)
 from SkiNet.ML.utils.sampling.base_sampling import EncoderParams2D
 
 _ENCODER_REGISTRY: dict[str, type[nn.Module]] = {
+    "classical": ClassicalEncoder,
     "local_refinement": LocalRefinementEncoder,
     "he2": He2Encoder,
     "se": SEEncoder,
@@ -19,6 +21,11 @@ class Encoder2D(nn.Module):
 
     Delegates to a mode-specific residual block; see the corresponding class in
     ``encoder2d_residual_blocks`` for the full forward-pass description of each mode.
+
+    ``classical``:
+        Original UNet post-activation pattern (Ronneberger et al., MICCAI 2015). Double Conv-BN-Act
+        with no residual connection. ``use_residual`` is ignored.
+        See :class:`ClassicalEncoder`.
 
     ``local_refinement``:
         Post-activation pattern. Skip reuses the downsampled intermediate ``h``.
@@ -53,7 +60,7 @@ class Encoder2D(nn.Module):
                  apply_bias: bool,
                  activation: Callable[[], nn.Module],
                  use_residual: bool,
-                 residual_mode: Literal["local_refinement", "he2", "se"] = "local_refinement",
+                 residual_mode: Literal["classical", "local_refinement", "he2", "se"] = "local_refinement",
                  se_reduction: int = 16):
         super().__init__()
         self.layer_number = layer_number

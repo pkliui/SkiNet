@@ -4,9 +4,8 @@ import torch
 from torch import isfinite, randn
 from torch.nn import MSELoss, ReLU
 
-from SkiNet.ML.model.blocks.merge2d_residual_blocks import (AttentionGate, AttentionGateMerge,
-                                                            He1Merge, He2Merge,
-                                                            LocalRefinementMerge)
+from SkiNet.ML.model.blocks.merge2d_residual_blocks import (AttentionGate, AttentionGateMerge, ClassicalMerge,
+                                                            He1Merge, He2Merge, LocalRefinementMerge)
 from SkiNet.ML.utils.sampling.encoder_sampling import EncoderParams2D, get_encoder_params_2d
 
 
@@ -20,6 +19,54 @@ def _merge_kwargs(in_skip: int = 8, in_dec: int = 8, out: int = 8, **kw: Any) ->
                 out_channels=out,
                 conv_params=_params(**kw),
                 activation=ReLU)
+
+
+# ---------------------------------------------------------------------------
+# ClassicalMerge
+# ---------------------------------------------------------------------------
+
+
+class TestClassicalMerge:
+
+    def test_output_shape(self) -> None:
+        m = ClassicalMerge(**_merge_kwargs())
+        assert m(randn(2, 8, 16, 16), randn(2, 8, 16, 16)).shape == (2, 8, 16, 16)
+
+    def test_output_is_non_negative(self) -> None:
+        """Post-activation pattern — both convs end with activation, so output >= 0."""
+        m = ClassicalMerge(**_merge_kwargs())
+        with torch.no_grad():
+            out = m(randn(4, 8, 8, 8), randn(4, 8, 8, 8))
+        assert (out >= 0.0).all()
+
+    def test_both_convs_have_bn_and_activation(self) -> None:
+        m = ClassicalMerge(**_merge_kwargs())
+        assert m.conv1.batchnorm2d is not None
+        assert m.conv1.activation is not None
+        assert m.conv2.batchnorm2d is not None
+        assert m.conv2.activation is not None
+
+    def test_no_projection_pair(self) -> None:
+        """Classical merge uses concatenation — no conv_x / conv_skip projection pair."""
+        m = ClassicalMerge(**_merge_kwargs())
+        assert not hasattr(m, "conv_x")
+        assert not hasattr(m, "conv_skip")
+
+    def test_conv1_input_channels_is_sum_of_inputs(self) -> None:
+        """conv1 must accept in_dec + in_skip channels (the concatenated input)."""
+        m = ClassicalMerge(**_merge_kwargs(in_skip=4, in_dec=6, out=8))
+        assert m.conv1.conv2d.in_channels == 10  # 4 + 6
+
+    def test_asymmetric_channels(self) -> None:
+        m = ClassicalMerge(**_merge_kwargs(in_skip=4, in_dec=16, out=8))
+        out = m(randn(1, 16, 8, 8), randn(1, 4, 8, 8))
+        assert out.shape == (1, 8, 8, 8)
+
+    def test_backward_pass(self) -> None:
+        m = ClassicalMerge(**_merge_kwargs())
+        x, skip = randn(2, 8, 8, 8, requires_grad=True), randn(2, 8, 8, 8)
+        MSELoss()(m(x, skip), randn(2, 8, 8, 8)).backward()
+        assert x.grad is not None
 
 
 # ---------------------------------------------------------------------------

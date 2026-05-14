@@ -405,8 +405,8 @@ def test_log_near_zero_skips_logs_warning(caplog: pytest.LogCaptureFixture) -> N
 # Residual mode combinations
 # --------------------------------------------------
 
-@pytest.mark.parametrize("encoder_residual_mode", ["he2", "local_refinement"])
-@pytest.mark.parametrize("merge_residual_mode", ["he2", "he1", "local_refinement"])
+@pytest.mark.parametrize("encoder_residual_mode", ["classical", "he2", "local_refinement"])
+@pytest.mark.parametrize("merge_residual_mode", ["classical", "he2", "he1", "local_refinement"])
 def test_unet2d_residual_mode_combinations_forward(encoder_residual_mode: str,
                                                    merge_residual_mode: str) -> None:
     """All valid encoder × merge mode combinations produce the correct output shape."""

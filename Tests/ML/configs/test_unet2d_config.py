@@ -24,6 +24,11 @@ from SkiNet.ML.utils.typing_utils import IntOrTuple2d
          {"encoder_residual_mode": "local_refinement", "merge_residual_mode": "he1"}),
         ({"encoder_residual_mode": "local_refinement", "merge_residual_mode": "local_refinement"},
          {"encoder_residual_mode": "local_refinement", "merge_residual_mode": "local_refinement"}),
+        # Valid config, classical baseline
+        ({"encoder_residual_mode": "classical", "merge_residual_mode": "classical"},
+         {"encoder_residual_mode": "classical", "merge_residual_mode": "classical"}),
+        ({"encoder_residual_mode": "classical", "merge_residual_mode": "he2"},
+         {"encoder_residual_mode": "classical", "merge_residual_mode": "he2"}),
     ]
 )
 def test_unet2dmodelconfig_valid(kwargs: dict, expected: dict) -> None:

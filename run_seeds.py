@@ -29,8 +29,8 @@ from main_run import train_and_evaluate
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-_VALID_ENCODER_MODES = ["local_refinement", "he2", "se"]
-_VALID_MERGE_MODES = ["local_refinement", "he1", "he2", "attention_gate"]
+_VALID_ENCODER_MODES = ["classical", "local_refinement", "he2", "se"]
+_VALID_MERGE_MODES = ["classical", "local_refinement", "he1", "he2", "attention_gate"]
 
 
 def _patch_yaml_dict(yaml_dict: dict,

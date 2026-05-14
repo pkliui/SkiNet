@@ -45,8 +45,8 @@ class UNet2DModelConfig(BaseModelConfig):
     dilation: IntOrTuple2d = 1
 
     # residual modes
-    encoder_residual_mode: Literal["local_refinement", "he2", "se"] = "he2"
-    merge_residual_mode: Literal["local_refinement", "he1", "he2", "attention_gate"] = "he2"
+    encoder_residual_mode: Literal["classical", "local_refinement", "he2", "se"] = "he2"
+    merge_residual_mode: Literal["classical", "local_refinement", "he1", "he2", "attention_gate"] = "he2"
     se_reduction: int = Field(default=16, ge=1)
 
     # runtime / debugging

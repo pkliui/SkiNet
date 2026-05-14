@@ -1,5 +1,6 @@
 from typing import Callable, cast
 
+import torch
 from torch import Tensor, nn
 
 from SkiNet.ML.model.blocks.conv2d_layer import Conv2dLayer
@@ -225,6 +226,62 @@ class AttentionGateMerge(nn.Module):
         conv1 = self.conv_no_BNAct_refine1(self.activation1(self.batchnorm2d_out1(merged)))  # (B, out_channels, H, W)
         conv2 = self.conv_no_BNAct_refine2(self.activation2(self.batchnorm2d_out2(conv1)))  # (B, out_channels, H, W)
         return cast(Tensor, conv2 + merged)  # (B, out_channels, H, W)
+
+
+class ClassicalMerge(nn.Module):
+    """
+    Concatenation-based merge from the original UNet (Ronneberger et al., MICCAI 2015).
+
+    Concatenates decoder and skip features along the channel dimension, then applies
+    two Conv-BN-Act blocks with no residual connection:
+
+        merged = cat([x, skip], dim=1)   # (B, in_dec + in_skip, H, W)
+        h = Conv-BN-Act(merged)          # (B, out_channels, H, W)
+        y = Conv-BN-Act(h)               # (B, out_channels, H, W)
+
+    Unlike every other merge mode, this block uses concatenation rather than
+    projection-and-sum and applies no residual shortcut.
+
+    :param in_channels_from_skip: Number of channels arriving from the skip connection.
+    :param in_channels_from_decoder: Number of channels arriving from the decoder.
+    :param out_channels: Number of output channels produced by the merge block.
+    :param conv_params: Convolutional parameters for the merge block.
+    :param activation: Activation function factory.
+    """
+
+    def __init__(self,
+                 in_channels_from_skip: int,
+                 in_channels_from_decoder: int,
+                 out_channels: int,
+                 conv_params: EncoderParams2D,
+                 activation: Callable[[], nn.Module]):
+        super().__init__()
+
+        self.conv1 = Conv2dLayer(
+            in_channels=in_channels_from_decoder + in_channels_from_skip,
+            out_channels=out_channels,
+            kernel=conv_params.kernel,
+            stride=(1, 1),
+            dilation=conv_params.dilation,
+            padding=conv_params.padding,
+            apply_bias=True,
+            apply_batchnorm=True,
+            activation=activation)
+
+        self.conv2 = Conv2dLayer(
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel=conv_params.kernel,
+            stride=(1, 1),
+            dilation=conv_params.dilation,
+            padding=conv_params.padding,
+            apply_bias=True,
+            apply_batchnorm=True,
+            activation=activation)
+
+    def forward(self, x: Tensor, skip: Tensor) -> Tensor:
+        merged = torch.cat([x, skip], dim=1)  # (B, in_dec + in_skip, H, W)
+        return cast(Tensor, self.conv2(self.conv1(merged)))
 
 
 def _projection_pair(in_channels_from_decoder: int,

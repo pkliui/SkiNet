@@ -2,11 +2,12 @@ from typing import Callable, Literal, cast
 
 from torch import Tensor, nn
 
-from SkiNet.ML.model.blocks.merge2d_residual_blocks import (AttentionGateMerge, He1Merge, He2Merge,
+from SkiNet.ML.model.blocks.merge2d_residual_blocks import (AttentionGateMerge, ClassicalMerge, He1Merge, He2Merge,
                                                             LocalRefinementMerge)
 from SkiNet.ML.utils.sampling.base_sampling import EncoderParams2D
 
 _MERGE_REGISTRY: dict[str, type[nn.Module]] = {
+    "classical": ClassicalMerge,
     "local_refinement": LocalRefinementMerge,
     "he1": He1Merge,
     "he2": He2Merge,
@@ -26,6 +27,11 @@ class Merge2DBlock(nn.Module):
 
     Delegates post-merge refinement to a mode-specific block; see the corresponding class in
     ``merge2d_residual_blocks`` for the full forward-pass description of each mode.
+
+    ``classical``:
+        Concatenation-based merge from the original UNet (Ronneberger et al., MICCAI 2015).
+        Concatenates decoder and skip features, then applies two Conv-BN-Act blocks with no residual.
+        See :class:`ClassicalMerge`.
 
     ``local_refinement``:
         Post-activation refinement with skip from activated intermediate.
@@ -60,7 +66,7 @@ class Merge2DBlock(nn.Module):
                  in_channels_from_decoder: int,
                  out_channels: int,
                  conv_params: EncoderParams2D,
-                 residual_mode: Literal["local_refinement", "he1", "he2", "attention_gate"] = "he2",
+                 residual_mode: Literal["classical", "local_refinement", "he1", "he2", "attention_gate"] = "he2",
                  activation: Callable[[], nn.Module] = nn.ReLU):
         super().__init__()
         self.layer_number = layer_number

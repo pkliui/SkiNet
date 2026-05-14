@@ -3,12 +3,62 @@ import torch
 from torch import isfinite, randn
 from torch.nn import MSELoss, ReLU
 from torchvision.ops import SqueezeExcitation
-from SkiNet.ML.model.blocks.encoder2d_residual_blocks import (He2Encoder, LocalRefinementEncoder, SEEncoder)
+from SkiNet.ML.model.blocks.encoder2d_residual_blocks import (ClassicalEncoder, He2Encoder, LocalRefinementEncoder,
+                                                              SEEncoder)
 from SkiNet.ML.utils.sampling.encoder_sampling import EncoderParams2D, get_encoder_params_2d
 
 
 def _params(kernel: int = 3, stride: int = 1, dilation: int = 1) -> EncoderParams2D:
     return get_encoder_params_2d(kernel=kernel, stride=stride, dilation=dilation)
+
+# ---------------------------------------------------------------------------
+# ClassicalEncoder
+# ---------------------------------------------------------------------------
+
+
+class TestClassicalEncoder:
+
+    def test_output_shape_no_downsample(self) -> None:
+        enc = ClassicalEncoder(3, 16, _params(stride=1), False, ReLU, True)
+        assert enc(randn(2, 3, 32, 32)).shape == (2, 16, 32, 32)
+
+    def test_output_shape_with_downsample(self) -> None:
+        enc = ClassicalEncoder(3, 16, _params(stride=2), False, ReLU, True)
+        assert enc(randn(2, 3, 32, 32)).shape == (2, 16, 16, 16)
+
+    def test_output_is_non_negative(self) -> None:
+        """Post-activation pattern — both convs end with activation, so output >= 0."""
+        enc = ClassicalEncoder(3, 16, _params(stride=2), False, ReLU, True)
+        with torch.no_grad():
+            out = enc(randn(4, 3, 32, 32))
+        assert (out >= 0.0).all()
+
+    def test_use_residual_ignored(self) -> None:
+        """use_residual is accepted for registry compatibility but has no effect on output shape."""
+        p = _params(stride=2)
+        enc_true = ClassicalEncoder(3, 16, p, False, ReLU, True)
+        enc_false = ClassicalEncoder(3, 16, p, False, ReLU, False)
+        x = randn(1, 3, 32, 32)
+        assert enc_true(x).shape == enc_false(x).shape
+
+    def test_no_shortcut_attribute(self) -> None:
+        """Classical encoder has no residual shortcut — no shortcut attribute must exist."""
+        enc = ClassicalEncoder(3, 16, _params(stride=2), False, ReLU, True)
+        assert not hasattr(enc, "shortcut")
+
+    def test_both_convs_have_bn_and_activation(self) -> None:
+        enc = ClassicalEncoder(3, 16, _params(stride=2), False, ReLU, True)
+        assert enc.conv_downsample.batchnorm2d is not None
+        assert enc.conv_downsample.activation is not None
+        assert enc.conv_refine.batchnorm2d is not None
+        assert enc.conv_refine.activation is not None
+
+    def test_backward_pass(self) -> None:
+        enc = ClassicalEncoder(3, 16, _params(stride=2), False, ReLU, True)
+        loss = MSELoss()(enc(randn(2, 3, 16, 16)), randn(2, 16, 8, 8))
+        loss.backward()
+        assert all(p.grad is not None for p in enc.parameters())
+
 
 # ---------------------------------------------------------------------------
 # LocalRefinementEncoder

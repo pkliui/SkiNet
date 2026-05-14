@@ -229,6 +229,36 @@ class TestEncoder2D:
 
     def test_encoder2d_merging_layer_flag_is_false(self) -> None:
         """merging_layer must be False so the UNet forward pass does not treat encoders as merge blocks."""
-        for mode in ("local_refinement", "he2", "se"):
+        for mode in ("classical", "local_refinement", "he2", "se"):
             enc = _make_encoder(3, 16, 3, 2, 1, True, mode)
             assert enc.merging_layer is False
+
+    @pytest.mark.parametrize("batch_size, in_channels, out_channels, input_size, expected_size, kernel, stride, dilation",
+                             _SHAPE_CASES)
+    def test_encoder2d_classical_forward_pass_shapes(self, batch_size: int, in_channels: int, out_channels: int,
+                                                     input_size: int, expected_size: int, kernel: int, stride: int,
+                                                     dilation: int) -> None:
+        """Output shape is correct for classical mode across all parameter combinations."""
+        x = randn(batch_size, in_channels, input_size, input_size)
+        enc = _make_encoder(in_channels, out_channels, kernel, stride, dilation, True, "classical")
+        assert enc(x).shape == (batch_size, out_channels, expected_size, expected_size)
+
+    def test_encoder2d_classical_output_is_non_negative(self) -> None:
+        """classical ends with activation inside both convs → output always >= 0."""
+        enc = _make_encoder(3, 16, 3, 2, 1, True, "classical")
+        with torch.no_grad():
+            out = enc(randn(4, 3, 32, 32))
+        assert (out >= 0.0).all()
+
+    def test_encoder2d_classical_backward_pass(self) -> None:
+        """classical backward: loss finite, output non-negative (post-activation)."""
+        x = randn(2, 3, 16, 16)
+        enc = _make_encoder(3, 6, 3, 1, 1, True, "classical")
+        output = enc(x)
+        loss = sqrt(MSELoss()(output, randn(2, 6, 16, 16)) + 1e-8)
+        loss.backward()
+
+        assert output.shape == (2, 6, 16, 16)
+        assert isfinite(loss).item()
+        assert (output >= 0.0).all()
+        assert isfinite(output).all()

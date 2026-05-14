@@ -131,6 +131,61 @@ class He2Encoder(nn.Module):
         return cast(Tensor, conv2 + self.shortcut(x))
 
 
+class ClassicalEncoder(nn.Module):
+    """
+    Post-activation encoder from the original UNet (Ronneberger et al., MICCAI 2015).
+
+    Two sequential Conv-BN-Act blocks with no residual connection:
+
+        h = Conv-BN-Act(x)   # downsamples
+        y = Conv-BN-Act(h)   # refines
+
+    ``use_residual`` is accepted for interface compatibility with the encoder registry
+    but ignored — the classical UNet encoder has no skip connection.
+
+    :param in_channels: Number of input channels into the encoder block.
+    :param out_channels: Number of output channels out of the encoder block.
+    :param conv_params: Convolutional parameters for the encoder block.
+    :param apply_bias: Whether to apply bias in the convolutional layers.
+    :param activation: Activation function to use in the convolutional layers.
+    :param use_residual: Ignored. Accepted for registry compatibility only.
+    """
+
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 conv_params: EncoderParams2D,
+                 apply_bias: bool,
+                 activation: Callable[[], nn.Module],
+                 use_residual: bool):
+        super().__init__()
+
+        self.conv_downsample = Conv2dLayer(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel=conv_params.kernel,
+            stride=conv_params.stride,
+            dilation=conv_params.dilation,
+            padding=conv_params.padding,
+            apply_bias=apply_bias,
+            apply_batchnorm=True,
+            activation=activation)
+
+        self.conv_refine = Conv2dLayer(
+            in_channels=out_channels,
+            out_channels=out_channels,
+            kernel=conv_params.kernel,
+            stride=(1, 1),
+            dilation=conv_params.dilation,
+            padding=conv_params.padding,
+            apply_bias=apply_bias,
+            apply_batchnorm=True,
+            activation=activation)
+
+    def forward(self, x: Tensor) -> Tensor:
+        return cast(Tensor, self.conv_refine(self.conv_downsample(x)))
+
+
 class SEEncoder(nn.Module):
     """
     Pre-activation residual encoder with Squeeze-and-Excitation channel attention

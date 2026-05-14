@@ -5,12 +5,13 @@ from torch.nn import MSELoss, ReLU
 
 from SkiNet.ML.model.blocks.decoder2d import Decoder2D
 from SkiNet.ML.model.blocks.merge2d_block import Merge2DBlock
-from SkiNet.ML.model.blocks.merge2d_residual_blocks import (AttentionGateMerge, He1Merge, He2Merge,
+from SkiNet.ML.model.blocks.merge2d_residual_blocks import (AttentionGateMerge, ClassicalMerge, He1Merge, He2Merge,
                                                             LocalRefinementMerge)
 from SkiNet.ML.utils.sampling.decoder_sampling import get_decoder_params_2d
 from SkiNet.ML.utils.sampling.encoder_sampling import get_encoder_params_2d
 
-_ALL_MODES = ["local_refinement", "he1", "he2", "attention_gate"]
+_ALL_MODES = ["classical", "local_refinement", "he1", "he2", "attention_gate"]
+_RESIDUAL_MODES = ["local_refinement", "he1", "he2", "attention_gate"]  # modes that use projection-and-sum
 
 
 def _inner_kwargs(mode: str, in_channels_from_skip: int = 4, in_channels_from_decoder: int = 4,
@@ -158,7 +159,7 @@ def test_merge2d_block_shape_mismatch_raises() -> None:
 # ---------------------------------------------------------------------------
 
 def test_merge2d_block_conv_x_conv_skip_no_bn_no_act() -> None:
-    """conv_x and conv_skip are always bare linear convs (no BN, no activation) for all modes."""
+    """conv_x and conv_skip are bare linear convs (no BN, no activation) for all residual (projection-and-sum) modes."""
     _mode_to_cls = {
         "local_refinement": LocalRefinementMerge,
         "he1": He1Merge,
@@ -172,6 +173,17 @@ def test_merge2d_block_conv_x_conv_skip_no_bn_no_act() -> None:
         assert inner.conv_x.activation is None, f"conv_x must not apply activation in mode '{mode}'"
         assert inner.conv_skip.batchnorm2d is None, f"conv_skip must not apply BN in mode '{mode}'"
         assert inner.conv_skip.activation is None, f"conv_skip must not apply activation in mode '{mode}'"
+
+
+def test_merge2d_block_classical_structure() -> None:
+    """classical: uses concatenation (no conv_x/conv_skip), both convs have BN and activation (post-activation)."""
+    inner = ClassicalMerge(**_inner_kwargs("classical"))
+    assert not hasattr(inner, "conv_x"), "classical must not have a conv_x projection"
+    assert not hasattr(inner, "conv_skip"), "classical must not have a conv_skip projection"
+    assert inner.conv1.batchnorm2d is not None
+    assert inner.conv1.activation is not None
+    assert inner.conv2.batchnorm2d is not None
+    assert inner.conv2.activation is not None
 
 
 def test_merge2d_block_local_refinement_structure() -> None:

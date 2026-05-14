@@ -118,8 +118,8 @@ class UNet2D(nn.Module):
                  model_name: str = "UNet2D",
                  validate_forward: bool = True,
                  debug_forward: bool = False,
-                 encoder_residual_mode: Literal["local_refinement", "he2", "se"] = "he2",
-                 merge_residual_mode: Literal["local_refinement", "he1", "he2", "attention_gate"] = "he2",
+                 encoder_residual_mode: Literal["classical", "local_refinement", "he2", "se"] = "he2",
+                 merge_residual_mode: Literal["classical", "local_refinement", "he1", "he2", "attention_gate"] = "he2",
                  se_reduction: int = 16) -> None:
 
         super().__init__()
@@ -134,8 +134,8 @@ class UNet2D(nn.Module):
         self.model_name = model_name
         self.validate_forward = validate_forward
         self.debug_forward = debug_forward
-        self.encoder_residual_mode: Literal["local_refinement", "he2", "se"] = encoder_residual_mode
-        self.merge_residual_mode: Literal["local_refinement", "he1", "he2", "attention_gate"] = merge_residual_mode
+        self.encoder_residual_mode: Literal["classical", "local_refinement", "he2", "se"] = encoder_residual_mode
+        self.merge_residual_mode: Literal["classical", "local_refinement", "he1", "he2", "attention_gate"] = merge_residual_mode
         self.se_reduction = se_reduction
 
         self.layer1_params = get_encoder_params_2d(kernel=self.kernel, stride=1, dilation=self.dilation)
