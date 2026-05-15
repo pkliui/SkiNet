@@ -47,6 +47,22 @@ class SystemMetricsThreadCallback(L.Callback):
         # bounded queue to avoid memory growth
         self._metrics_queue: queue.Queue[dict[str, float]] = queue.Queue(maxsize=max_queue_size)
 
+    def __getstate__(self) -> dict:
+        # threading.Event and queue.Queue hold _thread.lock objects that cannot be pickled
+        # (required by ddp_spawn which uses mp.spawn to transfer the callback to worker processes).
+        # Exclude them; __setstate__ re-creates them so the callback works normally in the worker.
+        state = self.__dict__.copy()
+        state.pop("_stop_event", None)
+        state.pop("_thread", None)
+        state.pop("_metrics_queue", None)
+        return state
+
+    def __setstate__(self, state: dict) -> None:
+        self.__dict__.update(state)
+        self._stop_event = threading.Event()
+        self._thread = None
+        self._metrics_queue = queue.Queue(maxsize=self._max_queue_size)
+
     def _collect(self) -> dict[str, float]:
         """
         Create a dictionary of system metrics
