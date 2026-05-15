@@ -60,11 +60,21 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         cfg = deepcopy(main_config)
         train_cfg = cfg.trainconfig
 
-        # Each trial runs on a single GPU. Using devices>1 causes Lightning to spawn
-        # a rank-1 process that re-runs this script and starts a duplicate independent sweep.
-        # This applies to any multi-GPU environment (e.g. Kaggle T4 x2): DDP re-enters
-        # __main__ on every rank, so rank-1+ would each launch their own independent study.
-        train_cfg.devices = 1
+        # Multi-GPU note: standard DDP re-runs __main__ in every worker process, which would
+        # cause each rank to start its own independent Optuna study. ddp_spawn avoids this —
+        # it uses mp.spawn internally so workers never re-enter __main__. When devices=1 (default)
+        # ddp_spawn is a no-op. When devices>1, set strategy="ddp_spawn" in the YAML config.
+        # DataParallel (strategy="dp") is another single-process alternative but is deprecated.
+        # Warning: ddp_spawn requires all objects passed to trainer.fit() to be picklable.
+        if isinstance(train_cfg.devices, int) and train_cfg.devices > 1:
+            if train_cfg.strategy in ("auto", "ddp"):
+                raise ValueError(
+                    "strategy='ddp' re-enters __main__ and will start a duplicate Optuna study "
+                    "on every worker rank. Set strategy='ddp_spawn' in the YAML config to use "
+                    "multiple GPUs safely with optuna_sweep.py."
+                )
+        else:
+            train_cfg.devices = 1
 
         # define the search space targets and reassign the respective configs
         lr = cast(float, trial.suggest_categorical(HyperparamKey.LR, search_space[HyperparamKey.LR]))

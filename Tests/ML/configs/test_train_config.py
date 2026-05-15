@@ -1,5 +1,5 @@
 import os
-from typing import cast, Dict, Any
+from typing import cast, Dict, Any, Literal
 import pytest
 from pydantic import ValidationError
 
@@ -60,10 +60,13 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.mlflow_config.log_model == "all"
     assert cfg.mlflow_config.log_model_summary is True
     assert cfg.use_lr_scheduler is True
+    assert cfg.scheduler_type == "reduce_on_plateau"
     assert cfg.lr_scheduler_config.monitor == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
     assert cfg.lr_scheduler_config.mode == "max"
     assert cfg.lr_scheduler_config.patience == 5
     assert cfg.lr_scheduler_config.factor == 0.5
+    assert cfg.cosine_annealing_config.T_max is None
+    assert cfg.cosine_annealing_config.eta_min == pytest.approx(1e-6)
 
 
 @pytest.mark.parametrize(
@@ -473,3 +476,39 @@ def test_train_config_strategy_appears_in_defaults_assertion() -> None:
     """strategy='auto' must be present in the defaults covered by test_train_config_defaults_are_valid."""
     cfg = TrainConfig()
     assert cfg.strategy == "auto"
+
+
+# ------ Test scheduler_type and CosineAnnealingConfig ------
+
+
+@pytest.mark.parametrize("value", ["reduce_on_plateau", "cosine_annealing"])
+def test_train_config_scheduler_type_accepts_valid_values(value: Literal["reduce_on_plateau", "cosine_annealing"]) -> None:
+    """scheduler_type must accept both recognised literal values."""
+    cfg = TrainConfig(scheduler_type=value)
+    assert cfg.scheduler_type == value
+
+
+def test_train_config_scheduler_type_rejects_unknown_value() -> None:
+    """scheduler_type must reject any string that is not a recognised literal."""
+    with pytest.raises(ValidationError, match="scheduler_type"):
+        TrainConfig(scheduler_type="cyclic")  # type: ignore[arg-type]
+
+
+def test_train_config_cosine_annealing_config_defaults() -> None:
+    """CosineAnnealingConfig defaults: T_max=None (resolved at runtime), eta_min=1e-6."""
+    cfg = TrainConfig()
+    assert cfg.cosine_annealing_config.T_max is None
+    assert cfg.cosine_annealing_config.eta_min == pytest.approx(1e-6)
+
+
+def test_train_config_cosine_annealing_config_parses_values() -> None:
+    """CosineAnnealingConfig should round-trip explicit T_max and eta_min values."""
+    cfg = TrainConfig(cosine_annealing_config={"T_max": 350, "eta_min": 1e-7})  # type: ignore[arg-type]
+    assert cfg.cosine_annealing_config.T_max == 350
+    assert cfg.cosine_annealing_config.eta_min == pytest.approx(1e-7)
+
+
+def test_train_config_cosine_annealing_config_rejects_negative_eta_min() -> None:
+    """eta_min must be >= 0; negative values should raise ValidationError."""
+    with pytest.raises(ValidationError, match="eta_min"):
+        TrainConfig(cosine_annealing_config={"eta_min": -1e-6})  # type: ignore[arg-type]

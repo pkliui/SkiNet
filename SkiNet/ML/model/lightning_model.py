@@ -7,7 +7,7 @@ from torchmetrics.classification import BinaryF1Score, BinaryJaccardIndex
 from torchmetrics.functional.classification import binary_f1_score
 
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
-from SkiNet.ML.configs.train_configs.train_config import ReduceOnPlateauConfig
+from SkiNet.ML.configs.train_configs.train_config import CosineAnnealingConfig, ReduceOnPlateauConfig
 from SkiNet.ML.model.model_factory import create_model
 from SkiNet.ML.training.build_loss import build_loss
 from SkiNet.ML.training.training_utils import find_best_threshold
@@ -23,6 +23,8 @@ class LightningModel(L.LightningModule):
                  optimizer_name: str,
                  weight_decay: float,
                  lr_scheduler_config: ReduceOnPlateauConfig,
+                 cosine_annealing_config: CosineAnnealingConfig,
+                 scheduler_type: str = "reduce_on_plateau",
                  use_lr_scheduler: bool = True,
                  optimal_threshold: float | None = None):
         """
@@ -47,6 +49,8 @@ class LightningModel(L.LightningModule):
         self.optimizer_name = optimizer_name.lower()
         self.weight_decay = weight_decay
         self.lr_scheduler_config = lr_scheduler_config
+        self.cosine_annealing_config = cosine_annealing_config
+        self.scheduler_type = scheduler_type
         self.use_lr_scheduler = use_lr_scheduler
 
         # Optimal threshold - Register as a buffer so that checkpoints contain the threshold value at the best epoch
@@ -278,15 +282,18 @@ class LightningModel(L.LightningModule):
 
     def configure_optimizers(self) -> OptimizerLRScheduler:
         """
-        Build the optimizer and optionally a ReduceLROnPlateau scheduler.
+        Build the optimizer and optionally a scheduler.
 
-        The scheduler is omitted when use_lr_scheduler=False, which keeps the
-        learning rate fixed for the duration of training (e.g. hardware sweeps,
-        early-stage experiments where LR decay would confound results).
+        Scheduler type is controlled by ``scheduler_type``:
+        - ``"reduce_on_plateau"``: ReduceLROnPlateau (requires a monitor metric)
+        - ``"cosine_annealing"``: CosineAnnealingLR (T_max defaults to trainer.max_epochs)
+
+        The scheduler is omitted entirely when use_lr_scheduler=False.
 
         :return: optimizer alone, or Lightning-compatible dict with "optimizer"
                  and "lr_scheduler" keys when the scheduler is enabled
         :raises ValueError: if optimizer_name is not "adam" or "adamw"
+        :raises ValueError: if scheduler_type is not recognised
         """
         if self.optimizer_name == "adam":
             optim = torch.optim.Adam(self.parameters(), lr=self.lr, weight_decay=self.weight_decay)
@@ -298,13 +305,33 @@ class LightningModel(L.LightningModule):
         if not self.use_lr_scheduler:
             return cast(OptimizerLRScheduler, optim)
 
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer=optim,
-                                                               mode=self.lr_scheduler_config.mode,
-                                                               patience=self.lr_scheduler_config.patience,
-                                                               factor=self.lr_scheduler_config.factor)
-        return cast(OptimizerLRScheduler, {"optimizer": optim,
-                                           "lr_scheduler": {"scheduler": scheduler,
-                                                            "monitor": self.lr_scheduler_config.monitor}})
+        if self.scheduler_type == "reduce_on_plateau":
+            scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau | torch.optim.lr_scheduler.CosineAnnealingLR
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer=optim,
+                mode=self.lr_scheduler_config.mode,
+                patience=self.lr_scheduler_config.patience,
+                factor=self.lr_scheduler_config.factor,
+            )
+            return cast(OptimizerLRScheduler, {"optimizer": optim,
+                                               "lr_scheduler": {"scheduler": scheduler,
+                                                                "monitor": self.lr_scheduler_config.monitor}})
+
+        if self.scheduler_type == "cosine_annealing":
+            t_max: int = self.cosine_annealing_config.T_max or self.trainer.max_epochs or 1
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer=optim,
+                T_max=t_max,
+                eta_min=self.cosine_annealing_config.eta_min,
+            )
+            return cast(OptimizerLRScheduler, {"optimizer": optim,
+                                               "lr_scheduler": {"scheduler": scheduler,
+                                                                "interval": "epoch"}})
+
+        raise ValueError(
+            f"Unsupported scheduler_type '{self.scheduler_type}'. "
+            "Supported: ['reduce_on_plateau', 'cosine_annealing']"
+        )
 
     def on_before_optimizer_step(self, optimizer: torch.optim.Optimizer) -> None:
         """
@@ -363,5 +390,7 @@ def build_lightning_model(main_config: ExperimentConfig) -> LightningModel:
                           optimizer_name=train_cfg.optimizer_name,
                           weight_decay=train_cfg.weight_decay,
                           lr_scheduler_config=train_cfg.lr_scheduler_config,
+                          cosine_annealing_config=train_cfg.cosine_annealing_config,
+                          scheduler_type=train_cfg.scheduler_type,
                           use_lr_scheduler=train_cfg.use_lr_scheduler,
                           optimal_threshold=train_cfg.optimal_threshold)

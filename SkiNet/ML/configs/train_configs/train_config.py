@@ -18,6 +18,15 @@ class ReduceOnPlateauConfig(BaseModel):
     factor: float = Field(default=0.5, gt=0, lt=1)
 
 
+class CosineAnnealingConfig(BaseModel):
+    """
+    CosineAnnealingLR scheduler configuration.
+    T_max is set to max_epochs at runtime when None.
+    """
+    T_max: int | None = Field(default=None, ge=1)
+    eta_min: float = Field(default=1e-6, ge=0)
+
+
 class CheckpointConfig(BaseModel):
     """
     Configuration for model checkpointing.
@@ -145,7 +154,9 @@ class TrainConfig(BaseModel):
 
     # --- Other configs ---
     use_lr_scheduler: bool = Field(default=True)
+    scheduler_type: Literal["reduce_on_plateau", "cosine_annealing"] = Field(default="reduce_on_plateau")
     lr_scheduler_config: ReduceOnPlateauConfig = Field(default_factory=ReduceOnPlateauConfig)
+    cosine_annealing_config: CosineAnnealingConfig = Field(default_factory=CosineAnnealingConfig)
 
     #  --- Other callbacks params ---
     system_metrics_interval_sec: float = Field(default=5.0, gt=0)

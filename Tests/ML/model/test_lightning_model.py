@@ -4,7 +4,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from SkiNet.ML.configs.train_configs.train_config import ReduceOnPlateauConfig
+from SkiNet.ML.configs.train_configs.train_config import CosineAnnealingConfig, ReduceOnPlateauConfig
 from SkiNet.ML.model.lightning_model import LightningModel
 
 
@@ -22,6 +22,7 @@ def lm() -> LightningModel:
         optimizer_name="adam",
         weight_decay=0.0,
         lr_scheduler_config=ReduceOnPlateauConfig(),
+        cosine_annealing_config=CosineAnnealingConfig(),
     )
 
 
