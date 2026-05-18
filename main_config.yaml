@@ -55,15 +55,15 @@ MODEL_CONFIG:
 SWEEP_CONFIG:
   monitor: "val_best_dice_at_threshold"
   direction: "maximize"
-  experiment_name: "the-learning-rate-sweep-2gpus-lightaug-adamw"
-  lr: [1e-4, 3e-4, 6e-4, 1e-3, 3e-3]
+  experiment_name: "the-model-sweep-over-merge-2gpus-lightaug-adamw"
+  lr: [3e-4]
   weight_decay: [1e-4]
   num_workers: [2]
   prefetch_factor: [4]
   batch_size: [8] # 8 with 2 GPUS = 16 on 1 GPU
 TRAIN_CONFIG:
   log_dir: "lightning_logs"
-  experiment_name: "the-learning-rate-sweep-2gpus-lightaugm-adamw"
+  experiment_name: "the-model-sweep-over-merge-2gpus-lightaug-adamw"
   run_test_after_fit: false
   test_on_val_split: false
   use_torch_compile: true
@@ -79,17 +79,17 @@ TRAIN_CONFIG:
   optimal_threshold: 0.5
   seed: 100
   deterministic: false
-  max_epochs: 100
+  max_epochs: 200
   accelerator: "auto"
   devices: 2
   strategy: ddp_spawn
   log_every_n_steps: 10
-  check_val_every_n_epoch: 5
+  check_val_every_n_epoch: 1
   num_sanity_val_steps: 0
   use_mlflow_logger: true
   use_litlogger_logger: false
   use_early_stopping: false
-  use_checkpoint: false
+  use_checkpoint: true
   early_stopping_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
@@ -102,7 +102,7 @@ TRAIN_CONFIG:
   checkpoint_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
-    save_top_k: 0
+    save_top_k: 1
     save_last: false
     filename: "epoch{epoch:03d}"
   litlogger_config:
