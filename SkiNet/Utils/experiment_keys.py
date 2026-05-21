@@ -67,6 +67,7 @@ class HyperparamKey(str, Enum):
     BATCH_SIZE = "batch_size"
     NUM_WORKERS = "num_workers"
     PREFETCH_FACTOR = "prefetch_factor"
+    SCHEDULER_TYPE = "scheduler_type"
 
 
 @unique

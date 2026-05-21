@@ -102,12 +102,13 @@ class TestCollectTrainerMetrics:
 
 class TestValidateSearchSpace:
     def test_accepts_expected_keys(self) -> None:
-        search_space: dict[str, list[int | float]] = {
+        search_space: dict[str, list] = {
             "lr": [1e-3, 1e-4],
             "weight_decay": [0.0, 1e-5],
             "batch_size": [8, 16],
             "num_workers": [4, 8],
             "prefetch_factor": [2, 4],
+            "scheduler_type": ["none", "cosine_annealing"],
         }
 
         validate_search_space(search_space, _EXPECTED_KEYS)
@@ -122,12 +123,13 @@ class TestValidateSearchSpace:
             validate_search_space(search_space, _EXPECTED_KEYS)
 
     def test_unexpected_key_raises(self) -> None:
-        search_space: dict[str, list[int | float]] = {
+        search_space: dict[str, list] = {
             "lr": [1e-3],
             "weight_decay": [0.0],
             "batch_size": [16],
             "num_workers": [4],
             "prefetch_factor": [2],
+            "scheduler_type": ["none"],
             "momentum": [0.9],
         }
 

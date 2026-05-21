@@ -82,6 +82,7 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         batch_size = cast(int, trial.suggest_categorical(HyperparamKey.BATCH_SIZE, search_space[HyperparamKey.BATCH_SIZE]))
         num_workers = cast(int, trial.suggest_categorical(HyperparamKey.NUM_WORKERS, search_space[HyperparamKey.NUM_WORKERS]))
         prefetch_factor = cast(int, trial.suggest_categorical(HyperparamKey.PREFETCH_FACTOR, search_space[HyperparamKey.PREFETCH_FACTOR]))
+        scheduler_type = cast(str, trial.suggest_categorical(HyperparamKey.SCHEDULER_TYPE, search_space[HyperparamKey.SCHEDULER_TYPE]))
 
         # scale LR linearly with batch size, anchored to the smallest batch in the sweep
         # so sampled LR values always represent the rate at the sweep's reference batch size,
@@ -95,7 +96,21 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
         train_cfg.num_workers = num_workers
         train_cfg.prefetch_factor = prefetch_factor
 
-        run_name = f"trial_{trial.number}_lr{lr}_wd{weight_decay}_bs{batch_size}_nw{num_workers}_pf{prefetch_factor}"
+        # "none" disables the scheduler; any other value enables it and selects the type.
+        # We must not assign "none" to train_cfg.scheduler_type because it is a Literal
+        # restricted to "reduce_on_plateau" | "cosine_annealing".
+        if scheduler_type == "none":
+            train_cfg.use_lr_scheduler = False
+        else:
+            train_cfg.use_lr_scheduler = True
+            train_cfg.scheduler_type = scheduler_type  # type: ignore[assignment]
+
+        run_name = (
+            f"trial_{trial.number}"
+            f"_lr{lr}_wd{weight_decay}_bs{batch_size}"
+            f"_nw{num_workers}_pf{prefetch_factor}"
+            f"_sched{scheduler_type}"
+        )
 
         # Define a CHILD run for the current combination of hyperparameters
         with mlflow.start_run(run_name=run_name, nested=True) as child_run:
@@ -109,6 +124,7 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
             mlflow.log_param("batch_size", batch_size)
             mlflow.log_param("num_workers", num_workers)
             mlflow.log_param("prefetch_factor", prefetch_factor)
+            mlflow.log_param("scheduler_type", scheduler_type)
 
             # Get the fit-time validation metrics
             metrics = train_and_evaluate(cfg, visualize=False)

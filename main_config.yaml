@@ -3,8 +3,8 @@ GENERAL_CONFIG:
   model: "UNET2D_MODEL"
   dataset: "ISIC2017_DATASET"
 DATA_CONFIG:
-  local_data_root: "/kaggle/working/isic2017_data_256/"
-  azure_data: False
+  local_data_root: #"/kaggle/working/isic2017_data_256/"
+  azure_data: True
   azure_blob_mount_point: "/mnt/data/"
   split_random_seed: 100
 TRANSFORM_CONFIG:
@@ -48,21 +48,22 @@ TRANSFORM_CONFIG:
 MODEL_CONFIG:
   validate_forward: false
   debug_forward: false
-  encoder_residual_mode: "classical"   # "classical", "local_refinement" | "he2" | "se"
-  merge_residual_mode: "classical"     # "classical", "local_refinement" | "he1" | "he2" | "attention_gate"
+  encoder_residual_mode: "classical"   # "classical", "he2" | "se"
+  merge_residual_mode: "classical"     # "classical", "he2" | "attention_gate"
   se_reduction: 16  # SE bottleneck ratio; ignored when encoder_residual_mode != "se"
 SWEEP_CONFIG:
   monitor: "val_best_dice_at_threshold"
   direction: "maximize"
-  experiment_name: "the-model-sweep-over-merge-2gpus-aug-adam"
+  experiment_name: "the-hpo-sweep-2gpus-aug-adam-scheduler"
   lr: [3e-4]
-  weight_decay: [0.0]
+  weight_decay: [0.0, 1.0e-5]
   num_workers: [2]
   prefetch_factor: [4]
   batch_size: [8] # 8 with 2 GPUS = 16 on 1 GPU
+  scheduler_type: ["none", "cosine_annealing", "reduce_on_plateau"]
 TRAIN_CONFIG:
   log_dir: "lightning_logs"
-  experiment_name: "the-model-sweep-over-merge-2gpus-aug-adam"
+  experiment_name: "the-hpo-sweep-2gpus-aug-adam-scheduler"
   run_test_after_fit: false
   test_on_val_split: false
   use_torch_compile: true
@@ -78,7 +79,7 @@ TRAIN_CONFIG:
   optimal_threshold: 0.5
   seed: 100
   deterministic: false
-  max_epochs: 200
+  max_epochs: 300
   accelerator: "auto"
   devices: 2
   strategy: ddp_spawn
@@ -87,13 +88,13 @@ TRAIN_CONFIG:
   num_sanity_val_steps: 0
   use_mlflow_logger: true
   use_litlogger_logger: false
-  use_early_stopping: false
+  use_early_stopping: true
   use_checkpoint: true
   early_stopping_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
-    min_delta: 0.005
-    patience: 30
+    min_delta: 0.002
+    patience: 50
     strict: true
     check_finite: true
     stopping_threshold:
@@ -119,7 +120,7 @@ TRAIN_CONFIG:
   lr_scheduler_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
-    patience: 3
+    patience: 15
     factor: 0.5
   cosine_annealing_config:
     T_max:      # null → resolved to max_epochs at runtime

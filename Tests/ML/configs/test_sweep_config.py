@@ -39,6 +39,7 @@ def test_sweep_config_search_space_contains_all_keys() -> None:
     assert space[HyperparamKey.BATCH_SIZE] == cfg.batch_size
     assert space[HyperparamKey.NUM_WORKERS] == cfg.num_workers
     assert space[HyperparamKey.PREFETCH_FACTOR] == cfg.prefetch_factor
+    assert space[HyperparamKey.SCHEDULER_TYPE] == cfg.scheduler_type
     #
     # assert hyperparameters in the search_space and in config are not the same objects
     assert space[HyperparamKey.LR] is not cfg.lr
@@ -46,6 +47,7 @@ def test_sweep_config_search_space_contains_all_keys() -> None:
     assert space[HyperparamKey.BATCH_SIZE] is not cfg.batch_size
     assert space[HyperparamKey.NUM_WORKERS] is not cfg.num_workers
     assert space[HyperparamKey.PREFETCH_FACTOR] is not cfg.prefetch_factor
+    assert space[HyperparamKey.SCHEDULER_TYPE] is not cfg.scheduler_type
 
 
 @pytest.mark.parametrize("direction", ["maximize", "minimize"])

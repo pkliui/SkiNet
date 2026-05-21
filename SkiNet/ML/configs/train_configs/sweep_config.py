@@ -16,6 +16,14 @@ class SweepConfig(BaseModel):
     batch_size: list[int] = Field(default_factory=lambda: [16, 32])
     num_workers: list[int] = Field(default_factory=lambda: [4, 8])
     prefetch_factor: list[int] = Field(default_factory=lambda: [2, 4])
+    scheduler_type: list[str] = Field(
+        default_factory=lambda: ["none", "cosine_annealing", "reduce_on_plateau"],
+        description=(
+            "LR scheduler variants to sweep. Use 'none' to disable the scheduler "
+            "for a given trial; 'cosine_annealing' and 'reduce_on_plateau' map "
+            "directly to TrainConfig.scheduler_type."
+        ),
+    )
 
     @property
     def search_space(self) -> dict[str, list]:
@@ -25,4 +33,5 @@ class SweepConfig(BaseModel):
             HyperparamKey.BATCH_SIZE: self.batch_size.copy(),
             HyperparamKey.NUM_WORKERS: self.num_workers.copy(),
             HyperparamKey.PREFETCH_FACTOR: self.prefetch_factor.copy(),
+            HyperparamKey.SCHEDULER_TYPE: self.scheduler_type.copy(),
         }

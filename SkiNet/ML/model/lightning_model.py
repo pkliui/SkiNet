@@ -228,8 +228,8 @@ class LightningModel(L.LightningModule):
         # collect probabilities (raw sigmoid outputs) and raw masks to find an optimal sigmoid threshold at the val epoch end
         # note we collect all batches - so full validation set will be used at the end of epoch
         if prefix == "val":
-            self._val_probs.append(probs.detach().reshape(-1))
-            self._val_masks.append(mask.detach().reshape(-1))
+            self._val_probs.append(probs.detach().cpu().reshape(-1))
+            self._val_masks.append(mask.detach().cpu().reshape(-1))
             self.log("val_threshold_used", self.optimal_threshold, on_step=False, on_epoch=True, logger=True, sync_dist=True)
         return loss
 
