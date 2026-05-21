@@ -70,7 +70,7 @@ def setup_logging_and_callbacks(*, main_config: ExperimentConfig) -> TrainerComp
         checkpoint_dir = (Path(train_cfg.log_dir) / "checkpoints" / run_name).resolve()
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
         checkpoint_cb = ModelCheckpoint(dirpath=str(checkpoint_dir),
-                                        monitor=train_cfg.checkpoint_config.monitor,  # ok
+                                        monitor=train_cfg.checkpoint_config.monitor.value,
                                         mode=train_cfg.checkpoint_config.mode,  # ok
                                         save_top_k=train_cfg.checkpoint_config.save_top_k,  # ok
                                         save_last=train_cfg.checkpoint_config.save_last,  # ok

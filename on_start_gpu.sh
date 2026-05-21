@@ -17,7 +17,7 @@
 #     MODE=seeds SEEDS="1 2 3 4 5" bash on_start_gpu.sh
 #
 #   Multi-seed run with explicit encoder/merge modes (overrides YAML config):
-#     ENCODER_MODES="local_refinement he2 se" MERGE_MODES="local_refinement he2 attention_gate" MODE=seeds SEEDS="1 2 3 4 5" bash on_start_gpu.sh
+#     RUN_TRAINING=true DATASET=isic2017 ENCODER_MODES="classical" MERGE_MODES="classical local_refinement he2 attention_gate" MODE=seeds SEEDS="100 101 102 103 104" bash on_start_gpu.sh
 #
 #   Optuna sweep with non-default metric:
 #     MODE=sweep SWEEP_MONITOR=val_best_dice_at_threshold SWEEP_DIRECTION=maximize bash on_start_gpu.sh
@@ -90,9 +90,9 @@ set -Eeuo pipefail
 IMAGE="pkliui/skinet:v9gpu"
 
 # ── Training control ──────────────────────────────────────────────────────────
-RUN_TRAINING="${RUN_TRAINING:-true}"
-RELEASE_GPU="${RELEASE_GPU:-true}"
-MODE="${MODE:-seeds}"
+RUN_TRAINING="${RUN_TRAINING:-}"
+RELEASE_GPU="${RELEASE_GPU:-false}"
+MODE="${MODE:-}"
 
 # ── Config file ───────────────────────────────────────────────────────────────
 CONFIG_FILE="${CONFIG_FILE:-main_config.yaml}"
@@ -102,7 +102,7 @@ SEEDS="${SEEDS:-}"                 # seeds mode: required — run_seeds.py has n
 ENCODER_MODES="${ENCODER_MODES:-}" # seeds mode: overrides YAML encoder_mode if set
 MERGE_MODES="${MERGE_MODES:-}"     # seeds mode: overrides YAML merge_mode if set
 
-SWEEP_MONITOR="${SWEEP_MONITOR:-perf/samples_per_sec}" # sweep mode: metric to optimise perf/samples_per_sec, val_best_dice_at_threshold
+SWEEP_MONITOR="${SWEEP_MONITOR:-val_best_dice_at_threshold}" # sweep mode: metric to optimise perf/samples_per_sec, val_best_dice_at_threshold
 SWEEP_DIRECTION="${SWEEP_DIRECTION:-maximize}"               # sweep mode: maximize | minimize
 
 # ── Repository ────────────────────────────────────────────────────────────────
@@ -112,15 +112,15 @@ CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
 BRANCH="${BRANCH:-train}"
 
 # ── Data paths ────────────────────────────────────────────────────────────────
-DATASET="${DATASET:-ph2}"                  # ph2 | isic2017
-CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"
+DATASET="${DATASET:-isic2017}"                  # ph2 | isic2017
+CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}" # "/kaggle/working/isic2017_data_256/"
 
 case "$DATASET" in
   ph2)
     LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
     ;;
   isic2017)
-    ISIC_OUT_DIR="${ISIC_OUT_DIR:-/teamspace/studios/this_studio/isic2017/ISIC2017DATA}"
+    ISIC_OUT_DIR="${ISIC_OUT_DIR:-/teamspace/lightning_storage/isic2017/ISIC2017DATA_256}"
     KAGGLE_DATASET="${KAGGLE_DATASET:-johnchfr/isic-2017}"
     LIGHTNING_MOUNT_PATH="$ISIC_OUT_DIR"
     ;;
@@ -247,6 +247,10 @@ if [[ "$DATASET" == "isic2017" ]]; then
 
   echo "==> ISIC 2017: running metadata CSV preprocessing..."
   docker run --rm \
+      --user "$(id -u):$(id -g)" \
+      -e LOGNAME="${LOGNAME:-user}" \
+      -e USER="${USER:-user}" \
+      -e HOME="$CONTAINER_REPO" \
       --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
       --mount "type=bind,src=$ISIC_OUT_DIR,dst=$CONTAINER_MOUNT_PATH" \
       -w "$CONTAINER_REPO" \
@@ -318,6 +322,8 @@ docker run --name "$CONTAINER_NAME" \
   --ipc=host \
   --user "$(id -u):$(id -g)" \
   -e HOME="$CONTAINER_REPO" \
+  -e LOGNAME="${LOGNAME:-user}" \
+  -e USER="${USER:-user}" \
   -e PYTHONUNBUFFERED=1 \
   -e MLFLOW_HOST_ARTIFACT_PATH="$HOST_REPO/mlruns" \
   --env-file "$LIGHTNING_ENV_FILE" \

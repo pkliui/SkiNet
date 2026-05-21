@@ -69,7 +69,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 #LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2_002-032/"
 #LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
 #LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/isic2017/"
-LIGHTNING_MOUNT_PATH="/teamspace/studios/this_studio/isic2017/"
+LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/isic2017/"
 # Data mount path inside the container
 CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"
 
