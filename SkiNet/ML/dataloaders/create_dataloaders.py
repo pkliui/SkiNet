@@ -28,18 +28,20 @@ def create_dataloaders_from_datasets(datasets: DatasetSplit[TDataset_co], train_
     :param train_cfg: TrainConfig containing dataloader parameters like batch size and num_workers.
     :return: DataLoaders containing the train/val/test dataloaders built from the provided datasets and config.
     """
+    num_workers = train_cfg.num_workers or 0
+    prefetch = train_cfg.prefetch_factor if num_workers > 0 else None
     return DataLoaders(train=RepeatDataLoader(datasets.train, shuffle=True, batch_size=train_cfg.batch_size,
-                                              num_workers=train_cfg.num_workers, drop_last=False,
+                                              num_workers=num_workers, drop_last=False,
                                               pin_memory=train_cfg.pin_memory,
-                                              prefetch_factor=train_cfg.prefetch_factor if train_cfg.num_workers > 0 else None),
+                                              prefetch_factor=prefetch),
                        val=RepeatDataLoader(datasets.val, shuffle=False, batch_size=train_cfg.batch_size,
-                                            num_workers=train_cfg.num_workers, drop_last=False,
+                                            num_workers=num_workers, drop_last=False,
                                             pin_memory=train_cfg.pin_memory,
-                                            prefetch_factor=train_cfg.prefetch_factor if train_cfg.num_workers > 0 else None),
+                                            prefetch_factor=prefetch),
                        test=RepeatDataLoader(datasets.test, shuffle=False, batch_size=train_cfg.batch_size,
-                                             num_workers=train_cfg.num_workers, drop_last=False,
+                                             num_workers=num_workers, drop_last=False,
                                              pin_memory=train_cfg.pin_memory,
-                                             prefetch_factor=train_cfg.prefetch_factor if train_cfg.num_workers > 0 else None))
+                                             prefetch_factor=prefetch))
 
 
 def create_segmentation_dataloaders(main_config: ExperimentConfig) -> DataLoaders:

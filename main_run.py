@@ -2,7 +2,7 @@ import cv2
 cv2.setNumThreads(0)  # prevent OpenCV from spawning per-worker thread pools that contend under DataLoader multiprocessing
 
 from typing import Any, Callable
-from SkiNet.ML.configs.train_configs.train_config import TrainConfig
+from SkiNet.ML.configs.train_configs.train_config import TrainConfig, ReduceOnPlateauConfig, CosineAnnealingConfig
 from SkiNet.ML.dataloaders.create_dataloaders import DataLoaders, create_segmentation_dataloaders
 from SkiNet.Utils.mlops.lightning_utils import configure_reproducibility
 from SkiNet.Utils.mlops.optuna_utils import _collect_trainer_metrics
@@ -11,12 +11,20 @@ from SkiNet.Utils.logging.logging_callbacks_setup import TrainerComponents, setu
 from SkiNet.ML.model.lightning_model import build_lightning_model
 from SkiNet.ML.transformations.plot_transformed_data import visualize_augmented_data
 from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
+from SkiNet.Utils.experiment_keys import MetricsKey
 from lightning.pytorch.callbacks import ModelCheckpoint
 import argparse
 import logging
+import torch
 import warnings
 from pathlib import Path
 import lightning as L
+
+# PyTorch 2.6 changed torch.load to default weights_only=True, which blocks unpickling
+# custom classes stored in checkpoints via save_hyperparameters(). Register the SkiNet
+# config classes that LightningModel serialises so checkpoint loading works without
+# falling back to the unsafe weights_only=False path.
+torch.serialization.add_safe_globals([ReduceOnPlateauConfig, CosineAnnealingConfig, MetricsKey])
 
 # Lightning calls log_graph() on every attached logger; LitLogger doesn't support it and warns.
 warnings.filterwarnings("ignore", message=".*does not support.*log_graph", category=UserWarning)
