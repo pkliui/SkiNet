@@ -1,4 +1,3 @@
-%%writefile /kaggle/working/SkiNet/main_config.yaml
 GENERAL_CONFIG:
   experiment_type: "segmentation"
   model: "UNET2D_MODEL"
@@ -29,7 +28,7 @@ TRANSFORM_CONFIG:
     elastic_apply: True
     elastic_alpha: 120
     elastic_sigma: 10
-    elastic_p: 0.3
+    elastic_p: 0.1
   normalization_mode: "standard"
   normalization_mean: [0.699, 0.556, 0.5121]
   normalization_std:  [0.1576, 0.1562, 0.1706]
@@ -37,35 +36,34 @@ TRANSFORM_CONFIG:
     color_jitter_apply: True
     color_jitter_brightness: 0.2
     color_jitter_contrast: 0.2
-    color_jitter_saturation: 0.3
-    color_jitter_hue: 0.05
-    color_jitter_p: 0.5
+    color_jitter_saturation: 0.1
+    color_jitter_hue: 0.02
+    color_jitter_p: 0.3
     gaussian_blur_apply: True
     gaussian_blur_sigma_limit: [0.5, 2.0]
     gaussian_blur_p: 0.2
     gaussian_noise_apply: True
-    gaussian_noise_std_range: [0.05, 0.15]
+    gaussian_noise_std_range: [0.01, 0.05]
     gaussian_noise_p: 0.2
 MODEL_CONFIG:
   validate_forward: false
   debug_forward: false
   encoder_residual_mode: "classical"   # "classical", "he2" | "se"
-  merge_residual_mode: "he2"     # "classical", "he2" | "attention_gate"
+  merge_residual_mode: "classical"     # "classical", "he2" | "attention_gate"
   se_reduction: 16  # SE bottleneck ratio; ignored when encoder_residual_mode != "se"
 SWEEP_CONFIG:
   monitor: "val_best_dice_at_threshold"
   direction: "maximize"
-  experiment_name: "isic2017-the-scheduler-sweep2-unet2d-2gpus-aug-adam"
-  lr: [3e-4]
+  experiment_name: "E1-isic2017-unet2d-model-lr-1seed"
+  lr: [1e-4, 3e-4, 6e-4, 1e-3]
   weight_decay: [0.0]
   num_workers: [2]
   prefetch_factor: [4]
   batch_size: [8] # 8 with 2 GPUS = 16 on 1 GPU
-  scheduler_type: ["reduce_on_plateau", "cosine_annealing"]
 TRAIN_CONFIG:
   log_dir: "lightning_logs"
-  experiment_name: "isic2017-the-scheduler-sweep2-unet2d-2gpus-aug-adam"
-  run_test_after_fit: true
+  experiment_name: "E1-isic2017-unet2d-model-lr-1seed"
+  run_test_after_fit: false
   test_on_val_split: false
   use_torch_compile: true
   batch_size: 8 # per-GPU; effective = 8x2 = 16
@@ -77,10 +75,10 @@ TRAIN_CONFIG:
   optimizer_name: "adam"
   lr: 3e-4 # as per effective batch size
   weight_decay: 0.0
-  optimal_threshold:
+  optimal_threshold: 0.5
   seed: 100
   deterministic: false
-  max_epochs: 300
+  max_epochs: 100
   accelerator: "auto"
   devices: 2
   strategy: ddp_spawn
@@ -89,13 +87,13 @@ TRAIN_CONFIG:
   num_sanity_val_steps: 0
   use_mlflow_logger: true
   use_litlogger_logger: false
-  use_early_stopping: true
+  use_early_stopping: false
   use_checkpoint: true
   early_stopping_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
-    min_delta: 0.002
-    patience: 50
+    min_delta: 0.005
+    patience: 30
     strict: true
     check_finite: true
     stopping_threshold:
@@ -116,12 +114,12 @@ TRAIN_CONFIG:
     tracking_uri: "http://127.0.0.1:5000"
     log_model: false
     log_model_summary: true
-  use_lr_scheduler: true
+  use_lr_scheduler: false
   scheduler_type: "cosine_annealing"   # "reduce_on_plateau" | "cosine_annealing"
   lr_scheduler_config:
     monitor: "val_best_dice_at_threshold"
     mode: "max"
-    patience: 15
+    patience: 3
     factor: 0.5
   cosine_annealing_config:
     T_max:      # null → resolved to max_epochs at runtime
