@@ -3,6 +3,9 @@
 .mamba/
 this_studio.code-workspace
 
+# envs
+envs/*
+
 # project files and folders
 *__init__
 *__pycache__
@@ -27,4 +30,8 @@ this_studio.code-workspace
 /docs/.buildinfo
 /docs/searchindex.js
 /docs/objects.inv
+/docs/*.rst
+
+
+# scripts
 on_start_kaggle.sh
