@@ -1,7 +1,7 @@
 # Datasets and dataloaders
 
 This document describes the dataset system used in SkiNet.
-See the [API reference](api/api_datasets.md) for full parameter documentation.
+See the [API reference](api/api_datasets) for full parameter documentation.
 
 ---
 
@@ -133,11 +133,28 @@ At present, augmentation is applied uniformly across all samples with an option 
 
 - As per default Albumentations settings, affine rotation uses nearest neighbor interpolation (Albumentations defaults to cv2.INTER_NEAREST for targets passed via the mask argument). The resulting pixel values are therefore preserved
 and are 0 or 255 for uint8 images.
-- Normalisation uses *mean and std computed for each individual augmened image*. Each image is normalised by its own statistics:
+- Normalisation mode is controlled by `normalization_mode` in `TRANSFORM_CONFIG`:
 
-```python
-A.Normalize(normalization="image_per_channel", p=1.0)
-```
+  | Mode | Behaviour | When to use |
+  |---|---|---|
+  | `"image_per_channel"` (default) | Per-sample per-channel mean/std computed on the augmented image | General purpose; no dataset stats needed |
+  | `"standard"` | Fixed global mean/std supplied via `normalization_mean` / `normalization_std` | When dataset statistics are pre-computed (e.g. ISIC 2017) |
+
+  Example for `image_per_channel` (default, no extra fields needed):
+  ```yaml
+  TRANSFORM_CONFIG:
+    normalization_mode: "image_per_channel"
+  ```
+
+  Example for `standard` with pre-computed ISIC 2017 statistics:
+  ```yaml
+  TRANSFORM_CONFIG:
+    normalization_mode: "standard"
+    normalization_mean: [0.699, 0.556, 0.512]
+    normalization_std:  [0.158, 0.156, 0.171]
+  ```
+
+  `normalization_mean` and `normalization_std` are required when `normalization_mode: "standard"` — a `ValueError` is raised at pipeline construction time if they are absent.
 
 - ```seed```can be used to ensure reproducibility.
 - **Critical Note: Using the same seed with different num_workers settings will produce different augmentation sequences**. This is by design to ensure:
