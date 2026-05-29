@@ -20,6 +20,7 @@ extensions = [
     'sphinx.ext.napoleon',      # understands :param:/:return: Sphinx style
     'sphinx.ext.viewcode',      # adds [source] links next to every documented symbol
     'sphinx.ext.intersphinx',   # lets {py:class}`torch.Tensor` resolve to PyTorch docs
+    'sphinxcontrib.autodoc_pydantic',
 ]
 
 # myst_parser: enable {autoclass} / {autofunction} directives inside .md files
@@ -31,6 +32,15 @@ napoleon_use_rtype = True
 
 # Put types in the signature box (InnerEye style), not scattered in the body
 autodoc_typehints = "signature"
+
+# autodoc-pydantic: show fields with their types, defaults, and descriptions
+autodoc_pydantic_model_show_json = False
+autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_validator_summary = False
+autodoc_pydantic_model_members = True
+autodoc_pydantic_model_undoc_members = True
+autodoc_pydantic_field_list_validators = False
+autodoc_pydantic_field_show_default = True
 # Use only the class docstring — Pydantic generates noisy __init__ boilerplate
 autoclass_content = "class"
 # Global autodoc defaults for all autoclass/autofunction directives

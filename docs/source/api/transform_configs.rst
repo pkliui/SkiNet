@@ -1,10 +1,10 @@
 Transform Configs
 =================
 
-.. autoclass:: SkiNet.ML.configs.transform_configs.transform_config.TransformConfig
+.. autopydantic_model:: SkiNet.ML.configs.transform_configs.transform_config.TransformConfig
 
-.. autoclass:: SkiNet.ML.configs.transform_configs.crop_config.CropConfig
+.. autopydantic_model:: SkiNet.ML.configs.transform_configs.crop_config.CropConfig
 
-.. autoclass:: SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig
+.. autopydantic_model:: SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig
 
-.. autoclass:: SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig
+.. autopydantic_model:: SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig

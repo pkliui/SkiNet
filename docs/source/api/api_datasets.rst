@@ -6,22 +6,21 @@ Dataset Factories
 
 .. autofunction:: SkiNet.ML.datasets.dataset_factory.create_segmentation_datasets_from_config
 
-.. autoclass:: SkiNet.ML.datasets.dataset_factory.DatasetSplit
+.. autopydantic_model:: SkiNet.ML.datasets.dataset_factory.DatasetSplit
    :no-index:
 
-.. autoclass:: SkiNet.ML.datasets.dataset_factory.DatasetFactory
+.. autopydantic_model:: SkiNet.ML.datasets.dataset_factory.DatasetFactory
 
-.. autoclass:: SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory
-   :members: create_datasets
+.. autopydantic_model:: SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory
 
 ----
 
 Datasets
 --------
 
-.. autoclass:: SkiNet.ML.datasets.segmentation_dataset.BaseDataset
+.. autopydantic_model:: SkiNet.ML.datasets.segmentation_dataset.BaseDataset
 
-.. autoclass:: SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset
+.. autopydantic_model:: SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset
 
 ----
 
