@@ -10,7 +10,7 @@ from SkiNet.ML.configs.experiment_config import ExperimentConfig, ExperimentType
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.model.architecture.unet2d import UNet2D
-from SkiNet.ML.utils.model_factory import create_model
+from SkiNet.ML.model.model_factory import create_model
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 
 
@@ -49,7 +49,10 @@ def trainconfig() -> TrainConfig:
                 "number_of_layers": 5,
                 "num_output_classes": 1,
                 "model_name": "UNet2D",
-                "validate_forward": False
+                "validate_forward": False,
+                "debug_forward": False,
+                "encoder_residual_mode": "he2",
+                "merge_residual_mode": "he2",
             }
         ),
         (
@@ -61,7 +64,8 @@ def trainconfig() -> TrainConfig:
                               number_of_layers=4,
                               num_output_classes=2,
                               model_name="UNet2D",
-                              validate_forward=True),
+                              validate_forward=True,
+                              debug_forward=True),
             UNet2D,
             {
                 "in_channels": 3,
@@ -73,6 +77,21 @@ def trainconfig() -> TrainConfig:
                 "num_output_classes": 2,
                 "model_name": "UNet2D",
                 "validate_forward": True,
+                "debug_forward": True,
+                "encoder_residual_mode": "he2",
+                "merge_residual_mode": "he2",
+            },
+        ),
+        (
+            UNet2DModelConfig(in_channels=3,
+                              out_channels_layer1=4,
+                              number_of_layers=3,
+                              encoder_residual_mode="local_refinement",
+                              merge_residual_mode="he1"),
+            UNet2D,
+            {
+                "encoder_residual_mode": "local_refinement",
+                "merge_residual_mode": "he1",
             },
         ),
     ],

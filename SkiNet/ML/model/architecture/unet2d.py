@@ -1,11 +1,10 @@
 import logging
 from dataclasses import dataclass
-from typing import cast
+from typing import Literal, cast
 
 import torch.nn as nn
 from torch import Tensor
 
-from SkiNet.ML.model.architecture.base_segmentation import BaseSegmentation
 from SkiNet.ML.model.blocks.conv2d_layer import Conv2dLayer
 from SkiNet.ML.model.blocks.decoder2d import Decoder2D
 from SkiNet.ML.model.blocks.encoder2d import Encoder2D
@@ -28,6 +27,7 @@ class EncoderPath:
     """
     encoders: nn.ModuleList
     out_channels: int
+
 
 @dataclass(frozen=True)
 class DecoderPath:
@@ -52,7 +52,8 @@ class DecoderPath:
     def __post_init__(self) -> None:
         # Invariant 1: Pairing count
         if len(self.decoders) != len(self.mergeblocks):
-            err = "Decoder count %s != merge block count %s. Decoders and merge blocks must be paired 1:1." % (len(self.decoders), len(self.mergeblocks))
+            err = "Decoder count %s != merge block count %s. Decoders and merge blocks must be paired 1:1." % (
+                len(self.decoders), len(self.mergeblocks))
             logger.error(err)
             raise ValueError(err)
 
@@ -77,11 +78,13 @@ class DecoderPath:
             shallowest_decoder_out = self.decoders[-1].out_channels
             if self.out_channels != shallowest_decoder_out:
                 err = "Output channel mismatch: "\
-                    "DecoderPath.out_channels=%s != shallowest_decoder.out_channels=%s" % (self.out_channels, shallowest_decoder_out)
+                    "DecoderPath.out_channels=%s != shallowest_decoder.out_channels=%s" % (
+                        self.out_channels, shallowest_decoder_out)
                 logger.error(err)
                 raise ValueError(err)
 
-class UNet2D(BaseSegmentation):
+
+class UNet2D(nn.Module):
     """
     UNet 2D model
 
@@ -96,7 +99,12 @@ class UNet2D(BaseSegmentation):
         The number of decoder layers is number_of_layers - 1 and there is one more additional last convolutional layer.
     :param num_output_classes: Number of output classes for segmentation. Default is 1.
     :param model_name: Name of the model.
-    :param validate_forward: If True, perform validation checks on skip connections during the forward pass. Default is False.
+    :param validate_forward: If True, perform structural validation checks (skip keys/count) during the forward pass. Default is True.
+    :param debug_forward: If True, log warnings for near-zero skip connections during the forward pass.
+        Runs tensor reductions on GPU every step — keep False in production. Default is False.
+    :param encoder_residual_mode: Residual mode used in encoder blocks. Default is "he2".
+    :param merge_residual_mode: Residual mode used in merge blocks. Default is "he2".
+
     """
 
     def __init__(self,
@@ -108,7 +116,11 @@ class UNet2D(BaseSegmentation):
                  number_of_layers: int = 5,
                  num_output_classes: int = 1,
                  model_name: str = "UNet2D",
-                 validate_forward: bool = False) -> None:
+                 validate_forward: bool = True,
+                 debug_forward: bool = False,
+                 encoder_residual_mode: Literal["classical", "local_refinement", "he2", "se"] = "he2",
+                 merge_residual_mode: Literal["classical", "local_refinement", "he1", "he2", "attention_gate"] = "he2",
+                 se_reduction: int = 16) -> None:
 
         super().__init__()
 
@@ -121,6 +133,10 @@ class UNet2D(BaseSegmentation):
         self.num_output_classes = num_output_classes
         self.model_name = model_name
         self.validate_forward = validate_forward
+        self.debug_forward = debug_forward
+        self.encoder_residual_mode: Literal["classical", "local_refinement", "he2", "se"] = encoder_residual_mode
+        self.merge_residual_mode: Literal["classical", "local_refinement", "he1", "he2", "attention_gate"] = merge_residual_mode
+        self.se_reduction = se_reduction
 
         self.layer1_params = get_encoder_params_2d(kernel=self.kernel, stride=1, dilation=self.dilation)
         """As encoder's layer 1 is not downsampling, compute its convolution parameters separately"""
@@ -168,10 +184,11 @@ class UNet2D(BaseSegmentation):
                                   out_channels=out_channels,
                                   conv_params=self.layer1_params,
                                   apply_bias=False,
-                                  apply_batchnorm=True,
                                   activation=nn.ReLU,
                                   use_residual=True,
-                                  layer_number=1))
+                                  layer_number=1,
+                                  residual_mode=self.encoder_residual_mode,
+                                  se_reduction=self.se_reduction))
 
         # each subsequent encoder layer is downsampling by stride and doubles the number of channels at the output
         for layer_number in range(2, self.number_of_layers+1):
@@ -182,10 +199,11 @@ class UNet2D(BaseSegmentation):
                                       out_channels=out_channels,
                                       conv_params=self.params,
                                       apply_bias=False,
-                                      apply_batchnorm=True,
                                       activation=nn.ReLU,
                                       use_residual=True,
-                                      layer_number=layer_number))
+                                      layer_number=layer_number,
+                                      residual_mode=self.encoder_residual_mode,
+                                      se_reduction=self.se_reduction))
 
         # the number of channels passed to the deepest decoder's layer is out_channels, the number of channels output by the deepest encoder layer
         return EncoderPath(encoders=encoders,
@@ -215,7 +233,7 @@ class UNet2D(BaseSegmentation):
         mergeblocks = nn.ModuleList()
 
         # each subsequent decoder layer is upsampling by stride and halves the number of channels at the output
-        for (idx, layer_number) in enumerate(range(self.number_of_layers, 1, -1)):
+        for layer_number in range(self.number_of_layers, 1, -1):
             out_channels = in_channels // 2
             decoders.append(Decoder2D(layer_number=layer_number,
                                       in_channels=in_channels,
@@ -223,9 +241,11 @@ class UNet2D(BaseSegmentation):
                                       decoder_params=self.decoder_params,
                                       activation=nn.ReLU))
             mergeblocks.append(Merge2DBlock(layer_number=layer_number,
-                                            in_channels=out_channels,
+                                            in_channels_from_decoder=out_channels,
+                                            in_channels_from_skip=out_channels,
                                             out_channels=out_channels,
                                             conv_params=self.params,
+                                            residual_mode=self.merge_residual_mode,
                                             activation=nn.ReLU))
             # update the number of channels for the next decoder layer
             in_channels = out_channels
@@ -312,6 +332,8 @@ class UNet2D(BaseSegmentation):
         if self.validate_forward:
             self._validate_skip_keys(skip_connections_dict)
             self._validate_skip_count(skip_connections_dict)
+
+        if self.debug_forward:
             self._log_near_zero_skips(skip_connections_dict)
 
         # Decoder path with skip connections

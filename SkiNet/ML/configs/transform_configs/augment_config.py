@@ -42,13 +42,17 @@ class SpatialAugmentConfig(BaseModel):
     affine_apply: bool = Field(
         default=False, description="Apply affine transformations.")
     affine_scale: Tuple[float, float] = Field(default=(
-        0.5, 1.0), description="Scaling (zoom) factor for affine transformation.")
-    affine_translate_percent: dict[str, float | Tuple[float, float]] = Field(default={"x": (
-        -0.05, 0.05), "y": (-0.05, 0.05)}, description="Translation as a fraction of the image size.")
+        0.8, 1.0), description="Scaling (zoom) factor for affine transformation.")
+    affine_translate_percent: dict[str, Tuple[float, float]] = Field(
+        default_factory=lambda: {"x": (-0.05, 0.05), "y": (-0.05, 0.05)},
+        description="Translation as a fraction of the image size.",
+    )
     affine_rotate: Tuple[float, float] = Field(
         default=(-45, 45), description="Rotation angle in degrees.")
-    affine_shear: dict[str, float | Tuple[float, float]] = Field(
-        default={"x": (-15, 15), "y": (-15, 15)}, description="Shear angle in degrees.")
+    affine_shear: dict[str, Tuple[float, float]] = Field(
+        default_factory=lambda: {"x": (-15.0, 15.0), "y": (-15.0, 15.0)},
+        description="Shear angle in degrees.",
+    )
 
     # Perspective transformations
     # albumentations.Perspective
@@ -58,6 +62,17 @@ class SpatialAugmentConfig(BaseModel):
         0.05, 0.1), description="Scaling factor for perspective transformation.")
     perspective_p: float = Field(
         default=0.2, ge=0.0, le=1.0, description="Probability of applying perspective transformation.")
+
+    # Elastic deformation
+    # albumentations.ElasticTransform
+    elastic_apply: bool = Field(
+        default=False, description="Apply elastic deformation.")
+    elastic_alpha: float = Field(
+        default=120.0, description="Scaling factor controlling displacement magnitude.")
+    elastic_sigma: float = Field(
+        default=10.0, description="Gaussian smoothing factor; larger values produce smoother deformation.")
+    elastic_p: float = Field(
+        default=0.3, ge=0.0, le=1.0, description="Probability of applying elastic deformation.")
 
 
 class PhotoAugmentConfig(BaseModel):
@@ -72,21 +87,15 @@ class PhotoAugmentConfig(BaseModel):
     A review of medical image data augmentation techniques for deep learning applications.
     Journal of medical imaging and radiation oncology, 65(5), 545-563.
 
-    Basic augmentation techniques:
-    - geometric (mapping points of the image to new locations)
-        - geometric transformations (scaling, translation, rotation, flipping, shear, skew); very common
-        - cropping; used when there is class imbalance to even the balance
-        - occlusion (removing small patches of the image); used when there is class imbalance to even the balance
-    - photometric (manipulating the image intensity values)
-        - gamma contrast, linear contrast, histogram equalization
-        - filtering (convolution to sharpern, blur or smooth)
-        - adding noise (Gaussian, salt and pepper, uniform)
+    Photometric augmentation techniques:
+    - gamma contrast, linear contrast, histogram equalization
+    - filtering (convolution to sharpen, blur or smooth)
+    - adding noise (Gaussian, salt and pepper, uniform)
 
-    Deformable augmentation techniques:
-        - randomised displacement of pixels
-        - spline interpolation (B-splines)
-        - deformable image registration
-        - statistical shape models
+    Implemented transforms:
+    - ColorJitter (albumentations.ColorJitter)
+    - GaussianBlur (albumentations.GaussianBlur)
+    - GaussNoise (albumentations.GaussNoise)
     """
 
     # albumentations.ColorJitter
@@ -102,3 +111,19 @@ class PhotoAugmentConfig(BaseModel):
         default=0.0, description="Hue adjustment factor.")
     color_jitter_p: float = Field(
         default=0.5, ge=0.0, le=1.0, description="Probability of applying color jitter.")
+
+    # albumentations.GaussianBlur
+    gaussian_blur_apply: bool = Field(
+        default=False, description="Apply Gaussian blur.")
+    gaussian_blur_sigma_limit: Tuple[float, float] = Field(
+        default=(0.5, 2.0), description="Sigma range for Gaussian blur kernel.")
+    gaussian_blur_p: float = Field(
+        default=0.2, ge=0.0, le=1.0, description="Probability of applying Gaussian blur.")
+
+    # albumentations.GaussNoise
+    gaussian_noise_apply: bool = Field(
+        default=False, description="Apply Gaussian noise.")
+    gaussian_noise_std_range: Tuple[float, float] = Field(
+        default=(0.05, 0.15), description="Std range as a fraction of max pixel value.")
+    gaussian_noise_p: float = Field(
+        default=0.2, ge=0.0, le=1.0, description="Probability of applying Gaussian noise.")

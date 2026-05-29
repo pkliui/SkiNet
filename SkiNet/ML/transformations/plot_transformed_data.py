@@ -1,4 +1,6 @@
 from pathlib import Path
+import random
+import time
 from typing import Any
 
 import cv2
@@ -6,99 +8,117 @@ import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
 import torch
+import logging
 
 from SkiNet.ML.datasets.sample_specs import Sample
+logger = logging.getLogger(__name__)
 
 
 def visualize_augmented_data(dataset: Any,
-                             idx: int = 0,
                              samples: int = 2,
                              save_dir: str | Path | None = "./augmented_data_vis",
                              prefix: str = "vis",
-                             save_overlay: bool = True,
                              show: bool = False) -> None:
     """
-    Visualize one raw sample at index idx and its multiple transformed variants from the dataset.
-
-    :param dataset: The dataset to visualize from, expected to have a
-        get_raw_sample method and sample_specs attribute.
-    :param idx: The index of the sample to visualize.
-    :param samples: The number of augmented samples to visualize.
-    :param save_dir: Directory to save the visualizations. If None,
-        visualizations will not be saved.
-    :param prefix: Prefix for saved file names.
-    :param save_overlay: Whether to save overlay images with masks.
-    :param show: Whether to show the visualizations.
+    Visualize augmented samples without affecting the global RNG state.
+    RNG is snapshot before and restored after to ensure training reproducibility
+    is not affected by visualization.
     """
+    torch_state = torch.get_rng_state()
+    numpy_state = np.random.get_state()
+    python_state = random.getstate()
+    cuda_state = torch.cuda.get_rng_state() if torch.cuda.is_available() else None
 
+    try:
+        # provide a random seed to the visualisation
+        vis_seed = time.time_ns() % (2**31)
+        random.seed(vis_seed)
+        _do_visualize(dataset=dataset,
+                      samples=samples,
+                      save_dir=save_dir,
+                      prefix=prefix,
+                      show=show)
+    finally:
+        torch.set_rng_state(torch_state)
+        np.random.set_state(numpy_state)
+        random.setstate(python_state)
+        if cuda_state is not None:
+            torch.cuda.set_rng_state(cuda_state)
+
+
+def _do_visualize(dataset: Any,
+                  samples: int,
+                  save_dir: str | Path | None,
+                  prefix: str,
+                  show: bool) -> None:
+    """
+    Visualize `samples` randomly chosen dataset entries. Each row shows:
+    original image | augmented image | augmented mask (with non-binary pixel check).
+
+    :param dataset: Dataset to visualize from. Expected to have get_raw_sample,
+        sample_ids, sample_specs, and transform attributes.
+    :param samples: Number of randomly chosen samples to visualize.
+    :param save_dir: Directory to save visualizations. No saving if None.
+    :param prefix: Prefix for saved file names.
+    :param show: Whether to show the figure interactively.
+    """
     save_path = Path(save_dir) if save_dir is not None else None
     if save_path is not None:
         save_path.mkdir(parents=True, exist_ok=True)
 
-    sample_id = dataset.sample_ids[idx] if hasattr(dataset, "sample_ids") else str(idx)
-    base = f"{prefix}_{sample_id}_idx{idx}"
-
-    figure, ax = plt.subplots(samples + 1, 3, figsize=(8, 4 * (samples + 1)))
-
-    raw = dataset.get_raw_sample(idx)
-    image_t = raw.image
-    mask_t = raw.mask
-
-    image = _to_numpy_hwc_for_plot(image_t)
-    mask = _to_numpy_hw_for_plot(mask_t)
-
-    ax[0, 0].imshow(image)
-    ax[0, 0].set_title("Original Image")
-    ax[0, 0].axis("off")
-
-    ax[0, 1].imshow(mask, cmap="gray")
-    ax[0, 1].set_title("Original Mask")
-    ax[0, 1].axis("off")
-
-    if save_path is not None:
-        plt.imsave(save_path / f"{base}_orig_image.png", _img_for_imsave(image))
-        plt.imsave(save_path / f"{base}_orig_mask.png", mask, cmap="gray")
-        if save_overlay:
-            plt.imsave(save_path / f"{base}_orig_overlay.png",
-                       overlay_mask(_img_for_overlay(image), mask))
-
+    indices = random.sample(range(len(dataset)), k=min(samples, len(dataset)))
     vis_transform = _get_visualization_transform(dataset.transform)
 
-    for i in range(samples):
+    figure, axes = plt.subplots(len(indices), 3, figsize=(12, 4 * len(indices)))
+    # ensure axes is always 2D even for a single sample
+    if len(indices) == 1:
+        axes = axes[np.newaxis, :]
+
+    for row, idx in enumerate(indices):
+        sample_id = dataset.sample_ids[idx] if hasattr(dataset, "sample_ids") else str(idx)
+        base = f"{prefix}_{sample_id}_idx{idx}"
+
+        raw = dataset.get_raw_sample(idx)
+        image_t = raw.image
+        mask_t = raw.mask
+
+        image = _to_numpy_hwc_for_plot(image_t)
+        mask = _to_numpy_hw_for_plot(mask_t)
+
+        # apply visualization transform (without postprocessing)
         specs_item = dataset.sample_specs[dataset.sample_ids[idx]]
         sample = Sample(image=image_t, mask=mask_t, specs=specs_item)
         transformed = vis_transform(sample) if vis_transform is not None else sample
-
         aug_image = _to_numpy_hwc_for_plot(transformed.image)
         aug_mask = _to_numpy_hw_for_plot(transformed.mask)
-
-        # where aug_mask is NOT 0/255, else 0
         aug_mask_not_binary = (~np.isin(aug_mask, [0, 255])).astype(np.uint8)
 
-        ax[i + 1, 0].imshow(_img_for_overlay(aug_image))
-        ax[i + 1, 0].set_title(f"Augmented Image {i + 1}")
-        ax[i + 1, 0].axis("off")
+        # col 0: original overlay
+        axes[row, 0].imshow(overlay_mask(_img_for_overlay(image), mask))
+        axes[row, 0].set_title(f"Original (id={sample_id})")
+        axes[row, 0].axis("off")
 
-        ax[i + 1, 1].imshow(aug_mask, cmap="gray")
-        ax[i + 1, 1].set_title(f"Augmented Mask {i + 1}")
-        ax[i + 1, 1].axis("off")
+        # col 1: augmented overlay
+        axes[row, 1].imshow(overlay_mask(_img_for_overlay(aug_image), aug_mask))
+        axes[row, 1].set_title(f"Augmented (id={sample_id})")
+        axes[row, 1].axis("off")
 
-        ax[i + 1, 2].imshow(aug_mask_not_binary, cmap="gray")
-        ax[i + 1, 2].set_title(f"Mask with Pixel values other than 0 or 1 {i + 1}")
-        ax[i + 1, 2].axis("off")
+        # col 2: non-binary mask pixels (interpolation artefact check)
+        axes[row, 2].imshow(aug_mask_not_binary, cmap="gray")
+        axes[row, 2].set_title("Non-binary mask pixels")
+        axes[row, 2].axis("off")
 
         if save_path is not None:
-            plt.imsave(save_path / f"{base}_aug{i + 1}_image.png", _img_for_imsave(aug_image))
-            plt.imsave(save_path / f"{base}_aug{i + 1}_mask.png", aug_mask, cmap="gray")
-            plt.imsave(save_path / f"{base}_aug{i + 1}_mask_not_binary.png", aug_mask_not_binary, cmap="gray")
-            if save_overlay:
-                plt.imsave(save_path / f"{base}_aug{i + 1}_overlay.png",
-                           overlay_mask(_img_for_overlay(aug_image), aug_mask))
+            plt.imsave(save_path / f"{base}_orig_overlay.png",
+                       overlay_mask(_img_for_overlay(image), mask))
+            plt.imsave(save_path / f"{base}_aug_overlay.png",
+                       overlay_mask(_img_for_overlay(aug_image), aug_mask))
+            plt.imsave(save_path / f"{base}_aug_mask_not_binary.png",
+                       aug_mask_not_binary, cmap="gray")
 
     plt.tight_layout()
     if save_path is not None:
-        figure.savefig(save_path / f"{base}_grid.png", dpi=150, bbox_inches="tight")
-
+        figure.savefig(save_path / f"{prefix}_grid.png", dpi=150, bbox_inches="tight")
     if show:
         plt.show()
     else:
@@ -170,4 +190,6 @@ def _get_visualization_transform(dataset_transform: Any) -> Any | None:
         return None
     if hasattr(dataset_transform, "without_postprocess"):
         return dataset_transform.without_postprocess()
+    logger.warning("Transform does not implement without_postprocess(); "
+                   "visualization will include postprocessing steps.")
     return dataset_transform

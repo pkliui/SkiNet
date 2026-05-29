@@ -18,12 +18,18 @@ def _log_mlflow_run_metadata(mlflow_logger: MLFlowLogger, main_config: Experimen
     :param mlflow_logger: The MLFlowLogger instance used for logging.
     :param main_config: The main configuration object loaded from the configuration file
     """
+    model_cfg = main_config.modelconfig
     tags = {
         "framework": "lightning",
         "project": "SkiNet",
         "experiment_type": main_config.experiment_type,
-        "model_kind": main_config.modelconfig.kind,
+        "model_kind": model_cfg.kind,
         "dataset_kind": main_config.dataconfig.kind,
+        # Architecture tags — present on UNet2DModelConfig; guarded with hasattr so
+        # future model types that lack these fields don't require changes here.
+        "model/encoder_residual_mode": getattr(model_cfg, "encoder_residual_mode", None),
+        "model/merge_residual_mode": getattr(model_cfg, "merge_residual_mode", None),
+        "model/se_reduction": getattr(model_cfg, "se_reduction", None),
     }
     # log the tags to mlflow, converting None values to strings and skipping logging for tags with None values
     for key, value in tags.items():

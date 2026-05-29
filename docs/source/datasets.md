@@ -1,28 +1,45 @@
-# Datasets
+# Datasets and dataloaders
 
 This document describes the dataset system used in SkiNet.
-See the [API reference](api/dataset_factory.md) for full parameter documentation.
+See the [API reference](api/api_datasets.md) for full parameter documentation.
 
 ---
 
 ## Quickstart
-
-The recommended way to create datasets is through the factory, which handles
-splitting, transform construction, and dataset instantiation in one call:
+- At present, only datasets for segmentation are supported
+- The recommended way to create datasets is via a respective factory by calling ```create_segmentation_datasets_from_config``` function, which handles
+splitting, transform construction, and dataset instantiation in one call
+- The resulting container provides users with train, val and test datasets that can be passed to PyTorch dataloaders directly:
 
 ```python
 from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
-from SkiNet.ML.datasets.dataset_factory import create_pytorch_datasets_from_config
+from SkiNet.ML.datasets.dataset_factory import create_segmentation_datasets_from_config
 from torch.utils.data import DataLoader
 
 cfg = load_config_from_yaml(cfg_path)
-bundle = create_pytorch_datasets_from_config(cfg)
+train_val_test_dataset = create_segmentation_datasets_from_config(cfg)
 
 train_loader = DataLoader(bundle.train, batch_size=8, shuffle=True,  num_workers=4)
 val_loader   = DataLoader(bundle.val,   batch_size=8, shuffle=False, num_workers=4)
 ```
 
-See [dataset_factory.md](dataset_factory.md) for factory internals and how to extend it.
+- See {py:class}`SkiNet.ML.datasets.dataset_factory.DatasetFactory` for factory internals and how to extend it.
+- Alternatively, dataloaders can be created from ```SkiNet.ML.dataloaders.create_dataloaders.create_dataloaders_from_datasets``` function:
+
+```python
+from SkiNet.ML.dataloaders.create_dataloaders import create_dataloaders_from_datasets
+from SkiNet.ML.datasets.dataset_factory import DatasetSplit, create_segmentation_datasets_from_config
+from SkiNet.ML.datasets.segmentation_dataset import SegmentationDataset
+
+# create segmentation dataset (train, val, test container) from config
+segm_datasets: DatasetSplit[SegmentationDataset] = create_segmentation_datasets_from_config(main_config)
+# create train, val, test dataloaders from it
+loaders = create_dataloaders_from_datasets(segm_datasets, main_config.trainconfig)
+print("Train dataloader: ", loaders.train)
+print("Val dataloader: ", loaders.val)
+print("Test dataloader: ", loaders.test)
+```
+- Under the hood, it creates train, val and test RepeatDataloaders that avoid spawning a new process after each epoch  - see [Note about modification to PyTorch's default dataloader](dataloaders.md)
 
 ---
 
@@ -120,7 +137,7 @@ and are 0 or 255 for uint8 images.
 
 ```python
 A.Normalize(normalization="image_per_channel", p=1.0)
-```yaml
+```
 
 - ```seed```can be used to ensure reproducibility.
 - **Critical Note: Using the same seed with different num_workers settings will produce different augmentation sequences**. This is by design to ensure:

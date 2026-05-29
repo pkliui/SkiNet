@@ -67,12 +67,9 @@ def _build_transform(transform_groups: list[list[A.BasicTransform]],
     all_transforms = _flatten(transform_groups)
     compose_kwargs = compose_kwargs or {}
 
-    # Albumentations typing: Compose expects list[BasicTransform | BaseCompose]
-    all_transforms_typed = cast(list[A.BasicTransform | A.BaseCompose], all_transforms)
-    vis_transforms_typed = cast(list[A.BasicTransform | A.BaseCompose], visualisation_transforms)
-
-    return AlbumentationsSampleTransform(pipeline=A.Compose(all_transforms_typed, **compose_kwargs),
-                                         visualization_pipeline=A.Compose(vis_transforms_typed, **compose_kwargs),
+    _compose_t = list[A.BasicTransform | A.BaseCompose]
+    return AlbumentationsSampleTransform(pipeline=A.Compose(cast(_compose_t, all_transforms), **compose_kwargs),
+                                         visualization_pipeline=A.Compose(cast(_compose_t, visualisation_transforms), **compose_kwargs),
                                          expects_tensor_output=True)
 
 
@@ -95,7 +92,7 @@ def get_transform_from_config(cfg: ExperimentConfig) -> TransformsContainer:
         cfg.transformconfig.spatial_augmentation)
     photometric_transforms = get_photometric_transforms(
         cfg.transformconfig.photometric_augmentation)
-    postprocess_transforms = get_postprocess_transforms()
+    postprocess_transforms = get_postprocess_transforms(cfg.transformconfig)
     compose_kwargs = _resolve_compose_kwargs(cfg)
 
     train_pipeline = _build_transform(

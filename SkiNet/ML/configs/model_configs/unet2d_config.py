@@ -15,16 +15,20 @@ class UNet2DModelConfig(BaseModelConfig):
 
     :param in_channels: Number of input channels.
     :param out_channels_layer1: Number of output channels in the 1st layer of the encoder.
-    :param kernel: Kernel size of the convolution operation. Default is 3.
-    :param stride: Stride of the convolution operation. If not 1, it acts as a downsampling factor in encoder layers and as
-        an upsampling factor in decoder layers. Default is 2.
-    :param dilation: Dilation factor of the convolution operation. Default is 1.
     :param number_of_layers: Number of layers in the encoder path. Default is 5.
         The count starts from layer 1, which is the shallowest layer.
         The number of decoder layers is number_of_layers - 1 and there is one more additional last convolutional layer.
     :param num_output_classes: Number of output classes for segmentation. Default is 1.
+    :param kernel: Kernel size of the convolution operation. Default is 3.
+    :param stride: Stride of the convolution operation. If not 1, it acts as a downsampling factor in encoder layers and as
+        an upsampling factor in decoder layers. Default is 2.
+    :param dilation: Dilation factor of the convolution operation. Default is 1.
+    :param encoder_residual_mode: Residual mode used in encoder blocks. Default is "he2".
+    :param merge_residual_mode: Residual mode used in merge blocks. Default is "he2".
     :param model_name: Name of the model.
-    :param validate_forward: If True, perform validation checks on skip connections during the forward pass. Default is False.
+    :param validate_forward: If True, perform structural validation checks (skip keys/count) during the forward pass. Default is True.
+    :param debug_forward: If True, log warnings for near-zero skip connections.
+        Runs tensor reductions on GPU every step — keep False in production. Default is False.
     """
 
     kind: Literal["unet2d"] = "unet2d"
@@ -40,9 +44,15 @@ class UNet2DModelConfig(BaseModelConfig):
     stride: IntOrTuple2d = 2
     dilation: IntOrTuple2d = 1
 
+    # residual modes
+    encoder_residual_mode: Literal["classical", "local_refinement", "he2", "se"] = "he2"
+    merge_residual_mode: Literal["classical", "local_refinement", "he1", "he2", "attention_gate"] = "he2"
+    se_reduction: int = Field(default=16, ge=1)
+
     # runtime / debugging
     model_name: str = "UNet2D"
-    validate_forward: bool = False
+    validate_forward: bool = True
+    debug_forward: bool = False
 
     @model_validator(mode="after")
     def _validate_model_inputs(self) -> "UNet2DModelConfig":

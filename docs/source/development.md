@@ -1,6 +1,5 @@
 # Software development process
 
-
 ## Development environment
 
 We use Ubuntu 22.04 inside a Docker container as our development environment.
@@ -10,6 +9,7 @@ Please see more details on [developing inside a container using Visual Studio Co
 
 In short, one needs to make a Dockerfile, specifying the target OS and all necessary dependencies, make an image out of it and run it, specifying all necessary source and target volumes. Then, in Visual Studio Code, right click on the running container and select "Attach Visual Studio" or "Attach shell". This will open a new VSC window in the Docker container or attach Docker environment to your shell.
 
+## Docker
 
 ### Dockerfile overview
 
@@ -20,9 +20,33 @@ In short, one needs to make a Dockerfile, specifying the target OS and all neces
 Important notes
 - micromamba is used to create the `skinet` conda environment. PATH is adjusted so the environment python is available.
 - blobfuse2 is installed in the base image for convenience, but mounting Azure Blob Storage is usually done on the VM host and bind-mounted into containers.
-- If you need to run inside the container with FUSE support, you must run the container with appropriate capabilities and devices (see examples below).
+- If you need to run inside the container with FUSE support, you must run the container with appropriate capabilities and devices (see examples below)
+- images are labelled with the environment's hash
 
-### Quick build & run commands
+### Ways to build and run the containers
+
+
+*** Build and push CPU and GPU images to the Hub ***
+
+```bash main_docker_build.sh```
+
+
+*** Manually build and push images to the Hub ***
+
+- To build and push an image to the Hub, run the following:
+
+```bash
+ENV_HASH=$(sha256sum environment.yaml | cut -c1-64)
+IMAGE_TAG="pkliui/skinet:v9cpu"
+docker build \
+  --build-arg ENV_HASH=$ENV_HASH \
+  --target gpu \
+  -t $IMAGE_TAG .
+docker push $IMAGE_TAG
+```
+
+*** Quick build & run commands ***
+- For quick experimenting and debugging purposes, use the following commands:
 
 Build CPU image locally:
 ```bash
@@ -34,36 +58,24 @@ Build GPU image locally:
 docker build --target gpu -t skinet:gpu .
 ```
 
-Run container (example, bind-mount repo and host Azure mount) locally:
+Run container bind-mount repo locally:
 
 ```bash
 docker run -it --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/workplace/SkiNet skinet:cpu bash
 ```
 
-to enable Azure Blob Fuse mounts, add
+
+### Additional options
+
+- To enable Azure Blob Fuse mounts, add
 ```
   --cap-add=SYS_ADMIN --device=/dev/fuse --security-opt apparmor:unconfined
 ```
 
 If you do not need FUSE inside the container (recommended): mount blobfuse on the VM host and only bind the mounted directory into the container; then you can omit the SYS_ADMIN/device flags.
 
+
 ## Lightning Studio
-
-### Build new Docker image
-
-- Build CPU image locally, tag and push to Docker Hub to be able to launch from on_start.sh script later:
-
-```bash
-docker build --target cpu -t skinet:cpu .
-docker tag skinet:cpu <dockerhub-username>/skinet:cpu
-docker push <dockerhub-username>/skinet:cpu
-```
-
-OR equivalently tag immediately with the username as follows
-```bash
-docker build --target cpu -t <dockerhub-username>/skinet:cpu .
-docker push <dockerhub-username>/skinet:cpu
-```
 
 ### Set up the environment on Studio
 - Being in the Lightning studio's root (usually /teamspace/studios/this_studio), run "on_start.sh" script that will
@@ -185,6 +197,31 @@ echo "==> Done. Docker is running. Attach Shell to the running container"
 ```
 
 - In VSC "Containers" tab, attach the running container to the Bash shell.
+
+
+### Debugging Cheatsheet
+
+**See ports busy with non-docker processes**
+
+- Install lsof
+```bash
+sudo apt-get update
+sudo apt-get install lsof
+```
+- Example: port 6006
+```bash
+lsof -iTCP:6006 -sTCP:LISTEN -n -P
+```
+
+- Kill the process
+```bash
+kill <PID>
+```
+
+### Force save file from command line
+sudo tee file_name.py > /dev/null << 'EOF'
+FILE-CONTENT
+EOF
 
 ### Login to Codex
 

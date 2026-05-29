@@ -1,4 +1,4 @@
-from typing import ClassVar, Literal, Set
+from typing import ClassVar, Literal
 from enum import Enum, unique
 
 from pydantic import Field
@@ -44,7 +44,6 @@ class PH2DatasetConfig(BaseDataConfig):
 
     """
     kind: Literal["ph2"] = Field("ph2", description="Dataset kind identifier for config selection and validation.")
-    crop_size: tuple[int, int] = Field((256, 256), description="Size to which images will be cropped. Default is 256.")
     split_stratify_column: PH2StratificationOptions | None = Field(
         default=PH2StratificationOptions.PH2_CLINICAL_DIAGNOSIS,
         description="Column name in the metadata CSV to use for stratified splitting into train/val/test splits. "
@@ -52,7 +51,7 @@ class PH2DatasetConfig(BaseDataConfig):
         "Set to None to disable stratification. For PH2, we use PH2StratificationOptions for stratification."
     )
 
-    REQUIRED_COLUMNS: ClassVar[Set[str]] = {SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER}
+    REQUIRED_COLUMNS: ClassVar[frozenset[str]] = frozenset({SAMPLEID_HEADER, DATAPATH_HEADER, DATATYPE_HEADER})
     DATASET_KEY: ClassVar[DatasetKey] = DatasetKey.PH2
     METADATA_CSV_NAME: ClassVar[str] = PH2_CSV_NAME
 

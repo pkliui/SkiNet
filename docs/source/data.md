@@ -26,7 +26,7 @@
 
 - Original images are .bmp and were converted to .png to be able to read them with torchvision
 
-### Metadata
+### Make a new metadata file
 
 - Original data contain a text file, PH2_dataset.txt, listing e.g. sample ID, clinical diagnosis, colour of lesions, etc.
 - Path to data are generated from the known file structure using ```{py:class} SkiNet.ML.datasets.preprocessing.PH2MetadataFactory```
@@ -45,3 +45,68 @@ Example for Azure data:
 python metadata_csv_factory.py --dataset_key_str="PH2" --azure_data,
 ```
 where no path for the root_dir is required and the command will generate a metadata CSV "ph2_metadata.csv" in the root folder on Azure for that dataset (as specified in ```azure_settings.yaml```)
+
+### Accessing the Metadata DataFrame
+
+`BaseDataConfig` exposes dataset metadata as a pandas DataFrame through the `metadata` property.
+The mechanism is **lazy** (no I/O at construction time), **validated** (required columns are checked on
+first load), and **environment-aware** (transparently handles local paths and Azure Blob Storage).
+
+#### Lazy loading
+
+The first call to `.metadata` triggers a CSV read and column validation.
+Subsequent calls return the in-memory cache immediately:
+
+```python
+cfg = PH2DatasetConfig(local_data_root="/data/PH2")
+
+df = cfg.metadata   # reads CSV from disk, validates columns, caches result
+df = cfg.metadata   # returns cached DataFrame — no disk I/O
+```
+
+The underlying cache is stored in the private attribute `_metadata` (`PrivateAttr`, default `None`).
+Because it is a `PrivateAttr` it is excluded from Pydantic validation and serialization; only the
+config fields (paths, split sizes, etc.) are persisted or validated.
+
+#### Deepcopy behaviour
+
+`BaseDataConfig` overrides `__deepcopy__` to **reset `_metadata` to `None`** in every copy.
+The regular Pydantic model fields (paths, flags, split parameters) are deep-copied as normal;
+only the transient cache is cleared.
+
+This matters during hyperparameter sweeps where `deepcopy(main_config)` is called once per trial.
+Without the override, a DataFrame loaded before the sweep would be duplicated in full into every
+trial's config — the same data in memory N times. With the override each trial's copy starts with
+`_metadata = None` and lazy-loads independently on first access:
+
+```python
+from copy import deepcopy
+
+# metadata loaded once on the template config (e.g. during a pre-flight check)
+_ = main_config.dataconfig.metadata
+
+# each trial gets a fresh copy with _metadata = None
+trial_cfg = deepcopy(main_config)
+assert trial_cfg.dataconfig._metadata is None   # no DataFrame duplication
+
+# lazy-load happens on first access within the trial, as normal
+df = trial_cfg.dataconfig.metadata
+```
+
+Note: `ClassVar` attributes (`METADATA_CSV_NAME`, `REQUIRED_COLUMNS`, `DATASET_KEY`) live on the
+**class**, not the instance, so deepcopy never touches them — they are shared constants and
+behave correctly without any special handling.
+
+#### Required subclass configuration
+
+Subclasses must declare three class-level attributes for metadata loading to work:
+
+```python
+class MyDatasetConfig(BaseDataConfig):
+    METADATA_CSV_NAME: ClassVar[str] = "metadata.csv"       # filename of the CSV in data_root
+    REQUIRED_COLUMNS: ClassVar[Set[str]] = {"id", "label"}  # columns that must be present
+    DATASET_KEY: ClassVar[Optional[DatasetKey]] = DatasetKey.MY_DATASET  # used for Azure path resolution
+```
+
+A `ValueError` is raised on first `.metadata` access if any required column is absent or all
+required columns contain only empty values.

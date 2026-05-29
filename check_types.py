@@ -22,6 +22,27 @@ DEFAULT_PKGS = ["SkiNet", "Tests"]
 DEFAULT_TOP_LEVEL = list(REPO_ROOT.glob("*.py"))
 
 
+def _path_to_module(target: pathlib.Path) -> str | None:
+    """
+    Convert a repo-relative package file/directory path to a dotted module path.
+
+    Returns None for top-level scripts that are not inside one of DEFAULT_PKGS.
+    """
+    try:
+        rel_path = target.resolve().relative_to(REPO_ROOT.resolve())
+    except ValueError:
+        return None
+
+    parts = rel_path.parts
+    if not parts or parts[0] not in DEFAULT_PKGS:
+        return None
+
+    if target.is_file() and target.suffix == ".py":
+        rel_path = rel_path.with_suffix("")
+
+    return ".".join(rel_path.parts)
+
+
 def check_types(targets: list[str], mypy_path: str) -> int:
     """
     Check types using mypy in given files or directories.
@@ -37,12 +58,22 @@ def check_types(targets: list[str], mypy_path: str) -> int:
         path = pathlib.Path(target)
 
         if path.is_file():
-            mypy_target = [str(path)]
+            module_target = _path_to_module(path)
+            if module_target is not None:
+                mypy_target = ["-m", module_target]
+            else:
+                mypy_target = [str(path)]
         elif path.is_dir():
             # Use package mode to avoid duplicate-file issues mypy can raise on directories.
             # e.g. instead of directory SkiNet/ML/Model check module SkiNet.ML.Model.
-            # Run rstrip in case someone specifies a backslash at the end, e.g. SkiNet/ML/Model/
-            mypy_target = ["-p", target.rstrip(os.path.sep).replace(os.path.sep, ".")]
+            module_target = _path_to_module(path)
+            if module_target is not None:
+                mypy_target = ["-p", module_target]
+            else:
+                # Run rstrip in case someone specifies a backslash at the end, e.g. SkiNet/ML/Model/
+                mypy_target = ["-p", target.rstrip(os.path.sep).replace(os.path.sep, ".")]
+        else:
+            raise FileNotFoundError(f"Target does not exist: {target}")
 
         cmd = [mypy_path, "--config-file", str(REPO_ROOT / "mypy.ini"), *mypy_target]
         proc = subprocess.run(cmd)

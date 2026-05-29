@@ -2,11 +2,13 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional
 
 from SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config import PH2DatasetConfig
-from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
 from SkiNet.Utils.experiment_keys import ExperimentType
+from SkiNet.ML.configs.experiment_config import ExperimentConfig
+from SkiNet.ML.configs.train_configs.sweep_config import SweepConfig
+from SkiNet.ML.configs.data_configs.isic2017dataset_config.isic2017dataset_config import ISIC2017DatasetConfig
 
 """
 ConfigCreator: produce ExperimentConfig instances
@@ -44,7 +46,9 @@ class ConfigCreator(ABC):
                       dataconfig_kwargs: Optional[Dict[str, Any]] = None,
                       transformconfig_kwargs: Optional[Dict[str, Any]] = None,
                       modelconfig_kwargs: Optional[Dict[str, Any]] = None,
-                      trainconfig_kwargs: Optional[Dict[str, Any]] = None) -> ExperimentConfig:
+                      trainconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      sweepconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      experiment_name: str = "") -> ExperimentConfig:
         pass
 
 
@@ -57,15 +61,48 @@ class PH2_UNet_ConfigCreator(ConfigCreator):
                       dataconfig_kwargs: Optional[Dict[str, Any]] = None,  # mypy - Optional because default is None
                       transformconfig_kwargs: Optional[Dict[str, Any]] = None,
                       modelconfig_kwargs: Optional[Dict[str, Any]] = None,
-                      trainconfig_kwargs: Optional[Dict[str, Any]] = None) -> ExperimentConfig:
+                      trainconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      sweepconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      experiment_name: str = "unet2d_ph2_experiment") -> ExperimentConfig:
         dataconfig_kwargs = dataconfig_kwargs or {}
         transformconfig_kwargs = transformconfig_kwargs or {}
         modelconfig_kwargs = modelconfig_kwargs or {}
         trainconfig_kwargs = trainconfig_kwargs or {}
-        return ExperimentConfig(experiment_name="unet2d_ph2_experiment",
+        sweepconfig_kwargs = sweepconfig_kwargs or {}
+
+        return ExperimentConfig(experiment_name=experiment_name,
                                 experiment_type=ExperimentType.SEGMENTATION,
                                 description="UNet2D on PH2 dataset",
                                 dataconfig=PH2DatasetConfig(**dataconfig_kwargs),
                                 transformconfig=TransformConfig(**transformconfig_kwargs),
                                 modelconfig=UNet2DModelConfig(**modelconfig_kwargs),
-                                trainconfig=TrainConfig(**trainconfig_kwargs))
+                                trainconfig=TrainConfig(**trainconfig_kwargs),
+                                sweepconfig=SweepConfig(**sweepconfig_kwargs))
+
+
+class ISIC2017_UNet_ConfigCreator(ConfigCreator):
+    """
+    Return a concrete configuration for the segmentation of the ISIC2017 dataset with UNet2D model.
+    """
+
+    def create_config(self,
+                      dataconfig_kwargs: Optional[Dict[str, Any]] = None,  # mypy - Optional because default is None
+                      transformconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      modelconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      trainconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      sweepconfig_kwargs: Optional[Dict[str, Any]] = None,
+                      experiment_name: str = "unet2d_isic2017_experiment") -> ExperimentConfig:
+        dataconfig_kwargs = dataconfig_kwargs or {}
+        transformconfig_kwargs = transformconfig_kwargs or {}
+        modelconfig_kwargs = modelconfig_kwargs or {}
+        trainconfig_kwargs = trainconfig_kwargs or {}
+        sweepconfig_kwargs = sweepconfig_kwargs or {}
+
+        return ExperimentConfig(experiment_name=experiment_name,
+                                experiment_type=ExperimentType.SEGMENTATION,
+                                description="UNet2D on ISIC2017 dataset",
+                                dataconfig=ISIC2017DatasetConfig(**dataconfig_kwargs),
+                                transformconfig=TransformConfig(**transformconfig_kwargs),
+                                modelconfig=UNet2DModelConfig(**modelconfig_kwargs),
+                                trainconfig=TrainConfig(**trainconfig_kwargs),
+                                sweepconfig=SweepConfig(**sweepconfig_kwargs))

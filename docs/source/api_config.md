@@ -1,25 +1,12 @@
-# Config Classes
+# API Reference
 
-## ExperimentConfig
+```{toctree}
+:maxdepth: 1
 
-```{autoclass} SkiNet.ML.configs.experiment_config.ExperimentConfig
-:members:
-:member-order: bysource:
+api/experiment_config
+api/model_configs
+api/train_configs
+api/transform_configs
+api/data_configs
+api/api_datasets
 ```
-
-## UNet2DModelConfig
-
-```{autoclass} SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig
-:members:
-:member-order: bysource:
-```
-
-# Metadata factory classes
-
-## PH2MetadataFactory
-
-```{autoclass} SkiNet.ML.datasets.preprocessing.PH2MetadataFactory
-:members:
-:member-order: bysource:
-```
-

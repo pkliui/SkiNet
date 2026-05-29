@@ -5,7 +5,7 @@ import pytest
 import yaml
 
 from SkiNet.ML.config_keys import (DATA_CONFIG, DATASET, EXPERIMENT_TYPE, GENERAL_CONFIG, MODEL, MODEL_CONFIG,
-                                   SEGMENTATION, TRAIN_CONFIG, TRANSFORM_CONFIG)
+                                   SEGMENTATION, SWEEP_CONFIG, TRAIN_CONFIG, TRANSFORM_CONFIG)
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.load_config_from_yaml import (_get_model_and_dataset_keys, _validate_yaml_config,
                                                      load_config_from_yaml)
@@ -28,6 +28,7 @@ def make_valid_yaml_dict() -> dict:
         TRANSFORM_CONFIG: {},
         MODEL_CONFIG: {},
         TRAIN_CONFIG: {},
+        SWEEP_CONFIG: {},
     }
 
 
@@ -35,7 +36,7 @@ def missing_top_level_key_cases() -> list[tuple[dict, str]]:
     """
     Generate test cases for missing top-level keys in the YAML config.
     """
-    required_keys = [GENERAL_CONFIG, DATA_CONFIG, MODEL_CONFIG, TRAIN_CONFIG, TRANSFORM_CONFIG]
+    required_keys = [GENERAL_CONFIG, DATA_CONFIG, MODEL_CONFIG, TRAIN_CONFIG, TRANSFORM_CONFIG, SWEEP_CONFIG]
     cases = []
     for key in required_keys:
         d = make_valid_yaml_dict()
@@ -239,6 +240,7 @@ def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_cont
                 TRANSFORM_CONFIG: {},
                 MODEL_CONFIG: {},
                 TRAIN_CONFIG: {},
+                SWEEP_CONFIG: {},
             },
             KeyError,
             rf"Missing key in YAML config under {GENERAL_CONFIG}: {EXPERIMENT_TYPE}"
@@ -255,6 +257,7 @@ def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_cont
                 TRANSFORM_CONFIG: {},
                 MODEL_CONFIG: {},
                 TRAIN_CONFIG: {},
+                SWEEP_CONFIG: {},
             },
             ValueError,
             r"INVALID_MODEL",
@@ -271,6 +274,7 @@ def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_cont
                 TRANSFORM_CONFIG: {},
                 MODEL_CONFIG: {},
                 TRAIN_CONFIG: {},
+                SWEEP_CONFIG: {},
             },
             ValueError,
             r"INVALID_DATASET",
@@ -287,6 +291,7 @@ def test_load_config_from_yaml_non_mapping_yaml_raises(tmp_path: Path, yaml_cont
                 TRANSFORM_CONFIG: {},
                 MODEL_CONFIG: {},
                 TRAIN_CONFIG: {},
+                SWEEP_CONFIG: {},
             },
             ValueError,
             r"Invalid experiment_type: CLASSIFICATION",
@@ -312,3 +317,65 @@ def test_validate_yaml_config_missing_transform_config_raises() -> None:
     del d[TRANSFORM_CONFIG]
     with pytest.raises(KeyError, match=rf"Missing key in YAML config: {TRANSFORM_CONFIG}"):
         _validate_yaml_config(d)
+
+
+def test_load_config_from_yaml_yaml_values_override_all_config_defaults(tmp_path: Path) -> None:
+    """
+    Non-default values in every YAML sub-config section must land in the
+    resulting ExperimentConfig, overriding pydantic model defaults.
+    This catches YAML-key → config-field-name wiring bugs that unit tests
+    on each layer independently would miss.
+    """
+    yaml_dict = {
+        GENERAL_CONFIG: {
+            MODEL: ModelKey.UNET2D.value,
+            DATASET: DatasetKey.PH2.value,
+            EXPERIMENT_TYPE: SEGMENTATION,
+        },
+        DATA_CONFIG: {
+            "split_train_size": 0.7,
+            "split_random_seed": 99,
+        },
+        TRANSFORM_CONFIG: {
+            "augmentation_required": False,
+            "seed_value": 7,
+            "crop": {"crop_type": "center_crop", "size": [128, 128]},
+            "photometric_augmentation": {"color_jitter_apply": True},
+        },
+        MODEL_CONFIG: {
+            "out_channels_layer1": 32,
+            "number_of_layers": 4,
+        },
+        TRAIN_CONFIG: {
+            "batch_size": 16,
+            "max_epochs": 10,
+            "lr": 3e-4,
+        },
+        SWEEP_CONFIG: {
+            "direction": "minimize",
+            "experiment_name": "my_sweep",
+        },
+    }
+    yaml_path = tmp_path / "config.yaml"
+    yaml_path.write_text(yaml.safe_dump(yaml_dict))
+
+    config = load_config_from_yaml(yaml_path)
+
+    assert config.dataconfig.split_train_size == pytest.approx(0.7)
+    assert config.dataconfig.split_random_seed == 99
+
+    assert config.transformconfig.augmentation_required is False
+    assert config.transformconfig.seed_value == 7
+    assert config.transformconfig.crop.crop_type == "center_crop"
+    assert config.transformconfig.crop.size == (128, 128)
+    assert config.transformconfig.photometric_augmentation.color_jitter_apply is True
+
+    assert config.modelconfig.out_channels_layer1 == 32
+    assert config.modelconfig.number_of_layers == 4
+
+    assert config.trainconfig.batch_size == 16
+    assert config.trainconfig.max_epochs == 10
+    assert config.trainconfig.lr == pytest.approx(3e-4)
+
+    assert config.sweepconfig.direction == "minimize"
+    assert config.sweepconfig.experiment_name == "my_sweep"

@@ -2,7 +2,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from SkiNet.ML.configs.config_creator import ConfigCreator, PH2_UNet_ConfigCreator
+from SkiNet.ML.configs.config_creator import ConfigCreator, ISIC2017_UNet_ConfigCreator, PH2_UNet_ConfigCreator
 from SkiNet.Utils.experiment_keys import DatasetKey, ModelKey
 
 """
@@ -33,6 +33,7 @@ Extension steps
    - The factory's creator.create_config(...) returns a valid ExperimentConfig for expected kwargs.
 """
 
+
 class ConfigFactory(ABC):
     """
     Abstract base class for all experiment configuration factories.
@@ -51,6 +52,15 @@ class PH2_UNet_ConfigFactory(ConfigFactory):
         return PH2_UNet_ConfigCreator()
 
 
+class ISI2017_UNet_ConfigFactory(ConfigFactory):
+    """
+    Config factory for experiments based on UNet2D model and using ISIC2017 dataset
+    """
+
+    def get_config_creator(self, **kwargs: Any) -> ConfigCreator:
+        return ISIC2017_UNet_ConfigCreator()
+
+
 def get_config_factory(model_key: ModelKey, dataset_key: DatasetKey) -> ConfigFactory:
     """
     Get the configuration factory for an experiment using a specific model and dataset combination.
@@ -59,7 +69,8 @@ def get_config_factory(model_key: ModelKey, dataset_key: DatasetKey) -> ConfigFa
     : param dataset_key: The DatasetKey enum member corresponding to the dataset used in the experiment(e.g., DatasetKey.PH2).
     : return: An instance of ExperimentConfigFactory corresponding to the specified model and dataset combination.
     """
-    _factories = {(ModelKey.UNET2D, DatasetKey.PH2): PH2_UNet_ConfigFactory}
+    _factories = {(ModelKey.UNET2D, DatasetKey.PH2): PH2_UNet_ConfigFactory,
+                  (ModelKey.UNET2D, DatasetKey.ISIC2017): ISI2017_UNet_ConfigFactory}
     factory_cls = _factories.get((model_key, dataset_key))
     if factory_cls is None:
         logging.getLogger(__name__).error(f"No factory found for model key: {model_key}, dataset key: {dataset_key}")

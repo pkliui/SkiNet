@@ -1,23 +1,19 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Generic, TypeVar, cast
+from typing import Generic, cast
 
+from pandas import DataFrame
 
 from SkiNet.ML.configs.data_configs.base_data_config import BaseDataConfig
 from SkiNet.Utils.experiment_keys import ExperimentType
-from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.datasets.segmentation_dataset import BaseDataset, SegmentationDataset
 from SkiNet.ML.transformations.transform_data import get_transform_from_config
 from SkiNet.ML.utils.model_utils import MLWorkflowState
 from SkiNet.Utils.data.split_data import DataFrameSplits, split_segmentation_metadata
-
-
+from SkiNet.ML.utils.typing_utils import TDataset_co
+from SkiNet.ML.configs.experiment_config import ExperimentConfig
 logger = logging.getLogger(__name__)
-
-# use covariance to allow DatasetFactory[SegmentationDataset] to be treated as a subtype of DatasetFactory[BaseDataset]
-# DatasetFactory is read-only with respect to the dataset type it produces, so covariance is appropriate here
-TDataset_co = TypeVar("TDataset_co", bound=BaseDataset, covariant=True)
 
 
 @dataclass
@@ -38,6 +34,25 @@ class DatasetSplit(Generic[TDataset_co]):
     val: TDataset_co
     test: TDataset_co
     splits: DataFrameSplits
+
+
+def _split_by_predefined_column(df: DataFrame, column: str) -> DataFrameSplits:
+    """
+    Build DataFrameSplits from a column whose values are 'train', 'val', or 'test'.
+    Rows with any other value are silently dropped.
+    """
+    import pandas as pd
+
+    valid = {"train", "val", "test"}
+    unknown = set(df[column].dropna().unique()) - valid
+    if unknown:
+        logger.warning("predefined_split_column '%s' contains unknown values %s — those rows will be skipped.", column, unknown)
+
+    return DataFrameSplits(
+        train=cast(pd.DataFrame, df[df[column] == "train"].copy()),
+        val=cast(pd.DataFrame, df[df[column] == "val"].copy()),
+        test=cast(pd.DataFrame, df[df[column] == "test"].copy()),
+    )
 
 
 class DatasetFactory(ABC, Generic[TDataset_co]):
@@ -81,23 +96,29 @@ class SegmentationDatasetFactory(DatasetFactory[SegmentationDataset]):
         """
         data_config = cast(BaseDataConfig, config.dataconfig)
         metadata_df = data_config.metadata
-        split_config = data_config.get_split_config()
 
-        splits = split_segmentation_metadata(df=metadata_df,
-                                             split_config=split_config)
+        if data_config.predefined_split_column is not None:
+            splits = _split_by_predefined_column(metadata_df, data_config.predefined_split_column)
+        else:
+            split_config = data_config.get_split_config()
+            splits = split_segmentation_metadata(df=metadata_df, split_config=split_config)
         transformations = get_transform_from_config(config)
-        train_dataset = SegmentationDataset(config,
+        cache_in_ram = config.trainconfig.cache_in_ram
+        train_dataset = SegmentationDataset(config.dataconfig.data_root,
                                             splits.train,
                                             transformations.train,
-                                            MLWorkflowState.TRAIN)
-        val_dataset = SegmentationDataset(config,
+                                            MLWorkflowState.TRAIN,
+                                            cache_in_ram=cache_in_ram)
+        val_dataset = SegmentationDataset(config.dataconfig.data_root,
                                           splits.val,
                                           transformations.val,
-                                          MLWorkflowState.VAL)
-        test_dataset = SegmentationDataset(config,
+                                          MLWorkflowState.VAL,
+                                          cache_in_ram=cache_in_ram)
+        test_dataset = SegmentationDataset(config.dataconfig.data_root,
                                            splits.test,
                                            transformations.test,
-                                           MLWorkflowState.TEST)
+                                           MLWorkflowState.TEST,
+                                           cache_in_ram=cache_in_ram)
 
         # log basic info for observability
         try:

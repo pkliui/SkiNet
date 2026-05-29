@@ -1,5 +1,7 @@
 import logging
+import os
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -33,19 +35,20 @@ class SegmentationDataset(BaseDataset):
     """
 
     def __init__(self,
-                 config: ExperimentConfig,
+                 data_root: Path,
                  dataframe: pd.DataFrame,
                  transform: SampleTransformAdapter,
-                 mode: MLWorkflowState) -> None:
+                 mode: MLWorkflowState,
+                 cache_in_ram: bool = True) -> None:
         """
         :param config: The experiment configuration containing dataset metadata and data root information.
+        :param cache_in_ram: If True, all samples are loaded from disk once at startup and kept in RAM.
+            Eliminates per-epoch disk I/O so workers only perform augmentation. Recommended for small datasets.
         """
-        super().__init__(config=config)
-        self.config = config
         self.dataframe = dataframe
         """A pandas DataFrame containing metadata for the dataset. It should be provided directly
         for train, val and test modes of operation after deriving it as a respective subset of the full dataframe."""
-        self.data_root = Path(config.dataconfig.data_root)
+        self.data_root = data_root
         """Data root path where images and masks are stored, derived from the experiment configuration."""
         logger.debug("Data root in SegmentationDataset: %s", self.data_root)
         self.sample_specs = create_valid_samplespecs(self.dataframe)
@@ -54,6 +57,22 @@ class SegmentationDataset(BaseDataset):
         """A list of sample IDs corresponding to the valid samples in the dataset, derived from the sample specifications."""
         self.transform = transform
         self.mode = mode
+
+        if cache_in_ram:
+            logger.info("Caching %d samples in RAM for %s split...", len(self.sample_ids), mode)
+            cache: dict[str, Sample] = {}
+            max_workers = min(os.cpu_count() or 4, 8)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(load_sample, self.sample_specs[sid], self.data_root): sid
+                    for sid in self.sample_ids
+                }
+                for future in as_completed(futures):
+                    cache[futures[future]] = future.result()
+            self._cache: dict[str, Sample] | None = cache
+            logger.info("RAM cache ready for %s split.", mode)
+        else:
+            self._cache = None
 
     def __getitem__(self, index: int) -> dict[str, Any]:
         return self.get_sample_item(index)
@@ -75,9 +94,11 @@ class SegmentationDataset(BaseDataset):
 
         :return: A dictionary containing the image tensor, mask tensor, and sample specifications for the specified index.
         """
-        specs_item = self.sample_specs[self.sample_ids[index]]
-        sample = load_sample(specs_item,
-                             data_root=self.data_root)  # image and mask should be CHW, uint8
+        sid = self.sample_ids[index]
+        if self._cache is not None:
+            sample = self._cache[sid]
+        else:
+            sample = load_sample(self.sample_specs[sid], data_root=self.data_root)
 
         transformed_sample = self.transform(sample=sample)
 

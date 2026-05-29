@@ -10,12 +10,25 @@ from SkiNet.ML.utils.typing_utils import IntOrTuple2d
     [
         # Valid config, all defaults
         ({}, {"in_channels": 3, "out_channels_layer1": 16, "number_of_layers": 5, "num_output_classes": 1,
-              "kernel": 3, "stride": 2, "dilation": 1, "model_name": "UNet2D", "validate_forward": False, "kind": "unet2d"}),
+              "kernel": 3, "stride": 2, "dilation": 1, "model_name": "UNet2D", "validate_forward": True,
+              "debug_forward": False, "encoder_residual_mode": "he2", "merge_residual_mode": "he2", "kind": "unet2d"}),
         # Valid config, custom values
         ({"in_channels": 3, "out_channels_layer1": 8, "number_of_layers": 4, "num_output_classes": 2,
-          "kernel": (3, 3), "stride": (2, 2), "dilation": (1, 1), "model_name": "UNet2D", "validate_forward": True},
+          "kernel": (3, 3), "stride": (2, 2), "dilation": (1, 1), "model_name": "UNet2D", "validate_forward": True,
+          "debug_forward": True},
          {"in_channels": 3, "out_channels_layer1": 8, "number_of_layers": 4, "num_output_classes": 2,
-          "kernel": (3, 3), "stride": (2, 2), "dilation": (1, 1), "model_name": "UNet2D", "validate_forward": True, "kind": "unet2d"}),
+          "kernel": (3, 3), "stride": (2, 2), "dilation": (1, 1), "model_name": "UNet2D", "validate_forward": True,
+          "debug_forward": True, "encoder_residual_mode": "he2", "merge_residual_mode": "he2", "kind": "unet2d"}),
+        # Valid config, non-default residual modes
+        ({"encoder_residual_mode": "local_refinement", "merge_residual_mode": "he1"},
+         {"encoder_residual_mode": "local_refinement", "merge_residual_mode": "he1"}),
+        ({"encoder_residual_mode": "local_refinement", "merge_residual_mode": "local_refinement"},
+         {"encoder_residual_mode": "local_refinement", "merge_residual_mode": "local_refinement"}),
+        # Valid config, classical baseline
+        ({"encoder_residual_mode": "classical", "merge_residual_mode": "classical"},
+         {"encoder_residual_mode": "classical", "merge_residual_mode": "classical"}),
+        ({"encoder_residual_mode": "classical", "merge_residual_mode": "he2"},
+         {"encoder_residual_mode": "classical", "merge_residual_mode": "he2"}),
     ]
 )
 def test_unet2dmodelconfig_valid(kwargs: dict, expected: dict) -> None:
@@ -42,6 +55,9 @@ def test_unet2dmodelconfig_valid(kwargs: dict, expected: dict) -> None:
         ({"kernel": 2}, "kernel"),
         # Invalid: stride tuple wrong length
         ({"stride": (2, 2, 2)}, "stride"),
+        # Invalid: bad residual mode strings
+        ({"encoder_residual_mode": "bad_mode"}, "encoder_residual_mode"),
+        ({"merge_residual_mode": "bad_mode"}, "merge_residual_mode"),
     ]
 )
 def test_unet2dmodelconfig_invalid(kwargs: dict, error_field: str) -> None:

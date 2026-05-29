@@ -22,17 +22,20 @@ from SkiNet.ML.transformations.transform_adapters import AlbumentationsSampleTra
 class _FakeDataset:
     def __init__(self, transform: Any) -> None:
         self.transform = transform
-        self.sample_ids = ["sample-1"]
+        self.sample_ids = ["sample-1", "sample-2"]
         self.sample_specs = {
-            "sample-1": SampleSpecs(sample_id="sample-1", image_path="image.png", mask_path="mask.png")
+            "sample-1": SampleSpecs(sample_id="sample-1", image_path="image.png", mask_path="mask.png"),
+            "sample-2": SampleSpecs(sample_id="sample-2", image_path="image2.png", mask_path="mask2.png"),
         }
 
+    def __len__(self) -> int:
+        return len(self.sample_ids)
+
     def get_raw_sample(self, idx: int) -> Sample:
-        assert idx == 0
         return Sample(
-            image=torch.ones((3, 32, 24), dtype=torch.uint8),
+            image=torch.full((3, 32, 24), fill_value=idx, dtype=torch.uint8),
             mask=torch.ones((1, 32, 24), dtype=torch.uint8),
-            specs=self.sample_specs["sample-1"],
+            specs=self.sample_specs[self.sample_ids[idx]],
         )
 
 
@@ -187,7 +190,8 @@ def test_get_visualization_transform_uses_without_postprocess_when_available() -
 
 def test_visualize_augmented_data_saves_expected_files(tmp_path: Path) -> None:
     """
-    visualize_augmented_data() should save the original, augmented, overlay, and grid images when requested.
+    visualize_augmented_data() saves per-sample overlays and a single grid file.
+    Each randomly chosen sample produces: orig_overlay, aug_overlay, aug_mask_not_binary.
     """
     dataset = _FakeDataset(
         AlbumentationsSampleTransform(
@@ -199,26 +203,33 @@ def test_visualize_augmented_data_saves_expected_files(tmp_path: Path) -> None:
 
     visualize_augmented_data(
         dataset=dataset,
-        idx=0,
         samples=2,
         save_dir=tmp_path,
         prefix="vis",
-        save_overlay=True,
         show=False,
     )
 
-    expected_files = [
-        "vis_sample-1_idx0_orig_image.png",
-        "vis_sample-1_idx0_orig_mask.png",
-        "vis_sample-1_idx0_orig_overlay.png",
-        "vis_sample-1_idx0_aug1_image.png",
-        "vis_sample-1_idx0_aug1_mask.png",
-        "vis_sample-1_idx0_aug1_overlay.png",
-        "vis_sample-1_idx0_aug2_image.png",
-        "vis_sample-1_idx0_aug2_mask.png",
-        "vis_sample-1_idx0_aug2_overlay.png",
-        "vis_sample-1_idx0_grid.png",
-    ]
+    # one grid file always saved
+    assert (tmp_path / "vis_grid.png").exists()
 
-    for file_name in expected_files:
-        assert (tmp_path / file_name).exists()
+    # per-sample files: 2 samples * 3 files each = 6
+    per_sample_files = [f for f in tmp_path.glob("vis_*.png") if "grid" not in f.name]
+    assert len(per_sample_files) == 6
+
+    suffixes = {f.name.split("idx")[1].split("_", 1)[1] for f in per_sample_files}
+    assert "orig_overlay.png" in suffixes
+    assert "aug_overlay.png" in suffixes
+    assert "aug_mask_not_binary.png" in suffixes
+
+
+def test_visualize_augmented_data_restores_rng_state(tmp_path: Path) -> None:
+    """RNG state after visualize_augmented_data() must be identical to state before."""
+    dataset = _FakeDataset(transform=None)
+
+    torch.manual_seed(42)
+    state_before = torch.get_rng_state()
+
+    visualize_augmented_data(dataset=dataset, samples=2, save_dir=None, show=False)
+
+    state_after = torch.get_rng_state()
+    assert torch.equal(state_before, state_after)

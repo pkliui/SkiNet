@@ -14,6 +14,7 @@ class EncoderParamSpec(Enum):
     DILATION = "Spacing between convolving kernels"
     STRIDE = "Stride of the convolution"
 
+
 @dataclass(frozen=True)
 class EncoderParams:
     """
@@ -68,6 +69,7 @@ class EncoderParams:
         _ensure_2d_params(kernel=self.kernel, stride=self.stride, dilation=self.dilation)
         return cast(EncoderParams2D, self)
 
+
 def _validate_conv_inputs(kernel: IntOrTuple2d3d,
                           dilation: IntOrTuple2d3d,
                           stride: IntOrTuple2d3d) -> None:
@@ -80,9 +82,10 @@ def _validate_conv_inputs(kernel: IntOrTuple2d3d,
             if isinstance(k, int) and k > 0 and k % 2 == 0:
                 raise ValueError("Even kernel sizes cannot preserve spatial dimensions with symmetric 'same' padding."
                                  " Use an odd kernel size.")
-    kernel = _validate_param(kernel, EncoderParamSpec.KERNEL)
-    dilation = _validate_param(dilation, EncoderParamSpec.DILATION)
-    stride = _validate_param(stride, EncoderParamSpec.STRIDE)
+    _validate_param(kernel, EncoderParamSpec.KERNEL)
+    _validate_param(dilation, EncoderParamSpec.DILATION)
+    _validate_param(stride, EncoderParamSpec.STRIDE)
+
 
 def validate_conv_inputs(kernel: IntOrTuple2d3d,
                          dilation: IntOrTuple2d3d,
@@ -93,14 +96,14 @@ def validate_conv_inputs(kernel: IntOrTuple2d3d,
     """
     _validate_conv_inputs(kernel=kernel, dilation=dilation, stride=stride)
 
+
 def _validate_param(value: IntOrTuple2d3d,
-                    name: EncoderParamSpec) -> IntOrTuple2d3d:
+                    name: EncoderParamSpec) -> None:
     """
     Validate a convolution parameter that may be an int or a 2D/3D tuple.
 
     :param value: Parameter value to validate
     :param name: Parameter name to be used for error messages
-    :return: Validated input value
     """
     if isinstance(value, int):
         if value <= 0:
@@ -111,10 +114,12 @@ def _validate_param(value: IntOrTuple2d3d,
             raise ValueError(f"Input {name.value} must have length 2 or 3, got {len(value)}")
         for i, v in enumerate(value):
             if not isinstance(v, int):
-                raise ValueError(f"Input must contain only integers: {name.value}[{i}] must be int, got {type(v).__name__}")
+                raise ValueError(
+                    f"Input must contain only integers: {name.value}[{i}] must be int, got {type(v).__name__}")
             if v <= 0:
-                raise ValueError(f"Input must contain only positive values: {name.value}[{i}] must be positive, got {v}")
-    return value
+                raise ValueError(
+                    f"Input must contain only positive values: {name.value}[{i}] must be positive, got {v}")
+
 
 def _normalize_stride(stride: IntOrTuple2d3d, num_dims: int) -> TupleOfInt2d3d:
     """
@@ -130,6 +135,7 @@ def _normalize_stride(stride: IntOrTuple2d3d, num_dims: int) -> TupleOfInt2d3d:
         if len(stride) != num_dims:
             raise ValueError("Stride's tuple must have size = num_dims")
         return stride
+
 
 def _normalize_kernel_dilation(kernel: IntOrTuple2d3d,
                                dilation: IntOrTuple2d3d,
@@ -171,6 +177,7 @@ def _normalize_kernel_dilation(kernel: IntOrTuple2d3d,
 
     return kernel_value, dilation_value
 
+
 def _ensure_2d_params(**params: Any) -> None:
     """
     Raise ValueError if any convolution param is not 2D.
@@ -179,6 +186,7 @@ def _ensure_2d_params(**params: Any) -> None:
     for name, value in params.items():
         if isinstance(value, tuple) and len(value) != 2:
             raise ValueError(f"{name} must be 2D")
+
 
 def get_padding(kernel: TupleOfInt2d3d, dilation: TupleOfInt2d3d) -> TupleOfInt2d3d:
     """
@@ -195,6 +203,7 @@ def get_padding(kernel: TupleOfInt2d3d, dilation: TupleOfInt2d3d) -> TupleOfInt2
     """
     padding = tuple([(k - 1) * d // 2 for k, d in zip(kernel, dilation)])
     return cast(TupleOfInt2d3d, padding)
+
 
 def get_encoder_params_2d(kernel: IntOrTuple2d, stride: IntOrTuple2d, dilation: IntOrTuple2d) -> EncoderParams2D:
     """
