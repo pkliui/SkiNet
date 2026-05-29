@@ -8,19 +8,20 @@ Welcome to SkiNet documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
-
-
-Contents
---------
-
-.. toctree::
+   :caption: Documentation
 
    documentation
+   environment_docs
    development
    config
    data_handling
    dataloaders
    azure_setup
    plotting
+   gpu_performance
+
+.. toctree::
+   :maxdepth: 2
+   :caption: API Reference
+
    api_config

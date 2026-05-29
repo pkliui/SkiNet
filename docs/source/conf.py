@@ -1,11 +1,10 @@
-# Configuration file for the Sphinx documentation builder.
-#
-# For the full list of built-in configuration values, see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
+import sys
+import os
+
+# Make the SkiNet package importable by autodoc
+sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-
 project = 'SkiNet'
 copyright = '2024, Pavel Kliuiev'
 author = 'Pavel Kliuiev'
@@ -13,31 +12,49 @@ release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-# simply add the extension to your list of extensions
-# myst_parser is needed to integrate markdown with sphinx
-# sphinx_togglebutton is to add collapsible content to your documentation
-extensions = ['myst_parser', "sphinx_togglebutton"]
+extensions = [
+    'myst_parser',
+    'sphinx_togglebutton',
+    'sphinx.ext.autodoc',       # pulls docstrings from source into API pages
+    'sphinx.ext.napoleon',      # understands :param:/:return: Sphinx style
+    'sphinx.ext.viewcode',      # adds [source] links next to every documented symbol
+    'sphinx.ext.intersphinx',   # lets {py:class}`torch.Tensor` resolve to PyTorch docs
+]
 
-# specify valid source files extensions to use for docs - both markdown and RST
+# myst_parser: enable {autoclass} / {autofunction} directives inside .md files
+myst_enable_extensions = ["colon_fence"]
+
+# sphinx.ext.napoleon: use Sphinx-style :param:/:return: (not Google/NumPy style)
+napoleon_use_param = True
+napoleon_use_rtype = True
+
+# Put types in the signature box (InnerEye style), not scattered in the body
+autodoc_typehints = "signature"
+# Use only the class docstring — Pydantic generates noisy __init__ boilerplate
+autoclass_content = "class"
+# Global autodoc defaults for all autoclass/autofunction directives
+autodoc_default_options = {
+    "members": False,
+    "show-inheritance": True,
+}
+
+# intersphinx: resolve cross-refs to upstream libraries
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "torch": ("https://pytorch.org/docs/stable", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+}
+
 source_suffix = {
     '.rst': 'restructuredtext',
     '.md': 'markdown',
 }
 
-# The master toctree document.
 master_doc = 'index'
-
 templates_path = ['_templates']
-exclude_patterns = []
+exclude_patterns: list[str] = []
 
 
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-import furo
-
+# -- HTML output -------------------------------------------------------------
 html_theme = 'furo'
