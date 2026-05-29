@@ -55,6 +55,11 @@ master_doc = 'index'
 templates_path = ['_templates']
 exclude_patterns: list[str] = []
 
+# pytorch.org moved the randomness page; anchor no longer resolves
+linkcheck_ignore = [
+    r"https://docs\.pytorch\.org/docs/stable/notes/randomness\.html.*",
+]
+
 
 # -- HTML output -------------------------------------------------------------
 html_theme = 'furo'
