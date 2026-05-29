@@ -1,5 +1,6 @@
 # ignore IDE files
 .idea/
+.mamba/
 this_studio.code-workspace
 
 # project files and folders

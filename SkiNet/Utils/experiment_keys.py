@@ -1,4 +1,5 @@
 from enum import Enum, unique
+import re
 
 
 @unique
@@ -89,3 +90,33 @@ class MetricsKey(str, Enum):
         Default used in Optuna and EarlyStopping.
         """
         return cls.VAL_BEST_DICE_AT_THRESHOLD
+
+
+# =========================================================
+# NETWORK BLOCK PARSING
+# =========================================================
+
+class NetworkBlockKey(Enum):
+    ENC_PREFIX = "enc-"
+    MERGE_PREFIX = "merge-"
+
+    def __str__(self) -> str:
+        return self.value
+
+    @classmethod
+    def arch_pattern(cls) -> re.Pattern:
+        enc = re.escape(cls.ENC_PREFIX.value)
+        mrg = re.escape(cls.MERGE_PREFIX.value)
+
+        # value stops BEFORE next _enc or _merge or end
+        value = r"[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*"
+
+        return re.compile(
+            rf"(?:^|_)"
+            rf"{enc}({value})"
+            rf"(?=_(?:merge-|$))"
+            rf".*?"
+            rf"(?:^|_)"
+            rf"{mrg}({value})"
+            rf"(?=_|$)"
+        )
