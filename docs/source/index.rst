@@ -25,3 +25,4 @@ Welcome to SkiNet documentation!
    :caption: API Reference
 
    api_config
+   api/api_datasets
