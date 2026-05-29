@@ -45,7 +45,8 @@ autodoc_pydantic_field_show_default = True
 autoclass_content = "class"
 # Global autodoc defaults for all autoclass/autofunction directives
 autodoc_default_options = {
-    "members": False,
+    "members": True,
+    "undoc-members": True,
     "show-inheritance": True,
 }
 

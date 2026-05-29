@@ -10,6 +10,7 @@ Config Loading
 
 .. autofunction:: SkiNet.ML.configs.load_config_from_yaml.load_config_from_yaml
 
-.. autopydantic_model:: SkiNet.ML.configs.config_factory.ConfigFactory
+.. autoclass:: SkiNet.ML.configs.config_factory.ConfigFactory
+   :members:
 
 .. autofunction:: SkiNet.ML.configs.config_factory.get_config_factory
