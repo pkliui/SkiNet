@@ -18,6 +18,7 @@ Welcome to SkiNet documentation!
    dataloaders
    azure_setup
    plotting
+   training
    gpu_performance
 
 .. toctree::

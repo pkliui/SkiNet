@@ -32,7 +32,7 @@ Important notes
 
 ```bash
 ENV_HASH=$(sha256sum environment.yaml | cut -c1-64)
-IMAGE_TAG="pkliui/skinet:v10cpu"
+IMAGE_TAG="pkliui/skinet:v9gpu"   # adjust tag to match the version in on_start_gpu.sh / on_start_cpu.sh
 docker build \
   --build-arg ENV_HASH=$ENV_HASH \
   --target gpu \
@@ -89,13 +89,17 @@ The following startup scripts are provided (each clones/updates the repo, pulls 
 | `interactive` | Drops into a `bash` shell inside the container (default) |
 | `test` | `python3 main_run.py --config main_config.yaml --test-only --checkpoint <CHECKPOINT>` |
 
+The scripts bootstrap Docker and dispatch to the Python entry points. For what those entry points do — config fields, sweep mechanics, callbacks, reproducibility — see [training.md](training.md).
+
 #### GPU modes (`on_start_gpu.sh`)
+
+> **`RUN_TRAINING` defaults to `false`** (dry-run guard). Set `RUN_TRAINING=true` to actually pull the image and launch the container. Omitting it will print the resolved command and exit without running anything.
 
 | MODE | What runs |
 |---|---|
 | `train` | `python main_run.py --config main_config.yaml` |
 | `seeds` | `python run_seeds.py --config main_config.yaml --seeds <SEEDS> [--encoder-modes ...] [--merge-modes ...]` |
-| `sweep` | `python optuna_sweep.py --config main_config.yaml --monitor val_best_dice_at_threshold --direction maximize` |
+| `sweep` | `python optuna_sweep.py --config main_config.yaml` (monitor/direction from `SWEEP_CONFIG` in YAML) |
 | `test` | `python main_run.py --config main_config.yaml --test-only --checkpoint <CHECKPOINT>` |
 | `calibrate` | `python calibrate_threshold.py --config main_config.yaml` |
 
@@ -130,13 +134,10 @@ RUN_TRAINING=true MODE=seeds SEEDS="1 2 3 4 5" bash on_start_gpu.sh
 # Multi-seed run with explicit encoder and merge modes (overrides YAML)
 RUN_TRAINING=true DATASET=isic2017 ENCODER_MODES="classical" MERGE_MODES="classical local_refinement he2 attention_gate" MODE=seeds SEEDS="100 101 102 103 104" bash on_start_gpu.sh
 
-# Optuna sweep with default metric (val_best_dice_at_threshold, maximize),
-# as specified in on_start_gpu.sh:
-# SWEEP_MONITOR="${SWEEP_MONITOR:-val_best_dice_at_threshold}"
-# SWEEP_DIRECTION="${SWEEP_DIRECTION:-maximize}"
+# Optuna sweep — monitor and direction read from SWEEP_CONFIG in the YAML (recommended)
 RUN_TRAINING=true MODE=sweep bash on_start_gpu.sh
 
-# Optuna sweep with custom metric
+# Optuna sweep — one-off override without editing the YAML
 RUN_TRAINING=true MODE=sweep SWEEP_MONITOR=perf/samples_per_sec SWEEP_DIRECTION=maximize bash on_start_gpu.sh
 
 # Threshold calibration

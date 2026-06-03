@@ -55,7 +55,7 @@ SWEEP_CONFIG:
   monitor: "val_best_dice_at_threshold"
   direction: "maximize"
   experiment_name: "E1-isic2017-unet2d-model-lr-1seed"
-  lr: [1e-4, 3e-4, 6e-4, 1e-3]
+  lr: [3e-4]  # fixed from E1 LR search; single value means LR is not varied in this sweep
   weight_decay: [0.0]
   num_workers: [2]
   prefetch_factor: [4]
