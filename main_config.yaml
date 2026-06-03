@@ -3,7 +3,7 @@ GENERAL_CONFIG:
   model: "UNET2D_MODEL"
   dataset: "ISIC2017_DATASET"
 DATA_CONFIG:
-  local_data_root: "/teamspace/lightning_storage/isic2017/ISIC2017DATA_256/"
+  local_data_root: "/mnt/data/"  # in-container data mount (CONTAINER_MOUNT_PATH in on_start_gpu.sh)
   azure_data: False
   azure_blob_mount_point: "/mnt/data/"
   split_random_seed: 100
@@ -55,7 +55,7 @@ SWEEP_CONFIG:
   monitor: "val_best_dice_at_threshold"
   direction: "maximize"
   experiment_name: "E1-isic2017-unet2d-model-lr-1seed"
-  lr: [1e-4, 3e-4, 6e-4, 1e-3]
+  lr: [3e-4]  # fixed from E1 LR search; single value means LR is not varied in this sweep
   weight_decay: [0.0]
   num_workers: [2]
   prefetch_factor: [4]
@@ -66,6 +66,7 @@ TRAIN_CONFIG:
   run_test_after_fit: false
   test_on_val_split: false
   use_torch_compile: true  # MUST match checkpoint: E4 ckpt keys carry torch.compile's _orig_mod. prefix
+  torch_compile_backend: eager  # eager avoids nvcc dependency; still wraps model so _orig_mod. keys match
   batch_size: 8 # per-GPU; effective = 8x2 = 16
   num_workers: 2 # t4 x2 GPU
   pin_memory: true

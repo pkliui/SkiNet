@@ -11,7 +11,7 @@ class SweepConfig(BaseModel):
     monitor: str = Field(default="val_best_dice_at_threshold")
     direction: str = Field(default="maximize", pattern="^(maximize|minimize)$")
     experiment_name: str = Field(default="optuna_sweep")
-    lr: list[float] = Field(default_factory=lambda: [3e-4, 1e-4])
+    lr: list[float] = Field(default_factory=lambda: [3e-4])
     weight_decay: list[float] = Field(default_factory=lambda: [1e-4, 1e-3])
     batch_size: list[int] = Field(default_factory=lambda: [16, 32])
     num_workers: list[int] = Field(default_factory=lambda: [4, 8])

@@ -15,7 +15,9 @@
 | `batch_size` | `8` | Samples per training batch |
 | `num_workers` | auto (CPU count / DDP devices) | DataLoader workers; auto-divided among DDP processes |
 | `pin_memory` | `True` on GPU, `False` on CPU/MPS | Auto-set from accelerator |
-| `cache_in_ram` | `True` | Cache dataset in RAM before training |
+| `prefetch_factor` | `None` | Batches pre-loaded per worker; ignored when `num_workers=0` |
+| `cache_in_ram` | `True` | Cache dataset in RAM before training; set `False` for large datasets (e.g. ISIC full split) |
+| `use_torch_compile` | `False` | Wrap model with `torch.compile` for faster inference; first forward pass incurs JIT compilation overhead |
 | `loss_name` | `BCE_DICE` | `BCE`, `DICE`, or `BCE_DICE` (equal 0.5/0.5 weight) |
 | `optimizer_name` | `"adamw"` | `"adam"` or `"adamw"` |
 | `lr` | `1e-4` | Base learning rate (linearly scaled by batch size in Optuna sweeps) |
@@ -26,6 +28,10 @@
 | `precision` | auto | Derived from accelerator; override if needed |
 | `deterministic` | `True` | See [Reproducibility](#reproducibility) |
 | `seed` | `42` | Global RNG seed passed to `L.seed_everything` |
+| `use_lr_scheduler` | `True` | Enable/disable the LR scheduler |
+| `scheduler_type` | `"reduce_on_plateau"` | `"reduce_on_plateau"` or `"cosine_annealing"` |
+| `cosine_annealing_config.T_max` | `None` (→ `max_epochs`) | Period of cosine annealing; auto-set to `max_epochs` when `None` |
+| `cosine_annealing_config.eta_min` | `1e-6` | Minimum learning rate at the end of each cosine cycle |
 
 ## Lightning model
 
@@ -45,7 +51,9 @@ The core training logic lives in {py:class}`SkiNet.ML.model.lightning_model.Ligh
 ### Optimizer and scheduler
 
 - **Optimizer:** Adam or AdamW (set via `optimizer_name`), with configurable `lr` and `weight_decay`.
-- **Scheduler:** `ReduceLROnPlateau` monitors `val_best_dice_at_threshold` (mode `"max"`, patience 5, factor 0.5).
+- **Scheduler:** controlled by `scheduler_type` (`"reduce_on_plateau"` or `"cosine_annealing"`); toggled via `use_lr_scheduler`.
+  - `"reduce_on_plateau"` (default): `ReduceLROnPlateau` monitors `val_best_dice_at_threshold` (mode `"max"`, patience 5, factor 0.5). Configured via `lr_scheduler_config`.
+  - `"cosine_annealing"`: `CosineAnnealingLR` with `T_max` (defaults to `max_epochs` when `None`) and `eta_min` (default `1e-6`). Configured via `cosine_annealing_config`.
 
 ### Mixed precision and gradient scale monitoring
 
@@ -55,9 +63,59 @@ The core training logic lives in {py:class}`SkiNet.ML.model.lightning_model.Ligh
 
 Every training, validation, and test step validates inputs, logits, masks, and loss for NaN/Inf. On detection a detailed `_tensor_debug_summary()` is raised with the batch index and per-tensor statistics.
 
+## Model architecture
+
+SkiNet uses a UNet2D architecture configured via {py:class}`SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig` (under `MODEL_CONFIG` in the YAML).
+
+### Key UNet2DModelConfig fields
+
+| Field | Default | Description |
+|---|---|---|
+| `in_channels` | `3` | Input image channels |
+| `out_channels_layer1` | `16` | Output channels of the first encoder layer |
+| `number_of_layers` | `5` | Total encoder layers (decoder has `number_of_layers - 1` + one final conv) |
+| `num_output_classes` | `1` | Segmentation output classes |
+| `kernel` | `3` | Convolution kernel size |
+| `stride` | `2` | Downsampling stride in encoder; upsampling factor in decoder |
+| `encoder_residual_mode` | `"he2"` | Residual block type for encoder layers |
+| `merge_residual_mode` | `"he2"` | Residual block type for decoder merge layers |
+| `se_reduction` | `16` | Channel reduction ratio for SE blocks (only used when `encoder_residual_mode="se"`) |
+| `validate_forward` | `True` | Structural validation (skip key count) during forward pass |
+| `debug_forward` | `False` | Log warnings for near-zero skip connections (GPU-expensive; keep off in production) |
+
+### Encoder residual modes
+
+Configured via `encoder_residual_mode` in `MODEL_CONFIG`:
+
+| Mode | Description |
+|---|---|
+| `"classical"` | Standard UNet encoder: Conv-BN-Act without any residual connection |
+| `"local_refinement"` | Post-activation: downsample → refine with residual from downsampled intermediate (Oktay et al. 2020) |
+| `"he2"` (default) | Pre-activation with 1×1 projection shortcut: BN-Act-Conv → BN-Act-Conv + P(x) (He et al. ECCV 2016) |
+| `"se"` | Pre-activation He2 with Squeeze-and-Excitation channel attention applied before the shortcut addition (Hu et al. CVPR 2018) |
+
+### Merge (decoder) residual modes
+
+Configured via `merge_residual_mode` in `MODEL_CONFIG`:
+
+| Mode | Description |
+|---|---|
+| `"classical"` | Standard UNet decoder: upsample → concatenate skip → Conv-BN-Act without any residual connection |
+| `"local_refinement"` | Post-activation: project-and-sum → BN-Act → Conv-BN-Act + residual (Oktay et al. 2020) |
+| `"he1"` | Pre-activation with one refinement conv + identity shortcut (He et al. ECCV 2016) |
+| `"he2"` (default) | Pre-activation with two refinement convs + identity shortcut (He et al. ECCV 2016) |
+| `"attention_gate"` | Additive attention gate (Oktay et al. MIDL 2018) gates the skip connection before merge; post-merge he2 refinement |
+
+Example YAML:
+```yaml
+MODEL_CONFIG:
+  encoder_residual_mode: "he2"
+  merge_residual_mode: "attention_gate"
+```
+
 ## Best threshold selection
 
-At the end of each validation epoch, `find_best_threshold` sweeps 51 evenly-spaced candidate values from 1.0 down to 0.0 using `torch.linspace`. For every threshold it computes true positives, false positives, and false negatives in a single vectorised broadcast across the entire validation set, then derives Dice (F1) as `2·tp / (2·tp + fp + fn)`. The threshold with the highest Dice is selected; when multiple thresholds tie, the **highest** one wins because the sweep is descending and `argmax` returns the first occurrence. `val_best_dice_at_threshold` is the metric monitored by early stopping and Optuna.
+At the end of each validation epoch, {py:func}`SkiNet.ML.training.training_utils.find_best_threshold` sweeps 51 evenly-spaced candidate values from 1.0 down to 0.0 using `torch.linspace`. For every threshold it computes true positives, false positives, and false negatives in a single vectorised broadcast across the entire validation set, then derives Dice (F1) as `2·tp / (2·tp + fp + fn)`. The threshold with the highest Dice is selected; when multiple thresholds tie, the **highest** one wins because the sweep is descending and `argmax` returns the first occurrence. `val_best_dice_at_threshold` is the metric monitored by early stopping and Optuna.
 
 ## Callbacks
 
@@ -66,13 +124,14 @@ All callbacks are opt-in via boolean flags in `TrainConfig`. They are wired toge
 
 | Callback | Flag | Description |
 |---|---|---|
-| `SystemMetricsThreadCallback` | always on | Background thread logs CPU%, RAM%, GPU memory (allocated/reserved), and GPU utilisation every `system_metrics_interval_sec` (default 5 s) |
-| `EarlyStopping` | `use_early_stopping` | Monitors `val_best_dice_at_threshold` (mode `"max"`, patience 5); config via `early_stopping_config` |
-| `ModelCheckpoint` | `use_checkpoint` | Saves best checkpoint by `val_best_dice_at_threshold`; config via `checkpoint_config` |
-| `MLFlowLogger` | `use_mlflow_logger` | Logs params, metrics, model summary, and artifacts; supports nested Optuna child runs; config via `mlflow_config` |
+| {py:class}`SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback` | always on | Background thread logs CPU%, RAM%, GPU memory (allocated/reserved), and GPU utilisation every `system_metrics_interval_sec` (default 5 s) |
+| {py:class}`SkiNet.Utils.logging.throughput.ThroughputCallback` | always on | Logs `perf/samples_per_sec` and `perf/time_per_step_ms` after every training batch; primary signal for GPU saturation and DataLoader bottleneck diagnosis |
+| `EarlyStopping` | `use_early_stopping` | Monitors `val_best_dice_at_threshold` (mode `"max"`, patience 5); config via {py:class}`SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig` |
+| `ModelCheckpoint` | `use_checkpoint` | Saves best checkpoint by `val_best_dice_at_threshold`; config via {py:class}`SkiNet.ML.configs.train_configs.train_config.CheckpointConfig` |
+| `MLFlowLogger` | `use_mlflow_logger` | Logs params, metrics, model summary, and artifacts; supports nested Optuna child runs; config via {py:class}`SkiNet.ML.configs.train_configs.train_config.MLflowConfig` |
 | `LearningRateMonitor` | any logger enabled | Logs LR each epoch |
-| `MLflowTrainingArtifactsCallback` | `use_mlflow_logger` | Logs model summary at fit start; logs early-stopping state and best checkpoint as artifacts at fit end |
-| `LitLogger` | `use_litlogger_logger` | Lightning Studio native logger; config via `litlogger_config` |
+| {py:class}`SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback` | `use_mlflow_logger` | Logs model summary at fit start; logs early-stopping state and best checkpoint as artifacts at fit end |
+| `LitLogger` | `use_litlogger_logger` | Lightning Studio native logger; config via {py:class}`SkiNet.ML.configs.train_configs.train_config.LitLoggerConfig` |
 
 ## Ways to start training inside a configured environment (Docker container)
 
@@ -82,37 +141,52 @@ The options below assume you are inside a configured environment (as per SkiNet'
 
 When running `optuna_sweep.py`, a single MLflow parent run wraps the whole study. Each trial is a nested MLflow child run. The sampler is `GridSampler` (exhaustive grid, not random).
 
-- The search space is declared in `SweepConfig` and keyed by `HyperparamKey` (`SkiNet/Utils/experiment_keys.py`).
+- The search space is declared in {py:class}`SkiNet.ML.configs.train_configs.sweep_config.SweepConfig` and keyed by {py:class}`SkiNet.Utils.experiment_keys.HyperparamKey`.
   `HyperparamKey` is the single source of truth: adding a new member there automatically makes
-  `validate_search_space` require it and allows `build_objective` to read it.
+  {py:func}`SkiNet.Utils.mlops.optuna_utils.validate_search_space` require it and allows `build_objective` to read it.
 
   Current members:
 
   | Member | String key | Description |
   |---|---|---|
-  | `HyperparamKey.LR` | `"lr"` | Base learning rate (scaled linearly by batch size: `lr * batch_size / min_batch_size`) |
+  | `HyperparamKey.LR` | `"lr"` | Learning rate (scaled linearly by batch size: `lr * batch_size / min_batch_size`). Fixed to a single value in `main_config.yaml` after E1 LR search; set multiple values in `SWEEP_CONFIG.lr` only when searching LR for a new architecture. |
   | `HyperparamKey.WEIGHT_DECAY` | `"weight_decay"` | L2 regularisation strength |
   | `HyperparamKey.BATCH_SIZE` | `"batch_size"` | Number of samples per training batch |
+  | `HyperparamKey.NUM_WORKERS` | `"num_workers"` | DataLoader worker count |
+  | `HyperparamKey.PREFETCH_FACTOR` | `"prefetch_factor"` | Batches pre-loaded per worker |
 
-  Default grid in `SweepConfig`: `lr ∈ [3e-4, 1e-4]`, `weight_decay ∈ [1e-4, 1e-3]`, `batch_size ∈ [16, 32]` → 8 trials.
+  Default grid in `SweepConfig`: `lr = [3e-4]` (fixed, not varied — determined by the E1 LR search), `weight_decay ∈ [1e-4, 1e-3]`, `batch_size ∈ [16, 32]`, `num_workers ∈ [4, 8]`, `prefetch_factor ∈ [2, 4]` → 16 trials. Override `lr` in the YAML `SWEEP_CONFIG` section if you need to re-run an LR search for a new architecture.
 
-- The metric monitored by Optuna is set via `--monitor` (default `"val_best_dice_at_threshold"`).
-- The same metric **must** be specified in the YAML under `early_stopping_config`:
-```yaml
-early_stopping_config:
-    monitor: "val_best_dice_at_threshold"
-```
+- **`SWEEP_CONFIG.monitor` and `SWEEP_CONFIG.direction` in the YAML are the single source of truth** for the
+  optimisation objective. {py:class}`SkiNet.ML.configs.experiment_config.ExperimentConfig` automatically propagates `monitor` into
+  `early_stopping_config`, `checkpoint_config`, and `lr_scheduler_config` at config-load time —
+  do **not** set `monitor` in those sub-sections. If they disagree, a `ValueError` is raised at
+  startup so the mismatch is caught before any training runs.
+
+  ```yaml
+  SWEEP_CONFIG:
+    monitor: "val_best_dice_at_threshold"   # <-- only place to set the metric
+    direction: "maximize"
+    # early_stopping_config, checkpoint_config, lr_scheduler_config: omit 'monitor' — propagated automatically
+  ```
+
+- `--monitor` / `--direction` CLI flags are **optional overrides** — use them only for a one-off run
+  without editing the YAML. When omitted, `optuna_sweep.py` reads directly from `SWEEP_CONFIG`.
+
+- Similarly, the shell env vars `SWEEP_MONITOR` / `SWEEP_DIRECTION` in `on_start_gpu.sh` are optional
+  overrides; leaving them unset means the YAML values are used.
+
 - MLflow run naming:
   - Parent: `optuna_study_{experiment_name}_{monitor}`
   - Child: `trial_{n}_lr{lr}_wd{weight_decay}_bs{batch_size}`
 
-Example using default number of trials:
+Example — monitor and direction taken from `SWEEP_CONFIG` in the YAML (recommended):
 ```bash
-python optuna_sweep.py --config main_config.yaml --monitor val_best_dice_at_threshold --direction maximize
+python optuna_sweep.py --config main_config.yaml
 ```
-Example with a custom number of trials:
+Example — one-off override without editing the YAML:
 ```bash
-python optuna_sweep.py --config main_config.yaml --monitor val_best_dice_at_threshold --direction maximize --trials 10
+python optuna_sweep.py --config main_config.yaml --monitor val_best_dice_at_threshold --trials 10
 ```
 
 ### Regular training
@@ -125,41 +199,33 @@ MLflow run name: `{experiment_name}_seed{seed}_{timestamp}`.
 
 ### Multi-seed training
 
+- Launch a training experiment as specified in TRAIN_CONFIG, using multiple seeds. All seeds will run under one MLflow experiment
+
 ```bash
 python run_seeds.py --config main_config.yaml --seeds 42 200 300
 ```
 
 Each seed produces an independent MLflow run.
 
-## GPU training on Lightning Studio
+## Launching training from Lightning Studio
 
-`on_start_gpu.sh` clones/updates the repo, pulls the Docker image (`pkliui/skinet:v9gpu`), mounts the repo and data, starts MLflow, and then dispatches based on `MODE`:
-
-| MODE | What runs |
-|---|---|
-| `train` | `python main_run.py --config main_config.yaml` |
-| `seeds` | `python run_seeds.py --config main_config.yaml --seeds <SEEDS>` |
-| `sweep` | `python optuna_sweep.py --config main_config.yaml --monitor val_dice --direction maximize` |
-
-On success the container is cleaned up and the studio switches to CPU. On failure the container is kept for debugging.
-
-```bash
-# Optuna sweep
-RUN_TRAINING=true MODE=sweep bash on_start_gpu.sh
-
-# Regular training
-RUN_TRAINING=true MODE=train bash on_start_gpu.sh
-
-# Multi-seed training
-RUN_TRAINING=true MODE=seeds SEEDS="42 200 300" bash on_start_gpu.sh
-```
+The startup scripts (`on_start_gpu.sh`, `on_start_cpu.sh`) handle Docker bootstrap on Lightning Studio and dispatch to the commands above. See [development.md](development.md#lightning-studio) for the full reference: available `MODE` values, `DATASET`/`ENCODER_MODES`/`MERGE_MODES`/`RELEASE_GPU` env vars, dry-run, and example invocations.
 
 ## Training monitoring
 
 ### MLFlow
 
-- Before running a training script, start the MLflow server using either of the methods below.
-- Start MLflow tracking server using this command (SQLite backend + local artifact store):
+**When using `on_start_gpu.sh` / `on_start_cpu.sh`:** MLflow is started automatically by the script — no manual step needed.
+
+**When running Python entry points directly inside the container:** start the MLflow server first.
+
+Via the setup script (recommended):
+```bash
+chmod +x start_mlflow.sh
+./start_mlflow.sh
+```
+
+Or manually (SQLite backend + local artifact store):
 ```bash
 mlflow server \
   --backend-store-uri sqlite:////workplace/SkiNet/mlflow.db \
@@ -168,13 +234,7 @@ mlflow server \
   --port 5000
 ```
 
-- Or start it via the setup script:
-```bash
-chmod +x start_mlflow.sh
-./start_mlflow.sh
-```
-
-- Open the MLflow UI in a browser on port 5000. If using Lightning Studio, tunnel via SSH:
+Open the MLflow UI in a browser on port 5000. If using Lightning Studio, tunnel via SSH:
 ```bash
 ssh -N -L 5000:localhost:5000 ssh_connection_string_from_your_studio@ssh.lightning.ai
 ```
@@ -185,6 +245,7 @@ ssh -N -L 5000:localhost:5000 ssh_connection_string_from_your_studio@ssh.lightni
 nvidia-smi dmon -s u
 ```
 
+(reproducibility)=
 ## Reproducibility
 
 ### How the same seed value is guaranteed

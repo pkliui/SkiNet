@@ -22,8 +22,7 @@ def run_summary() -> pd.DataFrame:
     return pd.DataFrame({
         "encoder": ["none", "none", "full", "full"],
         "merge": ["none", "full", "none", "full"],
-        "best_val_dice": [0.80, 0.82, 0.78, 0.85],
-        "best_val_best_dice_at_threshold": [0.79, 0.81, 0.77, 0.84],
+        "val_dice_max": [0.80, 0.82, 0.78, 0.85],
         "generalization_gap_final": [0.05, 0.03, 0.07, 0.02],
         "samples_per_sec": [12.0, 11.5, 13.0, 10.8],
     })
@@ -45,18 +44,18 @@ def history() -> pd.DataFrame:
 
 class TestPlotArchitectureHeatmap:
     def test_returns_figure(self, run_summary: pd.DataFrame) -> None:
-        fig = plot_architecture_heatmap(run_summary, "best_val_dice", "Test heatmap")
+        fig = plot_architecture_heatmap(run_summary, "val_dice_max", "Test heatmap")
         assert isinstance(fig, Figure)
 
     def test_axes_labels(self, run_summary: pd.DataFrame) -> None:
-        fig = plot_architecture_heatmap(run_summary, "best_val_dice", "My title")
+        fig = plot_architecture_heatmap(run_summary, "val_dice_max", "My title")
         ax = fig.axes[0]
         assert ax.get_xlabel() == "Merge residual mode"
         assert ax.get_ylabel() == "Encoder residual mode"
         assert ax.get_title() == "My title"
 
     def test_cell_annotation_format(self, run_summary: pd.DataFrame) -> None:
-        fig = plot_architecture_heatmap(run_summary, "best_val_dice", "t")
+        fig = plot_architecture_heatmap(run_summary, "val_dice_max", "t")
         ax = fig.axes[0]
         for text in ax.texts:
             val = text.get_text()
@@ -76,10 +75,10 @@ class TestPlotArchitectureHeatmap:
         df = pd.DataFrame({
             "encoder": ["none", "none"],
             "merge": ["none", "none"],
-            "best_val_dice": [0.80, 0.82],
+            "val_dice_max": [0.80, 0.82],
         })
         with pytest.raises(ValueError):
-            plot_architecture_heatmap(df, "best_val_dice", "t")
+            plot_architecture_heatmap(df, "val_dice_max", "t")
 
 
 # ---------------------------------------------------------------------------
@@ -162,7 +161,7 @@ class TestPlotGeneralizationGap:
         fig = plot_generalization_gap(run_summary)
         ax = fig.axes[0]
         bar_widths = [p.get_width() for p in ax.patches if isinstance(p, mpatches.Rectangle)]
-        expected: list[float] = list(run_summary.sort_values("best_val_best_dice_at_threshold")["generalization_gap_final"])
+        expected: list[float] = list(run_summary.sort_values("val_dice_max")["generalization_gap_final"])
         assert bar_widths == pytest.approx(expected)
 
     def test_value_annotations_match_gap_values(self, run_summary: pd.DataFrame) -> None:
@@ -184,9 +183,9 @@ class TestPlotAccuracyThroughput:
             "encoder": ["none", "none", "full", "full"],
             "merge": ["none", "full", "none", "full"],
             "samples_per_sec": [12.0, 11.5, 13.0, 10.8],
-            "best_val_best_dice_at_threshold": [0.79, 0.81, 0.77, 0.84],
-            "best_val_best_dice_at_threshold_tail_mean": [0.78, 0.80, 0.76, 0.83],
-            "best_val_best_dice_at_threshold_tail_std": [0.01, 0.01, 0.02, 0.01],
+            "val_dice_max": [0.79, 0.81, 0.77, 0.84],
+            "val_dice_tail_mean": [0.78, 0.80, 0.76, 0.83],
+            "val_dice_tail_std": [0.01, 0.01, 0.02, 0.01],
         })
 
     def test_returns_figure(self, run_summary: pd.DataFrame) -> None:
@@ -198,14 +197,14 @@ class TestPlotAccuracyThroughput:
         ax = fig.axes[0]
         assert ax.get_xlabel() == "Final training throughput, samples/sec"
         assert ax.get_ylabel() == "Validation Dice-at-threshold"
-        assert ax.get_title() == "Accuracy-throughput frontier"
+        assert ax.get_title() == "Accuracy-throughput frontier  [colour = RdYlGn by tail-mean rank]"
 
     def test_custom_monitor_column(self) -> None:
         df = pd.DataFrame({
             "encoder": ["none", "full"],
             "merge": ["none", "none"],
             "samples_per_sec": [12.0, 13.0],
-            "best_val_dice": [0.80, 0.78],
+            "val_dice_max": [0.80, 0.78],
         })
         fig = plot_accuracy_throughput(df, monitor="val_dice")
         assert isinstance(fig, Figure)

@@ -23,6 +23,7 @@ from typing import Iterable
 
 import pandas as pd
 
+from SkiNet.Utils.analysis.io import load_mlflow_tables
 from SkiNet.Utils.analysis.parsing import parse_encoder_merge
 
 
@@ -148,11 +149,11 @@ def summarize_runs(tables: dict[str, pd.DataFrame],
     - Architecture: ``encoder``, ``merge`` (parsed from experiment name)
     - Timing: ``duration_min``
     - Final-epoch scalars: ``final_train_dice``, ``final_val_dice``,
-      ``final_val_best_dice_at_threshold``, ``final_val_iou``, ``final_val_loss``,
+      ``final_val_iou``, ``final_val_loss``,
       ``samples_per_sec``, ``time_per_step_ms``, ``final_grad_scale``
-    - Best-epoch per metric: ``best_{monitor}``, ``best_val_dice``, ``best_val_iou``,
-      ``min_val_loss`` — each with ``_epoch`` and ``_step`` siblings
-    - Tail stability per metric: ``{label}_tail_mean``, ``{label}_tail_std``
+    - Peak per metric: ``{monitor}_max``, ``val_dice_max``, ``val_iou_max``,
+      ``val_loss_min`` — each with ``_epoch`` and ``_step`` siblings
+    - Tail stability per metric: ``{monitor}_tail_mean``, ``{monitor}_tail_std``
       over the last ``tail_n`` epochs
     - ``generalization_gap_final`` — final_train_dice minus final_val_dice
     - Checkpoint: ``checkpoint``, ``checkpoint_mb`` (only if ``artifact_root`` given)
@@ -167,21 +168,21 @@ def summarize_runs(tables: dict[str, pd.DataFrame],
         # 5e2a1d88  resnet34  add        138.8         0.831
 
         # Reading the table:
-        # - best_val_best_dice_at_threshold      → peak dice across all epochs (ceiling)
-        # - best_val_best_dice_at_threshold_epoch→ which epoch that peak occurred at
-        # - best_val_dice_tail_mean              → mean dice over last 10 epochs (stability)
-        # - best_val_dice_tail_std               → std over last 10 epochs (noise level)
-        # - generalization_gap_final             → train_dice - val_dice at final epoch (overfitting signal)
+        # - val_dice_max       → peak Dice across all epochs (ceiling)
+        # - val_dice_max_epoch → which epoch that peak occurred at
+        # - val_dice_tail_mean → mean Dice over last 10 epochs (stability)
+        # - val_dice_tail_std  → std over last 10 epochs (noise level)
+        # - generalization_gap_final → train_dice - val_dice at final epoch (overfitting signal)
 
     :param tables: Output of ``load_mlflow_tables`` — dict with keys
                    ``"runs"``, ``"metrics"``, ``"latest"``.
     :param artifact_root: Optional MLflow artifact directory root. When given,
                           checkpoint info and model param count are added.
     :param monitor: Validation metric used for checkpoint selection and primary
-                    sort key. Defaults to ``"val_best_dice_at_threshold"``.
+                    sort key. Defaults to ``"val_dice"``.
     :param tail_n: Number of final epochs over which to compute tail mean and
                    std stability columns. Defaults to 10.
-    :return: DataFrame with one row per run, sorted by ``best_{monitor}``
+    :return: DataFrame with one row per run, sorted by ``{monitor}_max``
              descending (best run first).
     """
 
@@ -212,7 +213,6 @@ def summarize_runs(tables: dict[str, pd.DataFrame],
             "duration_min": (float(run["end_time"]) - float(run["start_time"])) / 60_000,
             "final_train_dice": _latest_value(run_latest, "final/train_dice"),
             "final_val_dice": _latest_value(run_latest, "final/val_dice"),
-            "final_val_best_dice_at_threshold": _latest_value(run_latest, "final/val_best_dice_at_threshold"),
             "final_val_iou": _latest_value(run_latest, "final/val_iou"),
             "final_val_loss": _latest_value(run_latest, "final/val_loss"),
             "samples_per_sec": _latest_value(run_latest, "final/perf/samples_per_sec"),
@@ -220,21 +220,21 @@ def summarize_runs(tables: dict[str, pd.DataFrame],
             "final_grad_scale": _latest_value(run_latest, "final/grad_scale"),
         }
 
-        # find the best value for each of the metrics of interest, along with the epoch and step at which it occurred
-        for key, label, mode in (
-            (monitor, f"best_{monitor}", "max"),
-            ("val_dice", "best_val_dice", "max"),
-            ("val_iou", "best_val_iou", "max"),
-            ("val_loss", "min_val_loss", "min"),
+        # Peak and tail stability for each metric of interest.
+        # Column naming convention: {key}_max / {key}_min for the peak,
+        # {key}_tail_mean / {key}_tail_std for the tail window.
+        for key, suffix, mode in (
+            (monitor, f"{monitor}_max", "max"),
+            ("val_dice", "val_dice_max", "max"),
+            ("val_iou", "val_iou_max", "max"),
+            ("val_loss", "val_loss_min", "min"),
         ):
-            record.update(_best_metric_columns(run_metrics, key, label, mode))
-            record.update(_tail_metric_columns(run_metrics, key, label, tail_n))
+            record.update(_best_metric_columns(run_metrics, key, suffix, mode))
+            record.update(_tail_metric_columns(run_metrics, key, key, tail_n))
 
         record["generalization_gap_final"] = record["final_train_dice"] - record["final_val_dice"]
-        # how far the run fell from its best-epoch score to its last-epoch score
-        record["drop_peak_to_final"] = record[f"best_{monitor}"] - record.get(f"final_{monitor}", float("nan"))
-        # how far the single best epoch sits above the tail-mean plateau
-        record["gap_peak_to_tail"] = record[f"best_{monitor}"] - record.get(f"best_{monitor}_tail_mean", float("nan"))
+        record["drop_peak_to_final"] = record[f"{monitor}_max"] - record.get(f"final_{monitor}", float("nan"))
+        record["gap_peak_to_tail"] = record[f"{monitor}_max"] - record.get(f"{monitor}_tail_mean", float("nan"))
 
         if artifact_root is not None:
             record.update(_checkpoint_info(artifact_root, run_uuid, int(run["experiment_id"])))
@@ -244,13 +244,13 @@ def summarize_runs(tables: dict[str, pd.DataFrame],
     df = pd.DataFrame(records)
     if df.empty:
         return df
-    return df.sort_values(f"best_{monitor}", ascending=False).reset_index(drop=True)
+    return df.sort_values(f"{monitor}_max", ascending=False).reset_index(drop=True)
 
 
 def rank_table(
     run_summary: pd.DataFrame,
-    monitor: str = "val_best_dice_at_threshold",
-    sort_by: str = "best",
+    monitor: str = "val_dice",
+    sort_by: str = "tail",
     tail_n: int = 10,
 ) -> "pd.io.formats.style.Styler":
     """Return a styled ranking table sorted by a monitor-derived column.
@@ -274,7 +274,7 @@ def rank_table(
     if sort_by not in ("best", "tail"):
         raise ValueError(f"sort_by must be 'best' or 'tail', got {sort_by!r}")
 
-    sort_col = f"best_{monitor}" if sort_by == "best" else f"best_{monitor}_tail_mean"
+    sort_col = f"{monitor}_max" if sort_by == "best" else f"{monitor}_tail_mean"
     sort_label = (
         "peak value across all epochs"
         if sort_by == "best"
@@ -282,22 +282,22 @@ def rank_table(
     )
     cols = [
         "encoder", "merge", "run_short", "status",
-        f"best_{monitor}", f"best_{monitor}_tail_mean", f"best_{monitor}_tail_std",
-        f"best_{monitor}_epoch",
-        "best_val_dice", "best_val_iou", "min_val_loss",
+        f"{monitor}_max", f"{monitor}_tail_mean", f"{monitor}_tail_std",
+        f"{monitor}_max_epoch",
+        "val_dice_max", "val_iou_max", "val_loss_min",
         f"final_{monitor}", "final_val_dice",
         "drop_peak_to_final", "gap_peak_to_tail",
         "generalization_gap_final", "samples_per_sec", "duration_min",
         "checkpoint", "checkpoint_mb", "model_total_params",
     ]
-    present = [c for c in cols if c in run_summary.columns]
+    present = list(dict.fromkeys(c for c in cols if c in run_summary.columns))
     fmt = {
-        f"best_{monitor}": "{:.4f}",
-        f"best_{monitor}_tail_mean": "{:.4f}",
-        f"best_{monitor}_tail_std": "{:.4f}",
-        "best_val_dice": "{:.4f}",
-        "best_val_iou": "{:.4f}",
-        "min_val_loss": "{:.4f}",
+        f"{monitor}_max": "{:.4f}",
+        f"{monitor}_tail_mean": "{:.4f}",
+        f"{monitor}_tail_std": "{:.4f}",
+        "val_dice_max": "{:.4f}",
+        "val_iou_max": "{:.4f}",
+        "val_loss_min": "{:.4f}",
         f"final_{monitor}": "{:.4f}",
         "final_val_dice": "{:.4f}",
         "drop_peak_to_final": "{:.4f}",
@@ -308,19 +308,24 @@ def rank_table(
         "checkpoint_mb": "{:.1f}",
     }
     caption = f"Run ranking — sorted by {sort_col} ({sort_label}, descending)"
-    df = run_summary[present].sort_values(sort_col, ascending=False) if sort_col in present else run_summary[present]
+    df = (
+        run_summary[present].sort_values(sort_col, ascending=False)
+        if sort_col in present else run_summary[present]
+    ).reset_index(drop=True)
 
-    def _highlight_top3(s: pd.Series) -> list[str]:
-        return ["background-color: #e8f5e9" if i < 3 else "" for i in range(len(s))]
+    best_col = f"{monitor}_max"
+    tail_col = f"{monitor}_tail_mean"
+    gradient_cols = [c for c in (tail_col, best_col) if c in df.columns]
 
     return (
-        df.style.format({k: v for k, v in fmt.items() if k in present})
-        .apply(_highlight_top3, axis=0)
+        df.style
+        .format({k: v for k, v in fmt.items() if k in df.columns})
+        .background_gradient(subset=gradient_cols, cmap="RdYlGn")
         .set_caption(caption)
     )
 
 
-def family_summary(run_summary: pd.DataFrame, group_cols: Iterable[str] = ("encoder", "merge")) -> pd.DataFrame:
+def family_summary(run_summary: pd.DataFrame, group_cols: Iterable[str] = ("encoder", "merge"), monitor: str = "val_dice") -> pd.DataFrame:
     """Aggregate accuracy, throughput, and generalization by architecture family.
 
     Each ``group_col`` is treated as an independent sweep dimension. For each
@@ -369,28 +374,64 @@ def family_summary(run_summary: pd.DataFrame, group_cols: Iterable[str] = ("enco
     """
     summaries = []
     for group_col in group_cols:
+        max_col = f"{monitor}_max"
+        final_col = f"final_{monitor}"
         grouped = (
             run_summary.groupby(group_col)
             .agg(
                 n=("run_uuid", "count"),
-                mean_best_dice=("best_val_best_dice_at_threshold", "mean"),
-                max_best_dice=("best_val_best_dice_at_threshold", "max"),
-                mean_final_dice=("final_val_best_dice_at_threshold", "mean"),
+                mean_best_dice=(max_col, "mean"),
+                max_best_dice=(max_col, "max"),
+                mean_tail_mean=(f"{monitor}_tail_mean", "mean"),
+                mean_final_dice=(final_col, "mean") if final_col in run_summary.columns else ("run_uuid", "count"),
                 mean_samples_per_sec=("samples_per_sec", "mean"),
                 mean_gap=("generalization_gap_final", "mean"),
             )
             .assign(family=group_col)
             .reset_index(names="value")
         )
+        if f"final_{monitor}" not in run_summary.columns:
+            grouped = grouped.drop(columns=["mean_final_dice"], errors="ignore")
         summaries.append(grouped)
-    df = pd.concat(summaries, ignore_index=True).sort_values(["family", "mean_best_dice"], ascending=[True, False])
-    return df.style.format({
+    df = (
+        pd.concat(summaries, ignore_index=True)
+        .sort_values(["family", "mean_best_dice"], ascending=[True, False])
+        .reset_index(drop=True)   # contiguous index required by Styler.background_gradient
+    )
+    # Put family first, then value, then the rest
+    other_cols = [c for c in df.columns if c not in ("family", "value")]
+    df = df[["family", "value"] + other_cols]
+
+    fmt = {
         'mean_best_dice': '{:.4f}',
         'max_best_dice': '{:.4f}',
+        'mean_tail_mean': '{:.4f}',
         'mean_final_dice': '{:.4f}',
         'mean_samples_per_sec': '{:.1f}',
         'mean_gap': '{:.4f}',
-    })
+    }
+    gradient_cols = [c for c in ('mean_tail_mean', 'mean_best_dice') if c in df.columns]
+
+    # Each family gets its own gradient call so colours are normalised within
+    # each block independently (encoder rows ranked against each other,
+    # merge rows ranked against each other) — same RdYlGn scale throughout.
+    families = list(dict.fromkeys(df["family"]))  # stable insertion order
+    style = df.style.format({k: v for k, v in fmt.items() if k in df.columns})
+    for fam in families:
+        idx = df.index[df["family"] == fam].tolist()
+        if not idx:
+            continue
+        for col in gradient_cols:
+            col_vals = df.loc[idx, col].dropna()
+            if col_vals.empty:
+                continue
+            style = style.background_gradient(
+                subset=pd.IndexSlice[idx, [col]],
+                cmap="RdYlGn",
+                vmin=float(col_vals.min()),
+                vmax=float(col_vals.max()),
+            )
+    return style
 
 
 def epoch_metrics(metrics: pd.DataFrame, run_summary: pd.DataFrame, keys: Iterable[str]) -> pd.DataFrame:
@@ -576,3 +617,246 @@ def _model_total_params(artifact_root: Path, run_uuid: str, experiment_id: int) 
         if "Total params" in line:
             return line.split("Total params")[0].strip()
     return None
+
+
+def best_per_group(df: pd.DataFrame, group_by: str = 'lr', rank_by: str = 'val_dice_tail_mean') -> "pd.io.formats.style.Styler":
+    """Return a styled table of the best run per group, ranked by a tail-stability metric.
+
+    For each unique value of ``group_by``, selects the single run with the
+    highest ``rank_by`` value and formats the result as a Jupyter-ready Styler.
+    Default grouping is by learning rate; pass ``group_by='encoder'`` or
+    ``group_by='merge'`` to pivot the comparison.
+
+    :param df: Output of ``summarize_runs`` — one row per run.
+    :param group_by: Column to group by before picking the best run.
+                     Must be a column in ``df``. Defaults to ``'lr'``.
+    :param rank_by: Metric column used to select the winner within each group.
+                    Defaults to ``'val_dice_tail_mean'`` (tail stability).
+    :return: Styled DataFrame with one row per group value, sorted by
+             ``rank_by`` descending.
+    """
+    cols = [
+        group_by, 'encoder', 'merge',
+        'val_dice_tail_mean',
+        'val_dice_max',
+        'val_dice_max_epoch',
+        'generalization_gap_final',
+        'samples_per_sec',
+    ]
+    result = (
+        df
+        .loc[df.groupby(group_by)[rank_by].idxmax(), cols]
+        .sort_values(rank_by, ascending=False)
+        .reset_index(drop=True)
+    )
+    return result.style.format({
+        'val_dice_max': '{:.4f}',
+        'val_dice_tail_mean': '{:.4f}',
+        'generalization_gap_final': '{:.3f}',
+        'samples_per_sec': '{:.1f}',
+    })
+
+
+def rank_all_runs(df: pd.DataFrame, group_by: str = 'lr', sort_by: str = 'val_dice_tail_mean') -> "pd.io.formats.style.Styler":
+    """Return a styled full ranking table across all runs, with shortened column names.
+
+    Selects the standard set of comparison columns, sorts by ``sort_by``
+    descending, renames verbose MLflow column names to compact display aliases,
+    and applies a ``RdYlGn`` gradient on the primary sort column. Designed for
+    cross-LR (or cross-encoder / cross-merge) sweep summaries where ``df`` is
+    the concatenated ``all_runs`` DataFrame with a ``group_by`` sweep column.
+
+    :param df: Concatenated ``summarize_runs`` output with a ``group_by`` column
+               added (e.g. ``'lr'``).
+    :param group_by: Sweep-dimension column to include first (e.g. ``'lr'``,
+                     ``'encoder'``). Defaults to ``'lr'``.
+    :param sort_by: Column used for descending sort and gradient highlight.
+                    Defaults to ``'val_dice_tail_mean'``.
+    :return: Styled DataFrame with one row per run, sorted best-first.
+    """
+    rank_cols = [
+        group_by, 'encoder', 'merge',
+        'val_dice_max',
+        'val_dice_tail_mean',
+        'val_dice_tail_std',
+        'val_dice_max_epoch',
+        'generalization_gap_final',
+        'drop_peak_to_final',
+        'samples_per_sec',
+    ]
+    present = [c for c in rank_cols if c in df.columns]
+    result = (
+        df[present]
+        .sort_values(sort_by, ascending=False)
+        .reset_index(drop=True)
+    )
+    result = result.rename(columns={
+        'val_dice_tail_std': 'tail_std',
+        'val_dice_max_epoch': 'epoch',
+        'generalization_gap_final': 'gen_gap',
+        'drop_peak_to_final': 'drop',
+    })
+    fmt = {
+        'val_dice_max': '{:.4f}',
+        'val_dice_tail_mean': '{:.4f}',
+        'tail_std': '{:.4f}',
+        'gen_gap': '{:.3f}',
+        'drop': '{:.3f}',
+        'samples_per_sec': '{:.1f}',
+    }
+    gradient_col = sort_by if sort_by in result.columns else 'val_dice_tail_mean'
+    return (
+        result.style
+        .format({k: v for k, v in fmt.items() if k in result.columns})
+        .background_gradient(subset=[gradient_col], cmap='RdYlGn')
+    )
+
+
+def load_sweep_runs(
+    experiments: dict[str, tuple[str, str]],
+    mlruns: Path,
+    group_by: str = 'lr',
+    monitor: str = 'val_dice',
+) -> pd.DataFrame:
+    """Load and concatenate per-experiment MLflow databases into a single sweep DataFrame.
+
+    Iterates over ``experiments``, loads each SQLite database with
+    ``load_mlflow_tables``, builds a run summary via ``summarize_runs``, tags
+    every row with the experiment's group label (e.g. its learning rate string),
+    and returns the concatenated result. The group label becomes a plain string
+    column named ``group_by`` so downstream functions (``best_per_group``,
+    ``rank_all_runs``) can pivot by it without any further setup.
+
+    :param experiments: Mapping of group label → ``(db_filename, experiment_name)``.
+                        ``db_filename`` is resolved relative to ``mlruns``;
+                        ``experiment_name`` is accepted but not used (reserved for
+                        future filtering).
+    :param mlruns: Root directory that contains the per-experiment ``.db`` files.
+    :param group_by: Name of the column to add for the group label.
+                     Defaults to ``'lr'``.
+    :param monitor: Validation metric forwarded to ``summarize_runs``.
+                    Defaults to ``'val_dice'``.
+    :return: Concatenated DataFrame with one row per run and an added
+             ``group_by`` column. Index is reset and contiguous.
+    """
+    frames = []
+    for label, (db_file, _exp_name) in experiments.items():
+        tables = load_mlflow_tables(mlruns / db_file)
+        summary = summarize_runs(tables, monitor=monitor)
+        summary[group_by] = label
+        frames.append(summary)
+    return pd.concat(frames, ignore_index=True)
+
+
+def pivot_dim_effect(
+    df: pd.DataFrame,
+    dim_col: str,
+    group_col: str = 'lr',
+    group_order: list[str] | None = None,
+    dim_order: list[str] | None = None,
+    value_col: str = 'val_dice_tail_mean',
+    cmap: str = 'RdYlGn',
+) -> "pd.io.formats.style.Styler":
+    """Pivot mean and std of a metric across a sweep dimension and group axis.
+
+    Produces a wide table where:
+
+    - **rows** are ``group_col`` values (e.g. learning rates), ordered by
+      ``group_order`` when provided.
+    - **columns** are a two-level MultiIndex: outer level = ``dim_col`` values
+      (e.g. encoder names), ordered by ``dim_order``; inner level = ``mean``
+      and ``std`` side by side.
+
+    Background gradient is applied to the ``mean`` columns only (``axis=None``
+    so colours are normalised across the whole mean sub-table, not per row).
+
+    Example — ``pivot_dim_effect(all_runs, 'encoder', group_order=LR_ORDER)``
+    produces::
+
+        encoder       classical          se             he2
+                    mean    std    mean    std    mean    std
+        lr
+        1e-4       0.8361  0.0014  0.8289  ...   0.8312  ...
+        3e-4       0.8502  0.0011  0.8422  ...   0.8461  ...
+        ...
+
+    :param df: Sweep DataFrame produced by ``load_sweep_runs``.
+    :param dim_col: Column whose values form the outer column level
+                    (e.g. ``'encoder'`` or ``'merge'``).
+    :param group_col: Column whose values form the row index (e.g. ``'lr'``).
+    :param group_order: Explicit row ordering. Rows absent from ``df`` become
+                        NaN rows. If ``None``, sorted alphabetically.
+    :param dim_order: Explicit column ordering for ``dim_col`` values. Columns
+                      absent from ``df`` become NaN columns. If ``None``,
+                      sorted alphabetically.
+    :param value_col: Metric to aggregate. Defaults to ``'val_dice_tail_mean'``.
+    :param cmap: Colormap for the mean gradient. Defaults to ``'RdYlGn'``.
+    :return: Styled DataFrame ready for Jupyter display.
+    """
+    mean_piv = df.groupby([group_col, dim_col])[value_col].mean().unstack(dim_col)
+    std_piv = df.groupby([group_col, dim_col])[value_col].std().unstack(dim_col)
+
+    if group_order:
+        mean_piv = mean_piv.reindex(group_order)
+        std_piv = std_piv.reindex(group_order)
+    cols = dim_order or sorted(mean_piv.columns.tolist())
+    mean_piv = mean_piv.reindex(columns=cols)
+    std_piv = std_piv.reindex(columns=cols)
+
+    # Interleave: (col, 'mean'), (col, 'std') for each dim value
+    combined = pd.concat(
+        {c: pd.DataFrame({'mean': mean_piv[c], 'std': std_piv[c]}) for c in cols},
+        axis=1,
+    )
+    combined.index.name = group_col
+
+    mean_subset = [(c, 'mean') for c in cols]
+    return (
+        combined.style
+        .format('{:.4f}')
+        .background_gradient(subset=mean_subset, axis=None, cmap=cmap)
+    )
+
+
+def arch_consistency(
+    df: pd.DataFrame,
+    group_cols: list[str] | tuple[str, ...] = ('encoder', 'merge'),
+    value_col: str = 'val_dice_tail_mean',
+    cmap: str = 'RdYlGn',
+) -> "pd.io.formats.style.Styler":
+    """Summarise cross-LR consistency of each architecture by mean, std, min, max.
+
+    Groups ``df`` by ``group_cols`` (default: encoder × merge) and aggregates
+    ``value_col`` with mean, std, min, and max. Rows are sorted by mean
+    descending so the most consistent high-performing architecture appears first.
+    Background gradient is applied to the mean column only.
+
+    Low ``std`` combined with high ``mean`` identifies architectures that are
+    both accurate and robust to learning-rate choice — the key signal this table
+    is designed to surface.
+
+    :param df: Sweep DataFrame produced by ``load_sweep_runs``.
+    :param group_cols: Columns that identify an architecture. Defaults to
+                       ``('encoder', 'merge')``.
+    :param value_col: Metric to aggregate. Defaults to ``'val_dice_tail_mean'``.
+    :param cmap: Colormap for the mean gradient. Defaults to ``'RdYlGn'``.
+    :return: Styled DataFrame with columns ``[*group_cols, mean, std, min, max]``,
+             sorted by mean descending.
+    """
+    group_cols = list(group_cols)
+    result = (
+        df.groupby(group_cols)[value_col]
+        .agg(['mean', 'std', 'min', 'max'])
+        .sort_values('mean', ascending=False)
+        .reset_index()
+    )
+    metric = value_col.replace('val_dice_', '').replace('val_', '')
+    result.columns = group_cols + [
+        f'mean_{metric}', f'std_{metric}', f'min_{metric}', f'max_{metric}',
+    ]
+    fmt_cols = [c for c in result.columns if c not in group_cols]
+    return (
+        result.style
+        .format({c: '{:.4f}' for c in fmt_cols})
+        .background_gradient(subset=[f'mean_{metric}'], cmap=cmap)
+    )

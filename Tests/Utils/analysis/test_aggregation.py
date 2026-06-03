@@ -148,11 +148,11 @@ class TestSummarizeRuns:
 
     def test_sorted_by_monitor_descending(self, tables: dict[str, pd.DataFrame]) -> None:
         result = summarize_runs(tables)
-        assert result.iloc[0]["best_val_best_dice_at_threshold"] >= result.iloc[1]["best_val_best_dice_at_threshold"]
+        assert result.iloc[0]["val_dice_max"] >= result.iloc[1]["val_dice_max"]
 
     def test_custom_monitor_column_present(self, tables: dict[str, pd.DataFrame]) -> None:
         result = summarize_runs(tables, monitor="val_dice")
-        assert "best_val_dice" in result.columns
+        assert "val_dice_max" in result.columns
 
     def test_encoder_merge_parsed(self, tables: dict[str, pd.DataFrame]) -> None:
         result = summarize_runs(tables)
@@ -186,13 +186,13 @@ class TestSummarizeRuns:
         # RUN_A val_dice: [0.70, 0.80, 0.75] → best at epoch 2
         result = summarize_runs(tables)
         row_a = result[result["run_uuid"] == RUN_A].iloc[0]
-        assert row_a["best_val_dice_epoch"] == 2
+        assert row_a["val_dice_max_epoch"] == 2
 
     def test_min_val_loss_epoch_correct(self, tables: dict[str, pd.DataFrame]) -> None:
         # RUN_A val_loss: [0.50, 0.35, 0.40] → min at epoch 2
         result = summarize_runs(tables)
         row_a = result[result["run_uuid"] == RUN_A].iloc[0]
-        assert row_a["min_val_loss_epoch"] == 2
+        assert row_a["val_loss_min_epoch"] == 2
 
     def test_missing_latest_key_gives_nan(self, tables: dict[str, pd.DataFrame]) -> None:
         # Remove all final/val_iou entries
@@ -328,8 +328,9 @@ class TestFamilySummary:
                 "run_uuid": [RUN_A, RUN_B],
                 "encoder": ["resnet50", "efficientnet"],
                 "merge": ["add", "concat"],
-                "best_val_best_dice_at_threshold": [0.81, 0.77],
-                "final_val_best_dice_at_threshold": [0.80, 0.76],
+                "val_dice_max": [0.81, 0.77],
+                "val_dice_tail_mean": [0.79, 0.75],
+                "final_val_dice": [0.80, 0.76],
                 "samples_per_sec": [12.0, 11.0],
                 "generalization_gap_final": [0.05, 0.02],
             }
@@ -343,7 +344,7 @@ class TestFamilySummary:
         summary = self._run_summary()
         summary = pd.concat([summary, summary.assign(
             run_uuid=["rx", "ry"], encoder=["resnet50", "resnet50"],
-            best_val_best_dice_at_threshold=[0.90, 0.70]
+            val_dice_max=[0.90, 0.70]
         )], ignore_index=True)
         result = family_summary(summary, group_cols=["encoder"]).data
         encoder_rows = result[result["family"] == "encoder"].reset_index(drop=True)
@@ -395,13 +396,11 @@ class TestRankTable:
             "encoder": ["resnet50", "efficientnet"],
             "merge": ["add", "concat"],
             "status": ["FINISHED", "FINISHED"],
-            "best_val_best_dice_at_threshold": [0.81, 0.85],
-            "best_val_best_dice_at_threshold_tail_mean": [0.80, 0.77],
-            "best_val_best_dice_at_threshold_epoch": [2, 3],
-            "best_val_dice": [0.80, 0.84],
-            "best_val_iou": [0.72, 0.75],
-            "min_val_loss": [0.30, 0.28],
-            "final_val_best_dice_at_threshold": [0.80, 0.83],
+            "val_dice_max": [0.81, 0.85],
+            "val_dice_tail_mean": [0.80, 0.77],
+            "val_dice_max_epoch": [2, 3],
+            "val_iou_max": [0.72, 0.75],
+            "val_loss_min": [0.30, 0.28],
             "final_val_dice": [0.79, 0.82],
             "generalization_gap_final": [0.05, 0.04],
             "samples_per_sec": [12.0, 11.0],
@@ -415,12 +414,12 @@ class TestRankTable:
     def test_sort_by_best_puts_highest_peak_first(self) -> None:
         # RUN_B peak=0.85 > RUN_A peak=0.81
         df = rank_table(self._run_summary(), sort_by="best").data
-        assert df.iloc[0]["best_val_best_dice_at_threshold"] == pytest.approx(0.85)
+        assert df.iloc[0]["val_dice_max"] == pytest.approx(0.85)
 
     def test_sort_by_tail_puts_highest_tail_mean_first(self) -> None:
         # RUN_A tail_mean=0.80 > RUN_B tail_mean=0.77
         df = rank_table(self._run_summary(), sort_by="tail").data
-        assert df.iloc[0]["best_val_best_dice_at_threshold_tail_mean"] == pytest.approx(0.80)
+        assert df.iloc[0]["val_dice_tail_mean"] == pytest.approx(0.80)
 
     def test_invalid_sort_by_raises(self) -> None:
         with pytest.raises(ValueError, match="sort_by"):
@@ -428,10 +427,10 @@ class TestRankTable:
 
     def test_caption_best_names_sort_col_and_criterion(self) -> None:
         caption = rank_table(self._run_summary(), sort_by="best").caption
-        assert "best_val_best_dice_at_threshold" in caption
+        assert "val_dice_max" in caption
         assert "peak value" in caption
 
     def test_caption_tail_names_sort_col_and_window(self) -> None:
         caption = rank_table(self._run_summary(), sort_by="tail", tail_n=5).caption
-        assert "best_val_best_dice_at_threshold_tail_mean" in caption
+        assert "val_dice_tail_mean" in caption
         assert "5" in caption

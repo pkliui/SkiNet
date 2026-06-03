@@ -9,14 +9,17 @@ def test_sweep_config_defaults() -> None:
 
     This covers the baseline contract used by the Optuna entrypoint: the default
     monitor, optimization direction, experiment name, and the built-in candidate
-    values for learning rate, weight decay, and batch size must all be present.
+    values for weight decay and batch size must all be present.
+
+    LR defaults to a single fixed value (3e-4, determined by the E1 LR search) so
+    it is not varied in the sweep unless explicitly overridden in the YAML config.
     """
     cfg = SweepConfig()
 
     assert cfg.monitor == "val_best_dice_at_threshold"
     assert cfg.direction == "maximize"
     assert cfg.experiment_name == "optuna_sweep"
-    assert 3e-4 in cfg.lr
+    assert cfg.lr == [3e-4]
     assert 1e-4 in cfg.weight_decay
     assert 16 in cfg.batch_size
     assert 4 in cfg.num_workers
@@ -105,6 +108,6 @@ def test_sweep_config_search_space_mutation_does_not_affect_config() -> None:
     space[HyperparamKey.BATCH_SIZE][0] = 99
     space[HyperparamKey.PREFETCH_FACTOR].append(16)
 
-    assert cfg.lr == [3e-4, 1e-4]
+    assert cfg.lr == [3e-4]
     assert cfg.batch_size == [16, 32]
     assert cfg.prefetch_factor == [2, 4]

@@ -25,12 +25,13 @@ import yaml
 from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
 from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from main_run import train_and_evaluate
+from SkiNet.Utils.experiment_keys import EncoderResidualMode, MergeResidualMode, NetworkBlockKey
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-_VALID_ENCODER_MODES = ["classical", "local_refinement", "he2", "se"]
-_VALID_MERGE_MODES = ["classical", "local_refinement", "he1", "he2", "attention_gate"]
+_VALID_ENCODER_MODES = [m.value for m in EncoderResidualMode]
+_VALID_MERGE_MODES = [m.value for m in MergeResidualMode]
 
 
 def _patch_yaml_dict(yaml_dict: dict,
@@ -93,7 +94,7 @@ def main() -> None:
         default=None,
         metavar="MODE",
         help=f"Encoder modes to sweep. Choices: {_VALID_ENCODER_MODES}. "
-             "Defaults to the single value in the YAML.",
+        "Defaults to the single value in the YAML.",
     )
     ap.add_argument(
         "--merge-modes",
@@ -102,7 +103,7 @@ def main() -> None:
         default=None,
         metavar="MODE",
         help=f"Merge modes to sweep. Choices: {_VALID_MERGE_MODES}. "
-             "Defaults to the single value in the YAML.",
+        "Defaults to the single value in the YAML.",
     )
     args = ap.parse_args()
 
@@ -113,8 +114,8 @@ def main() -> None:
     if args.name_prefix is None:
         raw_name: str = base_yaml["TRAIN_CONFIG"].get("experiment_name", "experiment")
         # Also strip any trailing _enc-* or _merge-* so re-runs don't accumulate suffixes.
-        raw_name = re.sub(r"_enc-\w+", "", raw_name)
-        raw_name = re.sub(r"_merge-\w+", "", raw_name)
+        raw_name = re.sub(rf"_{NetworkBlockKey.ENC_PREFIX}\w+", "", raw_name)
+        raw_name = re.sub(rf"_{NetworkBlockKey.MERGE_PREFIX}\w+", "", raw_name)
         raw_name = re.sub(r"_seed\d+$", "", raw_name)
         args.name_prefix = raw_name
 
@@ -136,7 +137,9 @@ def main() -> None:
     for enc, merge in combos:
         # Each (enc, merge) combination gets its own MLflow experiment so runs
         # are unambiguous in the UI even if the study is interrupted and resumed.
-        experiment_name = f"{args.name_prefix}_enc-{enc}_merge-{merge}"
+        experiment_name = (f"{args.name_prefix}"
+                           f"_{NetworkBlockKey.ENC_PREFIX.value}{enc}"
+                           f"_{NetworkBlockKey.MERGE_PREFIX.value}{merge}")
 
         logger.info("=" * 70)
         logger.info("Combination: encoder=%s  merge=%s  → experiment: %s", enc, merge, experiment_name)
