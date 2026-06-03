@@ -68,6 +68,7 @@ docker run -it --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/wo
 If you do not need FUSE inside the container (recommended): mount blobfuse on the VM host and only bind the mounted directory into the container; then you can omit the SYS_ADMIN/device flags.
 
 
+(lightning-studio)=
 ## Lightning Studio
 
 ### Set up the environment on Studio

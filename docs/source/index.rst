@@ -14,12 +14,15 @@ Welcome to SkiNet documentation!
    environment_docs
    development
    config
-   data_handling
+   data
+   datasets
    dataloaders
    azure_setup
    plotting
    training
    gpu_performance
+   debugging
+   sample_interface
 
 .. toctree::
    :maxdepth: 2
