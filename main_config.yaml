@@ -3,7 +3,7 @@ GENERAL_CONFIG:
   model: "UNET2D_MODEL"
   dataset: "ISIC2017_DATASET"
 DATA_CONFIG:
-  local_data_root: "/teamspace/lightning_storage/isic2017/ISIC2017DATA_256/"
+  local_data_root: "/mnt/data/"  # in-container data mount (CONTAINER_MOUNT_PATH in on_start_gpu.sh)
   azure_data: False
   azure_blob_mount_point: "/mnt/data/"
   split_random_seed: 100

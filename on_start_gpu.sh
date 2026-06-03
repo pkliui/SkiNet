@@ -22,6 +22,9 @@
 #   Optuna sweep with non-default metric:
 #     MODE=sweep SWEEP_MONITOR=val_best_dice_at_threshold SWEEP_DIRECTION=maximize bash on_start_gpu.sh
 #
+#   Test-only on an existing checkpoint (no training):
+#     RUN_TRAINING=true DATASET=isic2017 MODE=test CHECKPOINT="mlruns/.../best/epoch153.ckpt" bash on_start_gpu.sh
+#
 #   Dry run — build command but skip container launch:
 #     RUN_TRAINING=false MODE=train bash on_start_gpu.sh
 #
@@ -34,7 +37,8 @@
 #
 # ── INPUT VARIABLES ──────────────────────────────────────────────────────────
 #
-#   MODE              Required. One of: train | seeds | sweep
+#   MODE              Required. One of: train | seeds | sweep | test
+#   CHECKPOINT        Required for MODE=test. Path to a .ckpt (relative to repo root).
 #   RUN_TRAINING      Launch the container. Default: true
 #   RELEASE_GPU       Switch to CPU after training. Default: true
 #
@@ -101,6 +105,8 @@ CONFIG_FILE="${CONFIG_FILE:-main_config.yaml}"
 SEEDS="${SEEDS:-}"                 # seeds mode: required — run_seeds.py has no default
 ENCODER_MODES="${ENCODER_MODES:-}" # seeds mode: overrides YAML encoder_mode if set
 MERGE_MODES="${MERGE_MODES:-}"     # seeds mode: overrides YAML merge_mode if set
+
+CHECKPOINT="${CHECKPOINT:-}"       # test mode: required — checkpoint path (relative to repo root)
 
 SWEEP_MONITOR="${SWEEP_MONITOR:-val_best_dice_at_threshold}" # sweep mode: metric to optimise perf/samples_per_sec, val_best_dice_at_threshold
 SWEEP_DIRECTION="${SWEEP_DIRECTION:-maximize}"               # sweep mode: maximize | minimize
@@ -287,8 +293,15 @@ elif [[ "$MODE" == "seeds" ]]; then
 elif [[ "$MODE" == "train" ]]; then
   PYTHON_CMD="$PYTHON_BIN -u main_run.py --config $CONFIG_FILE"
 
+elif [[ "$MODE" == "test" ]]; then
+  if [[ -z "$CHECKPOINT" ]]; then
+    echo "ERROR: MODE=test requires CHECKPOINT to be set (path to a .ckpt, relative to repo root)"
+    exit 1
+  fi
+  PYTHON_CMD="$PYTHON_BIN -u main_run.py --config $CONFIG_FILE --test-only --checkpoint $CHECKPOINT"
+
 else
-  echo "ERROR: Unknown MODE='$MODE'. Valid values: train | seeds | sweep"
+  echo "ERROR: Unknown MODE='$MODE'. Valid values: train | seeds | sweep | test"
   exit 1
 fi
 
