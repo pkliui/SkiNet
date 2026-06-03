@@ -159,22 +159,24 @@ def main() -> None:
         --config      Path to the experiment YAML config file (required). This is the main_config.yaml file containing
             various parameters as set in ExperimentConfig class
         --trials      Number of Optuna trials to run (default: 24).
-        --monitor     Metric to optimise, must match a key returned by
-                      ``train_and_evaluate`` (default: ``val_best_dice_at_threshold``).
-        --direction   Optimisation direction, either ``maximize`` or
-                      ``minimize`` (default: ``maximize``).
+        --monitor     Metric to optimise (optional override). Defaults to
+                      ``SWEEP_CONFIG.monitor`` in the YAML, which is the single
+                      source of truth.  Pass this flag only when you need a
+                      one-off run with a different metric without editing the YAML.
+        --direction   Optimisation direction (optional override). Defaults to
+                      ``SWEEP_CONFIG.direction`` in the YAML.
         --experiment  MLflow experiment name under which the parent run is
                       registered (default: ``optuna_sweep``).
 
     :raises SystemExit: If Optuna is not installed in the current environment.
 
-    Example using default number of trials:
+    Example — monitor and direction read from YAML (recommended):
       ```python
-      python optuna_sweep.py --config main_config.yaml --monitor val_best_dice_at_threshold --direction maximize
+      python optuna_sweep.py --config main_config.yaml
       ```
-    Example using a custom number of trials:
+    Example — one-off override without editing the YAML:
       ```python
-      python optuna_sweep.py --config main_config.yaml --monitor val_best_dice_at_threshold --direction maximize --trials 10
+      python optuna_sweep.py --config main_config.yaml --monitor val_best_dice_at_threshold --trials 10
       ```
 
     """
@@ -183,14 +185,26 @@ def main() -> None:
                         "This is the main_config.yaml file containing various parameters as set in ExperimentConfig class")
     parser.add_argument("--trials", type=int, default=None,
                         help="Optional number of trials to run. Defaults to full grid (n_combos).")
-    parser.add_argument("--monitor", type=str, default="val_best_dice_at_threshold", help="Metric to optimize")
-    parser.add_argument("--direction", type=str, default="maximize", choices=["maximize", "minimize"])
+    parser.add_argument(
+        "--monitor", type=str, default=None,
+        help="Metric to optimise. Overrides SWEEP_CONFIG.monitor in the YAML. "
+             "Default: value of SWEEP_CONFIG.monitor (single source of truth).",
+    )
+    parser.add_argument(
+        "--direction", type=str, default=None, choices=["maximize", "minimize"],
+        help="Optimisation direction. Overrides SWEEP_CONFIG.direction in the YAML. "
+             "Default: value of SWEEP_CONFIG.direction.",
+    )
     parser.add_argument("--experiment", type=str, default=None,
                         help="MLflow experiment name (overrides SWEEP_CONFIG.experiment_name in YAML)")
     args = parser.parse_args()
 
     # load the main config
     main_config = load_config_from_yaml(args.config)
+
+    # CLI flags override YAML; YAML sweepconfig is the default source of truth.
+    monitor = args.monitor or main_config.sweepconfig.monitor
+    direction = args.direction or main_config.sweepconfig.direction
 
     # define the search space based on sweep config
     search_space = main_config.sweepconfig.search_space
@@ -208,7 +222,7 @@ def main() -> None:
     mlflow.set_experiment(experiment_name)
 
     # Define the PARENT run that wraps the entire study — all trials appear as children beneath it
-    with mlflow.start_run(run_name=f"optuna_study_{main_config.trainconfig.experiment_name}_{args.monitor}") as _:
+    with mlflow.start_run(run_name=f"optuna_study_{main_config.trainconfig.experiment_name}_{monitor}") as _:
         import math
         n_combos = math.prod(len(v) for v in search_space.values())
         n_trials = args.trials if args.trials is not None else n_combos
@@ -218,9 +232,9 @@ def main() -> None:
                            "GridSampler will cover the grid only partially with no coverage guarantee. "
                            "Use --trials without an argument to run the full grid.")
 
-        mlflow.set_tag("mlflow.runName", f"optuna_study_{args.monitor}")
-        mlflow.set_tag("monitor", args.monitor)
-        mlflow.set_tag("direction", args.direction)
+        mlflow.set_tag("mlflow.runName", f"optuna_study_{monitor}")
+        mlflow.set_tag("monitor", monitor)
+        mlflow.set_tag("direction", direction)
         mlflow.set_tag("n_trials", n_trials)
         if args.trials is not None:
             mlflow.log_param("requested_n_trials", args.trials)
@@ -230,18 +244,18 @@ def main() -> None:
         mlflow.log_param("n_trials", n_trials)
 
         # create optuna study and begin the optimisation
-        study = optuna.create_study(direction=args.direction,
+        study = optuna.create_study(direction=direction,
                                     sampler=GridSampler(search_space,
                                                         seed=main_config.trainconfig.seed))
-        study.optimize(build_objective(main_config, args.monitor, search_space), n_trials=n_trials)
+        study.optimize(build_objective(main_config, monitor, search_space), n_trials=n_trials)
 
         # BEST STUDY RESULTS:
         # Log best results on the parent run for easy comparison
-        mlflow.log_metric(f"best_{args.monitor}", study.best_value)
+        mlflow.log_metric(f"best_{monitor}", study.best_value)
         mlflow.log_params({f"best_{k}": v for k, v in study.best_params.items()})
         mlflow.set_tag("best_trial", study.best_trial.number)
 
-    print(f"Best trial value ({args.monitor}): {study.best_value}")
+    print(f"Best trial value ({monitor}): {study.best_value}")
     print("Best params:")
     for key, value in study.best_params.items():
         print(f"  {key}: {value}")

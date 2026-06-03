@@ -33,10 +33,12 @@ def test_loss_function_key_exhaustive() -> None:
 
 def test_metrics_key_values() -> None:
     assert MetricsKey.VAL_BEST_DICE_AT_THRESHOLD.value == "val_best_dice_at_threshold"
+    assert MetricsKey.VAL_MEAN_DICE_PER_IMAGE.value == "val_mean_dice_per_image"
 
 
 def test_metrics_key_from_valid_string() -> None:
     assert MetricsKey("val_best_dice_at_threshold") == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
+    assert MetricsKey("val_mean_dice_per_image") == MetricsKey.VAL_MEAN_DICE_PER_IMAGE
 
 
 def test_metrics_key_from_invalid_string() -> None:
@@ -45,11 +47,11 @@ def test_metrics_key_from_invalid_string() -> None:
 
 
 def test_metrics_key_exhaustive() -> None:
-    assert len(MetricsKey) == 1
+    assert len(MetricsKey) == 2
 
 
 def test_metrics_key_default_monitor_returns_correct_member() -> None:
-    assert MetricsKey.default_monitor() == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
+    assert MetricsKey.default_monitor() == MetricsKey.VAL_MEAN_DICE_PER_IMAGE
 
 
 def test_metrics_key_default_monitor_is_metrics_key_instance() -> None:

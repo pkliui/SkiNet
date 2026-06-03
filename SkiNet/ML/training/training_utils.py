@@ -1,6 +1,26 @@
 import torch
 
 
+def mean_dice_per_image(probs: torch.Tensor, targets: torch.Tensor, threshold: float) -> torch.Tensor:
+    """
+    Compute per-image Dice (= binary F1) and return the mean across all images.
+
+    Vectorised: no Python loop over images.
+
+    :param probs: float tensor of shape [N, pixels] — sigmoid probabilities per image
+    :param targets: long or bool tensor of shape [N, pixels] — ground-truth binary masks
+    :param threshold: scalar threshold applied to probs to obtain binary predictions
+    :return: scalar tensor — mean Dice averaged over N images
+    """
+    preds = (probs >= threshold)
+    tgt = targets.bool()
+    tp = (preds & tgt).sum(dim=1).float()
+    fp = (preds & ~tgt).sum(dim=1).float()
+    fn = (~preds & tgt).sum(dim=1).float()
+    dice = 2 * tp / (2 * tp + fp + fn + 1e-8)
+    return dice.mean()
+
+
 def find_best_threshold(probs: torch.Tensor,
                         targets: torch.Tensor,
                         n_thresholds: int = 51) -> dict[str, float]:

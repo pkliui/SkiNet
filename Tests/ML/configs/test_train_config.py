@@ -41,13 +41,13 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.use_checkpoint is False
     assert cfg.use_early_stopping is False
     assert cfg.use_litlogger_logger is False
-    assert cfg.early_stopping_config.monitor == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
+    assert cfg.early_stopping_config.monitor == MetricsKey.VAL_MEAN_DICE_PER_IMAGE
     assert cfg.early_stopping_config.mode == "max"
     assert cfg.early_stopping_config.min_delta == 0.0
     assert cfg.early_stopping_config.patience == 5
     assert cfg.early_stopping_config.strict is True
     assert cfg.early_stopping_config.check_finite is True
-    assert cfg.checkpoint_config.monitor == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
+    assert cfg.checkpoint_config.monitor == MetricsKey.VAL_MEAN_DICE_PER_IMAGE
     assert cfg.checkpoint_config.mode == "max"
     assert cfg.checkpoint_config.save_top_k == 1
     assert cfg.checkpoint_config.save_last is True
@@ -61,7 +61,7 @@ def test_train_config_defaults_are_valid() -> None:
     assert cfg.mlflow_config.log_model_summary is True
     assert cfg.use_lr_scheduler is True
     assert cfg.scheduler_type == "reduce_on_plateau"
-    assert cfg.lr_scheduler_config.monitor == MetricsKey.VAL_BEST_DICE_AT_THRESHOLD
+    assert cfg.lr_scheduler_config.monitor == MetricsKey.VAL_MEAN_DICE_PER_IMAGE
     assert cfg.lr_scheduler_config.mode == "max"
     assert cfg.lr_scheduler_config.patience == 5
     assert cfg.lr_scheduler_config.factor == 0.5

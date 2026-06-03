@@ -71,7 +71,7 @@ CONFIG_FILE="${CONFIG_FILE:-main_config.yaml}"
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
 HOST_REPO="${HOST_REPO:-$HOME/repos/SkiNet}"
 CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
-BRANCH="${BRANCH:-train}"
+BRANCH="${BRANCH:-dev}"
 
 # ── Python binary ─────────────────────────────────────────────────────────────
 PYTHON_BIN="${PYTHON_BIN:-python3}"

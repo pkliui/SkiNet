@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 from SkiNet.ML.configs.train_configs.sweep_config import SweepConfig
-from SkiNet.Utils.experiment_keys import HyperparamKey
+from SkiNet.Utils.experiment_keys import HyperparamKey, MetricsKey
 
 
 def test_sweep_config_defaults() -> None:
@@ -16,7 +16,7 @@ def test_sweep_config_defaults() -> None:
     """
     cfg = SweepConfig()
 
-    assert cfg.monitor == "val_best_dice_at_threshold"
+    assert cfg.monitor == MetricsKey.VAL_MEAN_DICE_PER_IMAGE
     assert cfg.direction == "maximize"
     assert cfg.experiment_name == "optuna_sweep"
     assert cfg.lr == [3e-4]

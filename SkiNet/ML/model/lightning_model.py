@@ -10,7 +10,7 @@ from SkiNet.ML.configs.experiment_config import ExperimentConfig
 from SkiNet.ML.configs.train_configs.train_config import CosineAnnealingConfig, ReduceOnPlateauConfig
 from SkiNet.ML.model.model_factory import create_model
 from SkiNet.ML.training.build_loss import build_loss
-from SkiNet.ML.training.training_utils import find_best_threshold
+from SkiNet.ML.training.training_utils import find_best_threshold, mean_dice_per_image
 
 logger = logging.getLogger(__name__)
 
@@ -122,31 +122,35 @@ class LightningModel(L.LightningModule):
         if not self._val_probs:
             return
 
-        # get probabilities from the whole validation set
+        # all_probs / all_targets: [N_images, H*W] — one row per image, preserving image boundaries
         all_probs = torch.cat(self._val_probs)
-        # get targets by converting to long and thresholding in case augmentations produced some interpolated values
+        # threshold in case augmentations produced interpolated mask values
         all_targets = (torch.cat(self._val_masks) >= 0.5).long()
 
         self._val_probs.clear()
         self._val_masks.clear()
 
-        # single-class edge case — log sentinel value so the metric key always exists
+        # single-class edge case — log sentinels so all monitored keys always exist
         # this prevents KeyError in Optuna when val split contains only one class
         if torch.unique(all_targets).numel() < 2:
             logger.warning("Validation targets contain only one class — skipping threshold sweep. "
-                           "Logging val_best_dice_at_threshold=0.0 as sentinel.")
+                           "Logging val_best_dice_at_threshold=0.0 and val_mean_dice_per_image=0.0 as sentinels.")
             self.log("val_best_dice_at_threshold", 0.0, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+            self.log("val_mean_dice_per_image", 0.0, on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
             return
 
-        fixed_thr_preds = (all_probs >= 0.5).long()
-        fixed_thr_dice = binary_f1_score(fixed_thr_preds, all_targets).item()
+        all_probs_flat = all_probs.reshape(-1)
+        all_targets_flat = all_targets.reshape(-1)
+
+        fixed_thr_preds = (all_probs_flat >= 0.5).long()
+        fixed_thr_dice = binary_f1_score(fixed_thr_preds, all_targets_flat).item()
 
         if self._fixed_optimal_threshold is not None:
             best_thr = self._fixed_optimal_threshold
-            best_preds = (all_probs >= best_thr).long()
-            best_dice = binary_f1_score(best_preds, all_targets).item()
+            best_preds_flat = (all_probs_flat >= best_thr).long()
+            best_dice = binary_f1_score(best_preds_flat, all_targets_flat).item()
         else:
-            best_result = find_best_threshold(all_probs, all_targets)
+            best_result = find_best_threshold(all_probs_flat, all_targets_flat)
             best_thr, best_dice = best_result["best_threshold"], best_result["best_dice"]
 
         self.optimal_threshold.fill_(best_thr)
@@ -155,6 +159,8 @@ class LightningModel(L.LightningModule):
         self.log("val_best_dice_at_threshold", best_dice, on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
         self.log("val_dice_threshold_gain", best_dice - fixed_thr_dice,
                  on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True)
+        self.log("val_mean_dice_per_image", mean_dice_per_image(all_probs, all_targets, best_thr).item(),
+                 on_step=False, on_epoch=True, prog_bar=True, logger=True, sync_dist=True)
 
     @staticmethod
     def _prepare_mask(mask: torch.Tensor) -> torch.Tensor:
@@ -228,8 +234,8 @@ class LightningModel(L.LightningModule):
         # collect probabilities (raw sigmoid outputs) and raw masks to find an optimal sigmoid threshold at the val epoch end
         # note we collect all batches - so full validation set will be used at the end of epoch
         if prefix == "val":
-            self._val_probs.append(probs.detach().cpu().reshape(-1))
-            self._val_masks.append(mask.detach().cpu().reshape(-1))
+            self._val_probs.append(probs.detach().cpu().reshape(probs.shape[0], -1))
+            self._val_masks.append(mask.detach().cpu().reshape(mask.shape[0], -1))
             self.log("val_threshold_used", self.optimal_threshold, on_step=False, on_epoch=True, logger=True, sync_dist=True)
         return loss
 

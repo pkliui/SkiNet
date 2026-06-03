@@ -9,7 +9,7 @@ from SkiNet.ML.configs.model_configs.unet2d_config import UNet2DModelConfig
 from SkiNet.ML.configs.train_configs.train_config import TrainConfig
 from SkiNet.ML.configs.train_configs.sweep_config import SweepConfig
 from SkiNet.ML.configs.transform_configs.transform_config import TransformConfig
-from SkiNet.Utils.experiment_keys import ExperimentType
+from SkiNet.Utils.experiment_keys import ExperimentType, MetricsKey
 
 DataConfig = Annotated[Union[PH2DatasetConfig, ISIC2017DatasetConfig], Field(discriminator="kind")]
 ModelConfig = Annotated[Union[UNet2DModelConfig], Field(discriminator="kind")]
@@ -41,6 +41,51 @@ class ExperimentConfig(BaseModel):
 
     cfg_path: str | None = Field(
         default=None, description="Resolved path to the YAML config used to create this config")
+
+    @model_validator(mode="after")
+    def _propagate_sweep_monitor(self) -> "ExperimentConfig":
+        """
+        ``SWEEP_CONFIG.monitor`` in the YAML is the single source of truth for
+        the optimisation metric.  This validator fills that value into every
+        callback that monitors a metric:
+
+        - ``trainconfig.early_stopping_config.monitor``
+        - ``trainconfig.checkpoint_config.monitor``
+        - ``trainconfig.lr_scheduler_config.monitor``
+
+        **Omit ``monitor`` from those sub-sections in the YAML** — it will be
+        populated automatically.  If any sub-section has ``monitor`` explicitly
+        set to a *different* value, a ``ValueError`` is raised so the mismatch
+        is caught at config-load time rather than silently producing a sweep
+        that optimises a different metric than the one that stopped training.
+        """
+        sweep_monitor = self.sweepconfig.monitor
+        default_monitor = MetricsKey.default_monitor()
+        conflicts: list[str] = []
+        for attr, label in (
+            ("early_stopping_config", "trainconfig.early_stopping_config.monitor"),
+            ("checkpoint_config", "trainconfig.checkpoint_config.monitor"),
+            ("lr_scheduler_config", "trainconfig.lr_scheduler_config.monitor"),
+        ):
+            sub_cfg = getattr(self.trainconfig, attr)
+            # Only a conflict when the sub-config was explicitly set to a
+            # non-default value that disagrees with the sweep monitor.
+            # A sub-config at its default was never explicitly configured.
+            if sub_cfg.monitor != sweep_monitor and sub_cfg.monitor != default_monitor:
+                conflicts.append(f"  {label} = {sub_cfg.monitor!r}")
+        if conflicts:
+            raise ValueError(
+                f"sweepconfig.monitor is {sweep_monitor!r} but the following "
+                f"sub-configs have a different value — remove their explicit "
+                f"'monitor' keys from the YAML and let sweepconfig.monitor be "
+                f"the single source of truth:\n" + "\n".join(conflicts)
+            )
+        # Propagate canonical value to all sub-configs so callers can always
+        # read monitor directly from them.
+        self.trainconfig.early_stopping_config.monitor = sweep_monitor
+        self.trainconfig.checkpoint_config.monitor = sweep_monitor
+        self.trainconfig.lr_scheduler_config.monitor = sweep_monitor
+        return self
 
     @model_validator(mode="after")
     def _validate_crop_matches_model(self) -> "ExperimentConfig":

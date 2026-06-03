@@ -1,14 +1,20 @@
 from pydantic import BaseModel, ConfigDict, Field
-from SkiNet.Utils.experiment_keys import HyperparamKey
+from SkiNet.Utils.experiment_keys import HyperparamKey, MetricsKey
 
 
 class SweepConfig(BaseModel):
     """
     Configuration for the optuna HPO sweep.
+
+    ``monitor`` and ``direction`` are the **single source of truth** for the
+    optimisation objective.  ``ExperimentConfig`` propagates ``monitor`` into
+    ``trainconfig.early_stopping_config``, ``trainconfig.checkpoint_config``,
+    and ``trainconfig.lr_scheduler_config`` so all four fields are always in
+    sync without manual YAML duplication.
     """
     model_config = ConfigDict(extra="forbid")
 
-    monitor: str = Field(default="val_best_dice_at_threshold")
+    monitor: MetricsKey = Field(default=MetricsKey.default_monitor())
     direction: str = Field(default="maximize", pattern="^(maximize|minimize)$")
     experiment_name: str = Field(default="optuna_sweep")
     lr: list[float] = Field(default_factory=lambda: [3e-4])

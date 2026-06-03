@@ -83,13 +83,14 @@ class MetricsKey(str, Enum):
     the .value is correct.
     """
     VAL_BEST_DICE_AT_THRESHOLD = "val_best_dice_at_threshold"
+    VAL_MEAN_DICE_PER_IMAGE = "val_mean_dice_per_image"
 
     @classmethod
     def default_monitor(cls) -> "MetricsKey":
         """
         Default used in Optuna and EarlyStopping.
         """
-        return cls.VAL_BEST_DICE_AT_THRESHOLD
+        return cls.VAL_MEAN_DICE_PER_IMAGE
 
 
 # =========================================================

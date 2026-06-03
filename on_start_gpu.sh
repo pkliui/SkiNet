@@ -19,7 +19,10 @@
 #   Multi-seed run with explicit encoder/merge modes (overrides YAML config):
 #     RUN_TRAINING=true DATASET=isic2017 ENCODER_MODES="classical" MERGE_MODES="classical local_refinement he2 attention_gate" MODE=seeds SEEDS="100 101 102 103 104" bash on_start_gpu.sh
 #
-#   Optuna sweep with non-default metric:
+#   Optuna sweep — monitor and direction come from SWEEP_CONFIG in the YAML (recommended):
+#     MODE=sweep bash on_start_gpu.sh
+#
+#   Optuna sweep — one-off override without editing the YAML:
 #     MODE=sweep SWEEP_MONITOR=val_best_dice_at_threshold SWEEP_DIRECTION=maximize bash on_start_gpu.sh
 #
 #   Dry run — build command but skip container launch:
@@ -47,8 +50,8 @@
 #   MERGE_MODES       Space-separated merge modes.   Omit to use YAML config value.
 #
 #   -- sweep mode --
-#   SWEEP_MONITOR     Metric to optimise. Default: val_best_dice_at_threshold
-#   SWEEP_DIRECTION   maximize | minimize.  Default: maximize
+#   SWEEP_MONITOR     Metric to optimise. Optional override — defaults to SWEEP_CONFIG.monitor in the YAML.
+#   SWEEP_DIRECTION   maximize | minimize.  Optional override — defaults to SWEEP_CONFIG.direction in the YAML.
 #
 #   -- dataset --
 #   DATASET           Dataset to use. One of: ph2 | isic2017. Default: ph2
@@ -102,8 +105,8 @@ SEEDS="${SEEDS:-}"                 # seeds mode: required — run_seeds.py has n
 ENCODER_MODES="${ENCODER_MODES:-}" # seeds mode: overrides YAML encoder_mode if set
 MERGE_MODES="${MERGE_MODES:-}"     # seeds mode: overrides YAML merge_mode if set
 
-SWEEP_MONITOR="${SWEEP_MONITOR:-val_best_dice_at_threshold}" # sweep mode: metric to optimise perf/samples_per_sec, val_best_dice_at_threshold
-SWEEP_DIRECTION="${SWEEP_DIRECTION:-maximize}"               # sweep mode: maximize | minimize
+SWEEP_MONITOR="${SWEEP_MONITOR:-}"   # sweep mode: optional override — defaults to SWEEP_CONFIG.monitor in the YAML
+SWEEP_DIRECTION="${SWEEP_DIRECTION:-}" # sweep mode: optional override — defaults to SWEEP_CONFIG.direction in the YAML
 
 # ── Repository ────────────────────────────────────────────────────────────────
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
@@ -139,11 +142,30 @@ CONTAINER_NAME=""
 _GPU_RELEASED=false
 
 # ── Config summary ────────────────────────────────────────────────────────────
+# Read YAML defaults once for display purposes; used only in the echo below.
+_yaml_vals=$("$PYTHON_BIN" -c "
+import yaml, sys
+try:
+    d = yaml.safe_load(open('$CONFIG_FILE'))
+    sw = d.get('SWEEP_CONFIG', {})
+    mc = d.get('MODEL_CONFIG', {})
+    print(sw.get('monitor','?'), sw.get('direction','?'),
+          mc.get('encoder_residual_mode','?'), mc.get('merge_residual_mode','?'))
+except Exception as e:
+    print('? ? ? ?')
+" 2>/dev/null || echo "? ? ? ?")
+read -r _yaml_monitor _yaml_direction _yaml_encoder _yaml_merge <<< "$_yaml_vals"
+
+_eff_monitor="${SWEEP_MONITOR:-$_yaml_monitor (YAML)}"
+_eff_direction="${SWEEP_DIRECTION:-$_yaml_direction (YAML)}"
+_eff_encoder="${ENCODER_MODES:-$_yaml_encoder (YAML)}"
+_eff_merge="${MERGE_MODES:-$_yaml_merge (YAML)}"
+
 echo "==> Configuration:"
 echo "    MODE=$MODE  RUN_TRAINING=$RUN_TRAINING  RELEASE_GPU=$RELEASE_GPU"
 echo "    CONFIG_FILE=$CONFIG_FILE"
-echo "    SEEDS='$SEEDS'  ENCODER_MODES='$ENCODER_MODES'  MERGE_MODES='$MERGE_MODES'"
-echo "    SWEEP_MONITOR=$SWEEP_MONITOR  SWEEP_DIRECTION=$SWEEP_DIRECTION"
+echo "    SEEDS='$SEEDS'  ENCODER_MODES='$_eff_encoder'  MERGE_MODES='$_eff_merge'"
+echo "    SWEEP_MONITOR=$_eff_monitor  SWEEP_DIRECTION=$_eff_direction"
 echo "    REPO_URL=$REPO_URL  BRANCH=$BRANCH"
 echo "    HOST_REPO=$HOST_REPO  CONTAINER_REPO=$CONTAINER_REPO"
 echo "    DATASET=$DATASET  LIGHTNING_MOUNT_PATH=$LIGHTNING_MOUNT_PATH  CONTAINER_MOUNT_PATH=$CONTAINER_MOUNT_PATH"
@@ -273,7 +295,12 @@ env | grep '^LIGHTNING_' > "$LIGHTNING_ENV_FILE" || true
 echo "==> Building Python command for MODE='$MODE'"
 
 if [[ "$MODE" == "sweep" ]]; then
-  PYTHON_CMD="$PYTHON_BIN -u optuna_sweep.py --config $CONFIG_FILE --monitor $SWEEP_MONITOR --direction $SWEEP_DIRECTION"
+  # monitor and direction default to SWEEP_CONFIG values in the YAML; only pass
+  # CLI flags when the env vars are set (one-off overrides without editing YAML).
+  SWEEP_CMD_EXTRA=""
+  [[ -n "$SWEEP_MONITOR"   ]] && SWEEP_CMD_EXTRA="$SWEEP_CMD_EXTRA --monitor $SWEEP_MONITOR"
+  [[ -n "$SWEEP_DIRECTION" ]] && SWEEP_CMD_EXTRA="$SWEEP_CMD_EXTRA --direction $SWEEP_DIRECTION"
+  PYTHON_CMD="$PYTHON_BIN -u optuna_sweep.py --config $CONFIG_FILE$SWEEP_CMD_EXTRA"
 
 elif [[ "$MODE" == "seeds" ]]; then
   if [[ -z "$SEEDS" ]]; then

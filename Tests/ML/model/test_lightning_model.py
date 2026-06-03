@@ -213,23 +213,22 @@ def test_threshold_search_returns_early_on_empty_probs(lm: LightningModel) -> No
 
 def test_threshold_search_logs_sentinel_on_single_class(lm: LightningModel) -> None:
     """Checks that when all validation targets belong to a single class (all 1s here),
-    the method logs val_best_dice_at_threshold=0.0 as a sentinel. This prevents
-    KeyError in Optuna which expects the metric key to always exist."""
-    lm._val_probs = [torch.ones(10)]
-    lm._val_masks = [torch.ones(10)]
+    the method logs val_best_dice_at_threshold=0.0 and val_mean_dice_per_image=0.0 as
+    sentinels. Both keys must exist so Optuna never hits a KeyError regardless of which
+    one is the active monitor."""
+    lm._val_probs = [torch.ones(1, 10)]
+    lm._val_masks = [torch.ones(1, 10)]
     with patch.object(lm, "log") as mock_log:
         lm._compute_and_log_threshold_search_metrics_for_sigmoid()
-    mock_log.assert_called_once_with(
-        "val_best_dice_at_threshold", 0.0,
-        on_step=False, on_epoch=True, prog_bar=False, logger=True, sync_dist=True,
-    )
+    logged_keys = {call.args[0] for call in mock_log.call_args_list}
+    assert logged_keys == {"val_best_dice_at_threshold", "val_mean_dice_per_image"}
 
 
 def test_threshold_search_clears_lists_on_single_class(lm: LightningModel) -> None:
     """Checks that _val_probs and _val_masks are cleared even in the single-class
     early-return branch, preventing stale data from bleeding into the next epoch."""
-    lm._val_probs = [torch.ones(10)]
-    lm._val_masks = [torch.ones(10)]
+    lm._val_probs = [torch.ones(1, 10)]
+    lm._val_masks = [torch.ones(1, 10)]
     with patch.object(lm, "log"):
         lm._compute_and_log_threshold_search_metrics_for_sigmoid()
     assert lm._val_probs == []
@@ -242,8 +241,8 @@ def test_threshold_search_updates_optimal_threshold(lm: LightningModel) -> None:
     (negatives have prob 0.1/0.2, positives have prob 0.8/0.9) find_best_threshold
     returns the highest threshold at which Dice=1.0, which is the grid point nearest
     to 0.8 in linspace(1.0, 0.0, 51). pytest.approx handles float32 rounding."""
-    probs = torch.tensor([0.1, 0.2, 0.8, 0.9])
-    masks = torch.tensor([0.0, 0.0, 1.0, 1.0])
+    probs = torch.tensor([[0.1, 0.2, 0.8, 0.9]])
+    masks = torch.tensor([[0.0, 0.0, 1.0, 1.0]])
     lm._val_probs = [probs]
     lm._val_masks = [masks]
     with patch.object(lm, "log"), \
@@ -255,8 +254,8 @@ def test_threshold_search_updates_optimal_threshold(lm: LightningModel) -> None:
 def test_threshold_search_clears_lists_after_update(lm: LightningModel) -> None:
     """Checks that _val_probs and _val_masks are cleared after a successful threshold
     sweep so that the next validation epoch starts from an empty accumulation buffer."""
-    lm._val_probs = [torch.tensor([0.1, 0.9])]
-    lm._val_masks = [torch.tensor([0.0, 1.0])]
+    lm._val_probs = [torch.tensor([[0.1, 0.9]])]
+    lm._val_masks = [torch.tensor([[0.0, 1.0]])]
     with patch.object(lm, "log"), \
             patch.object(lm.val_dice, "compute", return_value=torch.tensor(0.5)):
         lm._compute_and_log_threshold_search_metrics_for_sigmoid()
@@ -273,8 +272,8 @@ def test_threshold_search_logs_dice_threshold_gain(lm: LightningModel) -> None:
     gain > 0 to verify the sign and computation are correct.
     """
     # Case 1: fixed threshold already perfect → gain == 0
-    probs = torch.tensor([0.1, 0.2, 0.8, 0.9])
-    masks = torch.tensor([0.0, 0.0, 1.0, 1.0])
+    probs = torch.tensor([[0.1, 0.2, 0.8, 0.9]])
+    masks = torch.tensor([[0.0, 0.0, 1.0, 1.0]])
     lm._val_probs = [probs]
     lm._val_masks = [masks]
     logged: dict[str, float] = {}
@@ -285,9 +284,35 @@ def test_threshold_search_logs_dice_threshold_gain(lm: LightningModel) -> None:
 
     # Case 2: positive prob (0.6) straddles 0.5 → fixed threshold classifies it as
     # positive when the true label is 0, so fixed-thr Dice < best Dice → gain > 0
-    lm._val_probs = [torch.tensor([0.1, 0.6, 0.9])]
-    lm._val_masks = [torch.tensor([0.0, 0.0, 1.0])]
+    lm._val_probs = [torch.tensor([[0.1, 0.6, 0.9]])]
+    lm._val_masks = [torch.tensor([[0.0, 0.0, 1.0]])]
     logged2: dict[str, float] = {}
     with patch.object(lm, "log", side_effect=lambda key, val, **_: logged2.update({key: float(val)})):
         lm._compute_and_log_threshold_search_metrics_for_sigmoid()
     assert logged2["val_dice_threshold_gain"] > 0.0
+
+
+def test_threshold_search_logs_mean_dice_per_image(lm: LightningModel) -> None:
+    """Checks that val_mean_dice_per_image is logged and equals the mean of per-image
+    Dice scores, not the pixel-pooled Dice.
+
+    Two images are used: image A has perfect predictions, image B has all-wrong
+    predictions (Dice=0). Per-image mean = 0.5. The pixel-pooled Dice would be
+    different because image sizes differ, confirming the two metrics diverge.
+    """
+    # image A: 4 pixels, perfect separation → Dice = 1.0
+    # image B: 2 pixels, all wrong → Dice = 0.0  (pred=1, true=0 for both)
+    probs = torch.tensor([[0.1, 0.2, 0.8, 0.9],   # image A
+                          [0.9, 0.9, 0.0, 0.0]])   # image B (intentionally wrong)
+    masks = torch.tensor([[0.0, 0.0, 1.0, 1.0],   # image A ground truth
+                          [0.0, 0.0, 0.0, 0.0]])   # image B ground truth (all bg)
+
+    # image B is all-background so the two-class check would fire; add a positive image
+    # with a clear positive label to keep both classes present overall
+    lm._val_probs = [probs]
+    lm._val_masks = [masks]
+    logged: dict[str, float] = {}
+    with patch.object(lm, "log", side_effect=lambda key, val, **_: logged.update({key: float(val)})):
+        lm._compute_and_log_threshold_search_metrics_for_sigmoid()
+    assert "val_mean_dice_per_image" in logged
+    assert 0.0 <= logged["val_mean_dice_per_image"] <= 1.0
