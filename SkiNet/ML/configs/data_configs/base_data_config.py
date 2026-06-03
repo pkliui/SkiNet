@@ -27,12 +27,11 @@ class BaseDataConfig(BaseModel):
     :param local_data_root: The root path to the local data (if not using Azure).
         This is the directory where all data and the metadata CSV file resides.
 
-    :attributes:
-        METADATA_CSV_NAME (Optional[str]): Name of a dataset metadata file used in config, as defined in project paths. Must be specified in subclasses.
-        REQUIRED_COLUMNS (frozenset[str]): Set of required columns in the metadata file. Must be specified in subclasses.
-        DATASET_KEY (Optional[DatasetKey]): One of the keys from DatasetKey.
-            Its value must match the key used in the YAML config file and specified in subclasses.
-        _metadata (Optional[pd.DataFrame]): Cached dataset metadata loaded from a CSV file into a DataFrame. Not part of model validation/serialization.
+    Class attributes (must be set in subclasses):
+
+    - ``METADATA_CSV_NAME`` — filename of the metadata CSV as defined in project paths.
+    - ``REQUIRED_COLUMNS`` — frozenset of column names that must exist in the CSV.
+    - ``DATASET_KEY`` — one of the :class:`~SkiNet.Utils.experiment_keys.DatasetKey` values; must match the key in the YAML config.
 
     Example usage (local CSV):
         cfg = MyDatasetConfig(local_data_root="some/local/path/to/data", azure_data=False)
@@ -160,7 +159,7 @@ class BaseDataConfig(BaseModel):
         the dataset within the blob storage, as specified in AZURE_SETTINGS_YAML.
 
         :return: The root path for the dataset either local or mounted Azure Blob Storage,
-        given its key specified in the relevant child class and AZURE_SETTINGS_YAML config.
+            given its key specified in the relevant child class and AZURE_SETTINGS_YAML config.
         """
         self._validate_config()
 

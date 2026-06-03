@@ -14,20 +14,16 @@ class SpatialAugmentConfig(BaseModel):
     Journal of medical imaging and radiation oncology, 65(5), 545-563
 
     Basic augmentation techniques:
-    - geometric (mapping points of the image to new locations)
-        - geometric transformations (scaling, translation, rotation, flipping, shear, skew); very common
-        - cropping; used when there is class imbalance to even the balance
-        - occlusion (removing small patches of the image); used when there is class imbalance to even the balance
-    - photometric (manipulating the image intensity values)
-        - gamma contrast, linear contrast, histogram equalization
-        - filtering (convolution to sharpern, blur or smooth)
-        - adding noise (Gaussian, salt and pepper, uniform)
 
-        Deformable augmentation techniques:
-        - randomised displacement of pixels
-        - spline interpolation (B-splines)
-        - deformable image registration
-        - statistical shape models
+    - geometric: geometric transformations (scaling, translation, rotation, flipping, shear, skew); cropping; occlusion
+    - photometric: gamma contrast, linear contrast, histogram equalization; filtering; adding noise (Gaussian, salt and pepper, uniform)
+
+    Deformable augmentation techniques:
+
+    - randomised displacement of pixels
+    - spline interpolation (B-splines)
+    - deformable image registration
+    - statistical shape models
     """
     # Geometric transformations
 
@@ -43,14 +39,14 @@ class SpatialAugmentConfig(BaseModel):
         default=False, description="Apply affine transformations.")
     affine_scale: Tuple[float, float] = Field(default=(
         0.8, 1.0), description="Scaling (zoom) factor for affine transformation.")
-    affine_translate_percent: dict[str, Tuple[float, float]] = Field(
-        default_factory=lambda: {"x": (-0.05, 0.05), "y": (-0.05, 0.05)},
+    affine_translate_percent: dict[str, float | Tuple[float, float]] = Field(
+        default_factory=lambda: dict[str, float | Tuple[float, float]]({"x": (-0.05, 0.05), "y": (-0.05, 0.05)}),
         description="Translation as a fraction of the image size.",
     )
     affine_rotate: Tuple[float, float] = Field(
         default=(-45, 45), description="Rotation angle in degrees.")
-    affine_shear: dict[str, Tuple[float, float]] = Field(
-        default_factory=lambda: {"x": (-15.0, 15.0), "y": (-15.0, 15.0)},
+    affine_shear: dict[str, float | Tuple[float, float]] = Field(
+        default_factory=lambda: dict[str, float | Tuple[float, float]]({"x": (-15.0, 15.0), "y": (-15.0, 15.0)}),
         description="Shear angle in degrees.",
     )
 
