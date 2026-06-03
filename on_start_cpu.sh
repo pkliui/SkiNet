@@ -1,101 +1,115 @@
-#!/bin/bash
-
-# This script runs every time your Studio starts, from your home directory.
-
-# Logs from previous runs can be found in ~/.lightning_studio/logs/
-
-# List files under fast_load that need to load quickly on start (e.g. model checkpoints).
-#
-# ! fast_load
-# <your file here>
-
-# Add your startup commands below.
-#
-# Example: streamlit run my_app.py
-# Example: gradio my_app.py
-
 #!/usr/bin/env bash
-
-# This script is intended to be run on Lightning Studio machine with CPU. It will:
-# 1. Clone the SkiNet repo (or update it if it already exists)
-# 2. Pull the specified Docker image
-# 3. Run a container from the image, mounting the repo and the Lightning Storage folder into the container
-# 4. Start MLFlow server in the background in this container (start_mlflow.sh is expected in the same as this script)
-# 5.Depending on command MODE (see example), container is either available for interactive development
-# or will do a test-only run.
-
-##########################################
-#  --------------- USAGE ------------------
-
-# Run container with CPU in interactive development mode
-# MODE=interactive bash on_start_cpu.sh
-
-# Run test-only on a checkpoint
-# MODE=test CHECKPOINT=/path/to/checkpoint.ckpt bash on_start_cpu.sh
-
-########################################################################################################
-
-# NOTE: It is assumed that you uploaded your data into the Lightning Storage and that it is in folders
-# specified under PATH_ON_DATASTORE in repos/SkiNet/SkiNet/Azure/azure_settings.yaml
-
-########################################################################################################
+#
+# on_start_cpu.sh — SkiNet CPU launcher for Lightning Studio sessions.
+#
+# Clones/updates the SkiNet repo, pulls the Docker image, launches a container
+# and either drops into an interactive shell or runs a test-only pass.
+#
+# Logs from previous runs: ~/.lightning_studio/logs/
+#
+# ── USAGE ────────────────────────────────────────────────────────────────────
+#
+#   Interactive development:
+#     MODE=interactive bash on_start_cpu.sh
+#
+#   Test-only on a checkpoint:
+#     MODE=test CHECKPOINT=/path/to/checkpoint.ckpt bash on_start_cpu.sh
+#
+#   Select dataset (default: isic2017):
+#     DATASET=ph2      MODE=interactive bash on_start_cpu.sh
+#     DATASET=isic2017 MODE=test CHECKPOINT=... bash on_start_cpu.sh
+#
+# ── INPUT VARIABLES ──────────────────────────────────────────────────────────
+#
+#   MODE              Required. One of: interactive | test
+#   CHECKPOINT        Required when MODE=test. Path to .ckpt relative to repo root.
+#
+#   -- dataset --
+#   DATASET           Dataset to use. One of: ph2 | isic2017. Default: isic2017
+#                     ph2:      read from Lightning Storage (must be uploaded beforehand).
+#                     isic2017: downloaded from Kaggle on first run, preprocessed once.
+#   ISIC_OUT_DIR      Local download path for ISIC 2017.
+#                     Default: /teamspace/lightning_storage/isic2017/ISIC2017DATA_256
+#   KAGGLE_DATASET    Kaggle dataset slug for ISIC 2017.
+#                     Default: johnchfr/isic-2017
+#
+#   -- repository --
+#   REPO_URL          Git remote. Default: https://github.com/pkliui/SkiNet.git
+#   BRANCH            Branch to check out. Default: train
+#   HOST_REPO         Local clone path. Default: ~/repos/SkiNet
+#   CONTAINER_REPO    Mount point inside the container. Default: /workplace/SkiNet
+#
+#   -- paths --
+#   CONTAINER_MOUNT_PATH  Data mount point inside the container. Default: /mnt/data
+#
+#   -- misc --
+#   PYTHON_BIN        Python binary. Default: python3
+#
+# ── NOTES ────────────────────────────────────────────────────────────────────
+#
+#   PH2:      data is read from Lightning Storage at /teamspace/lightning_storage/ph2/.
+#             Ensure your data is uploaded there before running.
+#
+#   ISIC2017: data is downloaded from Kaggle to $ISIC_OUT_DIR on the first run.
+#             Subsequent runs skip the download (directory non-empty) but always
+#             re-run metadata CSV preprocessing. Requires the kaggle CLI and a
+#             valid ~/.kaggle/kaggle.json credentials file.
+#
+# ─────────────────────────────────────────────────────────────────────────────
 
 set -Eeuo pipefail
 
-# Set default values for environment variables if they are not already set
-
-# Mode of execution
-MODE="${MODE:-interactive}" # "interactive" = set up container, "test" = test-only run
-CHECKPOINT="${CHECKPOINT:-}"
-
-
-# Image name on Docker Hub
+# ── Docker image ──────────────────────────────────────────────────────────────
 IMAGE="pkliui/skinet:v9cpu"
 
-# Determine a safe default for the home directory
-DEFAULT_HOME="$HOME"
+# ── Mode of execution ─────────────────────────────────────────────────────────
+MODE="${MODE:-interactive}"        # interactive | test
+CHECKPOINT="${CHECKPOINT:-}"
+CONFIG_FILE="${CONFIG_FILE:-main_config.yaml}"
 
-# Set repository variables
+# ── Repository ────────────────────────────────────────────────────────────────
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
-HOST_REPO="${HOST_REPO:-$DEFAULT_HOME/repos/SkiNet}"
+HOST_REPO="${HOST_REPO:-$HOME/repos/SkiNet}"
 CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
 BRANCH="${BRANCH:-train}"
 
-# Set Python binary
+# ── Python binary ─────────────────────────────────────────────────────────────
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 
-
-# Data mount path on Lightning Storage
-#LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2_002-032/"
-#LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
-#LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/isic2017/"
-LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/isic2017/"
-# Data mount path inside the container
+# ── Data paths ────────────────────────────────────────────────────────────────
+DATASET="${DATASET:-isic2017}"                            # ph2 | isic2017
 CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"
 
-echo "Running with the following configuration:"
-echo "DEFAULT_HOME=$DEFAULT_HOME"
-echo "REPO_URL=$REPO_URL"
-echo "HOST_REPO=$HOST_REPO"
-echo "CONTAINER_REPO=$CONTAINER_REPO"
-echo "BRANCH=$BRANCH"
-echo "PYTHON_BIN=$PYTHON_BIN"
-echo "LIGHTNING_MOUNT_PATH=$LIGHTNING_MOUNT_PATH"
-echo "CONTAINER_MOUNT_PATH=$CONTAINER_MOUNT_PATH"
+case "$DATASET" in
+  ph2)
+    LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
+    ;;
+  isic2017)
+    ISIC_OUT_DIR="${ISIC_OUT_DIR:-/teamspace/lightning_storage/isic2017/ISIC2017DATA_256}"
+    KAGGLE_DATASET="${KAGGLE_DATASET:-johnchfr/isic-2017}"
+    LIGHTNING_MOUNT_PATH="$ISIC_OUT_DIR"
+    ;;
+  *)
+    echo "ERROR: Unknown DATASET='$DATASET'. Valid values: ph2 | isic2017"
+    exit 1
+    ;;
+esac
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "ERROR: docker is not installed"
-  exit 1
-fi
+echo "==> Configuration:"
+echo "    MODE=$MODE  CHECKPOINT='$CHECKPOINT'  CONFIG_FILE=$CONFIG_FILE"
+echo "    REPO_URL=$REPO_URL  BRANCH=$BRANCH"
+echo "    HOST_REPO=$HOST_REPO  CONTAINER_REPO=$CONTAINER_REPO"
+echo "    DATASET=$DATASET  LIGHTNING_MOUNT_PATH=$LIGHTNING_MOUNT_PATH  CONTAINER_MOUNT_PATH=$CONTAINER_MOUNT_PATH"
+echo "    PYTHON_BIN=$PYTHON_BIN"
 
-if ! command -v git >/dev/null 2>&1; then
-  echo "ERROR: git is not installed"
-  exit 1
-fi
+for cmd in docker git; do
+  if ! command -v "$cmd" >/dev/null 2>&1; then
+    echo "ERROR: $cmd is not installed"
+    exit 1
+  fi
+done
 
-# Clone or update the repo on the host
-HOST_REPO_PARENT="$(dirname "$HOST_REPO")"
-mkdir -p "$HOST_REPO_PARENT"
+mkdir -p "$(dirname "$HOST_REPO")"
 
 # Update repo if it exists, otherwise clone it
 if [[ -d "$HOST_REPO/.git" ]]; then
@@ -117,22 +131,54 @@ fi
 echo "==> Pulling Docker image $IMAGE"
 docker pull "$IMAGE"
 
-echo "Setting up Lightning"
+# ── ISIC 2017: download + preprocess ─────────────────────────────────────────
+# Only runs when DATASET=isic2017. Download is skipped when data is already
+# present; preprocessing always runs (it is idempotent and fast).
+
+if [[ "$DATASET" == "isic2017" ]]; then
+  if ! command -v kaggle >/dev/null 2>&1; then
+    echo "==> kaggle CLI not found — installing..."
+    pip install --quiet kaggle
+  fi
+
+  mkdir -p "$ISIC_OUT_DIR"
+
+  if [[ -z "$(ls -A "$ISIC_OUT_DIR" 2>/dev/null)" ]]; then
+    echo "==> ISIC 2017: directory empty — downloading dataset to $ISIC_OUT_DIR"
+    kaggle datasets download -d "$KAGGLE_DATASET" -p "$ISIC_OUT_DIR" --unzip
+  else
+    echo "==> ISIC 2017: data already present in $ISIC_OUT_DIR — skipping download."
+  fi
+
+  echo "==> ISIC 2017: running metadata CSV preprocessing..."
+  docker run --rm \
+      --user "$(id -u):$(id -g)" \
+      -e LOGNAME="${LOGNAME:-user}" \
+      -e USER="${USER:-user}" \
+      -e HOME="$CONTAINER_REPO" \
+      --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
+      --mount "type=bind,src=$ISIC_OUT_DIR,dst=$CONTAINER_MOUNT_PATH" \
+      -w "$CONTAINER_REPO" \
+      "$IMAGE" \
+      "$PYTHON_BIN" -m SkiNet.ML.datasets.preprocessing.metadata_csv_factory \
+      --dataset-key-str ISIC2017 \
+      --local-data-root "$CONTAINER_MOUNT_PATH"
+
+  echo "==> ISIC 2017: setup complete."
+fi
+
 LIGHTNING_ENV_FILE="$(mktemp)"
 env | grep '^LIGHTNING_' > "$LIGHTNING_ENV_FILE" || true
 
 
-echo "==> Preparing to run a fresh container"
+echo "==> Preparing container..."
 
-# Kill any existing MLflow process on port 5000
+# Kill any existing process holding MLflow's port
 if lsof -ti:5000 &>/dev/null; then
-  echo "Port 5000 in use — killing existing process..."
-  kill -9 $(lsof -ti:5000) 2>/dev/null || true
+  echo "==> Port 5000 in use — killing existing process..."
+  kill -9 "$(lsof -ti:5000)" 2>/dev/null || true
   sleep 1
 fi
-
-echo "==> Setting MLflow port mapping host:container to 5000:5000"
-echo "==> RUNNING container and MLflow server in background"
 
 if [[ "$MODE" == "test" ]]; then
   if [[ -z "$CHECKPOINT" ]]; then
@@ -157,7 +203,7 @@ if [[ "$MODE" == "test" ]]; then
     set -e
     ./start_mlflow.sh &
     sleep 3
-    python3 -u main_run.py --config main_config.yaml --test-only --checkpoint '$CONTAINER_CHECKPOINT'"
+    $PYTHON_BIN -u main_run.py --config $CONFIG_FILE --test-only --checkpoint '$CONTAINER_CHECKPOINT'"
 elif [[ "$MODE" == "interactive" ]]; then
   docker run --rm -it \
     -p 5000:5000 \

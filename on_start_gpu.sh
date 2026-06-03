@@ -90,7 +90,7 @@ set -Eeuo pipefail
 IMAGE="pkliui/skinet:v9gpu"
 
 # ── Training control ──────────────────────────────────────────────────────────
-RUN_TRAINING="${RUN_TRAINING:-}"
+RUN_TRAINING="${RUN_TRAINING:-false}"
 RELEASE_GPU="${RELEASE_GPU:-false}"
 MODE="${MODE:-}"
 
@@ -287,8 +287,18 @@ elif [[ "$MODE" == "seeds" ]]; then
 elif [[ "$MODE" == "train" ]]; then
   PYTHON_CMD="$PYTHON_BIN -u main_run.py --config $CONFIG_FILE"
 
+elif [[ "$MODE" == "test" ]]; then
+  if [[ -z "${CHECKPOINT:-}" ]]; then
+    echo "ERROR: MODE=test requires CHECKPOINT to be set (path to a .ckpt, relative to repo root)"
+    exit 1
+  fi
+  PYTHON_CMD="$PYTHON_BIN -u main_run.py --config $CONFIG_FILE --test-only --checkpoint $CHECKPOINT"
+
+elif [[ "$MODE" == "calibrate" ]]; then
+  PYTHON_CMD="$PYTHON_BIN -u calibrate_threshold.py --config $CONFIG_FILE"
+
 else
-  echo "ERROR: Unknown MODE='$MODE'. Valid values: train | seeds | sweep"
+  echo "ERROR: Unknown MODE='$MODE'. Valid values: train | seeds | sweep | test | calibrate"
   exit 1
 fi
 

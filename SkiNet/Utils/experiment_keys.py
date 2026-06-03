@@ -1,4 +1,4 @@
-from enum import Enum, unique
+from enum import Enum, StrEnum, unique
 import re
 
 
@@ -93,10 +93,52 @@ class MetricsKey(str, Enum):
 
 
 # =========================================================
+# RESIDUAL MODE VOCABULARIES
+# Values must stay in sync with the registry keys in encoder2d.py / merge2d_block.py.
+# =========================================================
+
+@unique
+class EncoderResidualMode(StrEnum):
+    CLASSICAL = "classical"
+    LOCAL_REFINEMENT = "local_refinement"
+    HE2 = "he2"
+    SE = "se"
+
+
+@unique
+class MergeResidualMode(StrEnum):
+    CLASSICAL = "classical"
+    LOCAL_REFINEMENT = "local_refinement"
+    HE1 = "he1"
+    HE2 = "he2"
+    ATTENTION_GATE = "attention_gate"
+
+
+# =========================================================
 # NETWORK BLOCK PARSING
 # =========================================================
 
 class NetworkBlockKey(Enum):
+    """
+    Class to hold the prefixes and regex pattern for parsing encoder/merge block keys from experiment names.
+
+    Experiment names encode the encoder/merge modes (e.g. "ablation_model_unet2d-ph2_enc-he2_merge-attention_gate")
+    and we need to parse these back out to know which modes are active for a given run.
+
+
+    Example usage:
+    ```
+    for enc, merge in combos:
+        # Each (enc, merge) combination gets its own MLflow experiment so runs
+        # are unambiguous in the UI even if the study is interrupted and resumed.
+        experiment_name = (f"{args.name_prefix}"
+                           f"_{NetworkBlockKey.ENC_PREFIX.value}{enc}"
+                           f"_{NetworkBlockKey.MERGE_PREFIX.value}{merge}")
+    ```
+    Which for enc and merge modes of "he2" and "attention_gate", name_prefix  of "model"
+    would produce an experiment name like:
+    "model_enc-he2_merge-attention_gate"
+    """
     ENC_PREFIX = "enc-"
     MERGE_PREFIX = "merge-"
 
