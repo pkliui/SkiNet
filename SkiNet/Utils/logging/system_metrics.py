@@ -81,9 +81,13 @@ class SystemMetricsThreadCallback(L.Callback):
             m["system/gpu_mem_allocated_gb"] = allocated / (1024**3)
             # pool pytorch claimed from OS (allocated + cached); gap between this and allocated is headroom before OOM
             m["system/gpu_mem_reserved_gb"] = reserved / (1024**3)
-            gpu_util = torch.cuda.utilization(d)
-            if gpu_util is not None:
-                m["system/gpu_util_percent"] = float(gpu_util)
+            try:
+                gpu_util = torch.cuda.utilization(d)
+                if gpu_util is not None:
+                    m["system/gpu_util_percent"] = float(gpu_util)
+            except ModuleNotFoundError:
+                # nvidia-ml-py (pynvml) not installed — skip GPU utilisation metric
+                pass
         return m
 
     @staticmethod

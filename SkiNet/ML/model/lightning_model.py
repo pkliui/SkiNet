@@ -381,7 +381,7 @@ def build_lightning_model(main_config: ExperimentConfig) -> LightningModel:
     train_cfg = main_config.trainconfig
     model: torch.nn.Module = create_model(main_config)
     if train_cfg.use_torch_compile:
-        model = cast(torch.nn.Module, torch.compile(model))
+        model = cast(torch.nn.Module, torch.compile(model, backend=train_cfg.torch_compile_backend))
         logger.info("torch.compile enabled — first forward pass will be slow (compilation)")
     loss_fn = build_loss(train_cfg.loss_name)
     return LightningModel(model=model,
