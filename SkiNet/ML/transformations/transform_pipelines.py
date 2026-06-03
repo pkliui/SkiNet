@@ -74,14 +74,14 @@ def get_photometric_transforms(config: PhotoAugmentConfig) -> list[A.BasicTransf
     transforms_list: list[A.BasicTransform] = []
 
     if config.color_jitter_apply:
-        transforms_list.append(A.ColorJitter(brightness=config.color_jitter_brightness,  # type: ignore[call-arg]
+        transforms_list.append(A.ColorJitter(brightness=config.color_jitter_brightness,
                                              contrast=config.color_jitter_contrast,
                                              saturation=config.color_jitter_saturation,
                                              hue=config.color_jitter_hue,
                                              p=config.color_jitter_p))
 
     if config.gaussian_blur_apply:
-        transforms_list.append(A.GaussianBlur(sigma_limit=config.gaussian_blur_sigma_limit,  # type: ignore[call-arg]
+        transforms_list.append(A.GaussianBlur(sigma_limit=config.gaussian_blur_sigma_limit,
                                               p=config.gaussian_blur_p))
 
     if config.gaussian_noise_apply:

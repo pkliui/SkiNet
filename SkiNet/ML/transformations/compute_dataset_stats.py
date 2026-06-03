@@ -63,6 +63,7 @@ def compute_stats(cfg_path: Path) -> tuple[list[float], list[float]]:
         else:
             img_np = np.array(img)
 
+        # scale to 0-1 range
         img_f = img_np.astype(np.float64) / 255.0  # CHW or HWC
 
         # Normalise to CHW
@@ -70,6 +71,8 @@ def compute_stats(cfg_path: Path) -> tuple[list[float], list[float]]:
             img_f = img_f.transpose(2, 0, 1)
 
         n_new = np.int64(img_f.shape[1] * img_f.shape[2])
+
+        # Per-channel stats for this image (before any augmentation or resizing).
         img_mean = img_f.mean(axis=(1, 2))           # (3,)
         img_var = img_f.var(axis=(1, 2))            # (3,)
 
