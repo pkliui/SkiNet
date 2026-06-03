@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, cast
+from typing import Any
 
 import albumentations as A
 
@@ -67,9 +67,8 @@ def _build_transform(transform_groups: list[list[A.BasicTransform]],
     all_transforms = _flatten(transform_groups)
     compose_kwargs = compose_kwargs or {}
 
-    _compose_t = list[A.BasicTransform | A.BaseCompose]
-    return AlbumentationsSampleTransform(pipeline=A.Compose(cast(_compose_t, all_transforms), **compose_kwargs),
-                                         visualization_pipeline=A.Compose(cast(_compose_t, visualisation_transforms), **compose_kwargs),
+    return AlbumentationsSampleTransform(pipeline=A.Compose(all_transforms, **compose_kwargs),
+                                         visualization_pipeline=A.Compose(visualisation_transforms, **compose_kwargs),
                                          expects_tensor_output=True)
 
 
