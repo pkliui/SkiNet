@@ -10,6 +10,9 @@
 #
 # ── USAGE ────────────────────────────────────────────────────────────────────
 #
+#   Interactive development (GPU shell):
+#     MODE=interactive bash on_start_gpu.sh
+#
 #   Single training run:
 #     MODE=train bash on_start_gpu.sh
 #
@@ -37,7 +40,7 @@
 #
 # ── INPUT VARIABLES ──────────────────────────────────────────────────────────
 #
-#   MODE              Required. One of: train | seeds | sweep
+#   MODE              Required. One of: train | seeds | sweep | test | calibrate | interactive
 #   RUN_TRAINING      Launch the container. Default: true
 #   RELEASE_GPU       Switch to CPU after training. Default: true
 #
@@ -95,7 +98,7 @@ IMAGE="pkliui/skinet:v9gpu"
 # ── Training control ──────────────────────────────────────────────────────────
 RUN_TRAINING="${RUN_TRAINING:-false}"
 RELEASE_GPU="${RELEASE_GPU:-false}"
-MODE="${MODE:-}"
+MODE="${MODE:-interactive}"
 
 # ── Config file ───────────────────────────────────────────────────────────────
 CONFIG_FILE="${CONFIG_FILE:-main_config.yaml}"
@@ -112,7 +115,7 @@ SWEEP_DIRECTION="${SWEEP_DIRECTION:-}" # sweep mode: optional override — defau
 REPO_URL="${REPO_URL:-https://github.com/pkliui/SkiNet.git}"
 HOST_REPO="${HOST_REPO:-$HOME/repos/SkiNet}"
 CONTAINER_REPO="${CONTAINER_REPO:-/workplace/SkiNet}"
-BRANCH="${BRANCH:-train}"
+BRANCH="${BRANCH:-dev}"
 
 # ── Data paths ────────────────────────────────────────────────────────────────
 DATASET="${DATASET:-isic2017}"                  # ph2 | isic2017
@@ -324,14 +327,47 @@ elif [[ "$MODE" == "test" ]]; then
 elif [[ "$MODE" == "calibrate" ]]; then
   PYTHON_CMD="$PYTHON_BIN -u calibrate_threshold.py --config $CONFIG_FILE"
 
+elif [[ "$MODE" == "interactive" ]]; then
+  PYTHON_CMD=""  # interactive: drop to bash, no training command
+
 else
-  echo "ERROR: Unknown MODE='$MODE'. Valid values: train | seeds | sweep | test | calibrate"
+  echo "ERROR: Unknown MODE='$MODE'. Valid values: train | seeds | sweep | test | calibrate | interactive"
   exit 1
 fi
 
 echo "==> Command: $PYTHON_CMD"
 
 # ── Launch container ──────────────────────────────────────────────────────────
+
+if [[ "$MODE" == "interactive" ]]; then
+  echo "==> Launching interactive GPU container..."
+  mkdir -p "$HOST_REPO/mlruns"
+  CONTAINER_NAME="skinet-interactive-$(date +%s)"
+  docker run --rm -it \
+    --name "$CONTAINER_NAME" \
+    --gpus all \
+    --ipc=host \
+    --user "$(id -u):$(id -g)" \
+    -e HOME="$CONTAINER_REPO" \
+    -e LOGNAME="${LOGNAME:-user}" \
+    -e USER="${USER:-user}" \
+    -e PYTHONUNBUFFERED=1 \
+    --env-file "$LIGHTNING_ENV_FILE" \
+    -v "$HOME/.lightning:$CONTAINER_REPO/.lightning:ro" \
+    --mount "type=bind,src=$HOST_REPO,dst=$CONTAINER_REPO" \
+    --mount "type=bind,src=$HOST_REPO/mlruns,dst=$HOST_REPO/mlruns" \
+    --mount "type=bind,src=$LIGHTNING_MOUNT_PATH,dst=$CONTAINER_MOUNT_PATH" \
+    -w "$CONTAINER_REPO" \
+    "$IMAGE" \
+    bash -c "
+      set -e
+      ./start_mlflow.sh &
+      sleep 3
+      exec bash"
+  CONTAINER_NAME=""
+  echo "==> Done. Attach Shell to the running container in the VSCode Containers tab to develop inside it."
+  exit 0
+fi
 
 if [[ "$RUN_TRAINING" != "true" ]]; then
   echo "==> RUN_TRAINING=false — skipping container launch."
