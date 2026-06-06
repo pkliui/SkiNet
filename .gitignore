@@ -17,6 +17,9 @@ envs/*
 *.litbin
 /lightning_logs/
 /mlruns/
+/SkiNet/Utils/claude_prompts
+/SkiNet/Utils/claude_answers
+/SkiNet/Utils/analysis
 
 # images
 *.png
@@ -24,6 +27,7 @@ envs/*
 # sphinx docs
 *.html
 /docs/build/
+/docs/_build/
 /docs/_sources/
 /docs/_static/
 /docs/.doctrees/
@@ -35,3 +39,8 @@ envs/*
 
 # scripts
 on_start_kaggle.sh
+docs/source/gpu_performance.md
+workflow_guide.md
+pytest.ini
+SkiNet/ML/configs/data_configs/isic2017dataset_config/__init__.py
+.bash_history

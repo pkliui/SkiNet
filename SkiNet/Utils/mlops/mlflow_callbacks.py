@@ -1,6 +1,7 @@
 from pathlib import Path
 from lightning.pytorch.loggers.mlflow import MLFlowLogger
 from lightning.pytorch.callbacks import Callback, ModelCheckpoint, EarlyStopping
+from lightning.pytorch.utilities.rank_zero import rank_zero_only
 from lightning.pytorch.utilities.model_summary.model_summary import summarize
 import torch
 import lightning as L
@@ -25,6 +26,7 @@ class MLflowTrainingArtifactsCallback(Callback):
         self.early_stopping_cb = early_stopping_cb
         self.checkpoint_cb = checkpoint_cb
 
+    @rank_zero_only
     def on_fit_start(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         if not self.log_model_summary:
             return
@@ -33,6 +35,7 @@ class MLflowTrainingArtifactsCallback(Callback):
                                                summary_text,
                                                "model/model_summary.txt")
 
+    @rank_zero_only
     def on_fit_end(self, trainer: L.Trainer, pl_module: L.LightningModule) -> None:
         self._log_early_stopping_runtime_metrics(trainer)
         self._log_best_checkpoint()
