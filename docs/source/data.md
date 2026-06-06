@@ -1,5 +1,55 @@
 # Data
 
+## ISIC 2017 dataset
+
+ISIC 2017 is a dermoscopic segmentation dataset with predefined train/val/test splits. This is the primary dataset used in this project to train, validate and test the presented UNet2D segmentation model. The project respects these official splits and does not re-shuffle them.
+
+- Copyright:
+Codella N, Gutman D, Celebi ME, Helba B, Marchetti MA, Dusza S, Kalloo A, Liopyris K, Mishra N, Kittler H, Halpern A. "Skin Lesion Analysis Toward Melanoma Detection: A Challenge at the 2017 International Symposium on Biomedical Imaging (ISBI), Hosted by the International Skin Imaging Collaboration (ISIC)". [arXiv: 1710.05006](
+https://doi.org/10.48550/arXiv.1710.05006)
+
+
+- Dataset can be downloaded at [ISIC website](https://challenge.isic-archive.com/data/#2017): https://challenge.isic-archive.com/data/#2017
+- Alternatively, there are pre-downloaded datasets available for use in e.g. Kaggle
+
+
+
+### Download example for ISIC-2017 residing on Kaggle for dev work on Lightning Studio
+
+```bash
+#install kaggle cli tools if has not done so yet
+pip install --quiet kaggle
+```
+
+```bash
+#!/bin/bash
+# download the dataset into out_dir
+OUT_DIR="/teamspace/studios/this_studio/isic2017"
+kaggle datasets download -d johnchfr/isic-2017 -p $OUT_DIR --unzip
+```
+
+### Generate metadata CSV
+
+```bash
+python -m SkiNet.ML.datasets.preprocessing.metadata_csv_factory \
+  --dataset-key-str ISIC2017 \
+  --local-data-root /teamspace/studios/this_studio/isic2017
+```
+
+
+### Config
+
+```yaml
+GENERAL_CONFIG:
+  dataset: "isic2017_dataset"
+DATA_CONFIG:
+  local_data_root: "/teamspace/studios/this_studio/isic2017"
+  azure_data: False
+```
+
+> **Note:** ISIC 2017 is large enough that `cache_in_ram: true` may exhaust available RAM on a lightning machine. Set `cache_in_ram: false` in `TRAIN_CONFIG` for this dataset.
+
+
 ## PH2 Dataset
 
  PH2 dataset copyright: Teresa Mendonça, Pedro M. Ferreira, Jorge Marques, Andre R. S. Marcal, Jorge Rozeira.
