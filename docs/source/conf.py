@@ -78,5 +78,5 @@ linkcheck_ignore = [
 
 
 # -- HTML output -------------------------------------------------------------
-# html_theme = 'furo'
-html_theme = "pydata_sphinx_theme"
+html_theme = 'furo'
+# html_theme = "pydata_sphinx_theme"
