@@ -30,3 +30,13 @@ with 95 % confidence intervals. The pooled estimate and its interval are shown a
 ```
 
 *Figure 2. Forest plot of paired Dice differences (He2 − attention-gate) across 10 seeds. The pooled mean difference is +0.0016 (95 % CI crosses zero), confirming the non-significant result and supporting selection on full-grid rank rather than tie-break magnitude.*
+
+---
+
+## Full analysis notebook
+
+```{toctree}
+:maxdepth: 1
+
+E2-isic2017-unet2d-model-tiebreak-10seed
+```

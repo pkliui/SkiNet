@@ -10,3 +10,5 @@ dependencies:
   - pip
   - pip:
     - autodoc-pydantic
+    - nbsphinx
+    - ipykernel

@@ -15,6 +15,7 @@ release = '1.0.0'
 
 extensions = [
     'myst_parser',
+    'nbsphinx',
     'sphinx_togglebutton',
     'sphinx.ext.autodoc',       # pulls docstrings from source into API pages
     'sphinx.ext.napoleon',      # understands :param:/:return: Sphinx style

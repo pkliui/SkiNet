@@ -3,3 +3,5 @@ furo
 myst-parser
 sphinx-togglebutton
 autodoc-pydantic
+nbsphinx
+ipykernel
