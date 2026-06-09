@@ -11,7 +11,6 @@ Welcome to SkiNet documentation!
    :caption: Documentation
 
    documentation
-   environment_docs
    development
    config
    data
@@ -22,11 +21,10 @@ Welcome to SkiNet documentation!
    training
    gpu_performance
    debugging
-   sample_interface
+   model_selection
 
 .. toctree::
    :maxdepth: 2
    :caption: API Reference
 
    api_config
-   api/api_datasets

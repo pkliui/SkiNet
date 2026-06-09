@@ -23,6 +23,7 @@ envs/*
 
 # images
 *.png
+!docs/source/_static/model_selection/*.png
 
 # sphinx docs
 *.html
