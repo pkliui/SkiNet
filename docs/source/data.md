@@ -125,7 +125,7 @@ For a complete ISIC 2017 download, the generated `isic2017_metadata.csv` has:
 
 A row count that is short of 5500 indicates a partial download or an unmatched image/mask pair.
 
-The merge is performed in `ISIC2017BaseCSVBuilder.create_merged_isic2017_metadata()` ([isic2017_csv_builder.py:118](https://github.com/pkliui/SkiNet/blob/dev/SkiNet/ML/datasets/preprocessing/isic2017_csv_builder.py#L118)) via `DataFrame.merge(..., on="sampleid", how="left")`. The path-derived metadata (images + masks rows) is the left frame; the diagnosis CSVs are concatenated across splits and their `image_id` column is renamed to `sampleid` ([line 116](https://github.com/pkliui/SkiNet/blob/dev/SkiNet/ML/datasets/preprocessing/isic2017_csv_builder.py#L116)) before the join.
+The merge is performed in `ISIC2017BaseCSVBuilder.create_merged_isic2017_metadata()` ([isic2017_csv_builder.py](https://github.com/pkliui/SkiNet/blob/dev/SkiNet/ML/datasets/preprocessing/isic2017_csv_builder.py)) via `DataFrame.merge(..., on="sampleid", how="left")`. The path-derived metadata (images + masks rows) is the left frame; the diagnosis CSVs are concatenated across splits and their `image_id` column is renamed to `sampleid` before the join.
 
 ### Config
 
