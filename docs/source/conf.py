@@ -26,6 +26,10 @@ extensions = [
 # myst_parser: enable {autoclass} / {autofunction} directives inside .md files
 myst_enable_extensions = ["colon_fence"]
 
+# Auto-generate anchors for h1-h3 headings so cross-file links like
+# [text](development.md#lightning-studio) resolve to the heading slug.
+myst_heading_anchors = 3
+
 # sphinx.ext.napoleon: use Sphinx-style :param:/:return: (not Google/NumPy style)
 napoleon_use_param = True
 napoleon_use_rtype = True
@@ -69,8 +73,10 @@ exclude_patterns: list[str] = []
 # pytorch.org moved the randomness page; anchor no longer resolves
 linkcheck_ignore = [
     r"https://docs\.pytorch\.org/docs/stable/notes/randomness\.html.*",
+    r"https://challenge\.isic-archive\.com/.*",
 ]
 
 
 # -- HTML output -------------------------------------------------------------
-html_theme = 'furo'
+# html_theme = 'furo'
+html_theme = "pydata_sphinx_theme"
