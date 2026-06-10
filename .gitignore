@@ -19,7 +19,6 @@ envs/*
 /mlruns/
 /SkiNet/Utils/claude_prompts
 /SkiNet/Utils/claude_answers
-/SkiNet/Utils/analysis
 
 # images
 *.png

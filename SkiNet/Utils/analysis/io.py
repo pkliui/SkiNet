@@ -10,19 +10,31 @@ import pandas as pd
 
 def load_mlflow_tables(db_path: Path) -> dict[str, pd.DataFrame]:
     """
-    Load data from an MLflow tracking database (SQLite) into a dictionary of pandas DataFrames.
+    Load four analysis-relevant tables from an MLflow SQLite tracking store.
+    Return a dict keyed by table name, where each value is a DataFrame containing the selected
+    columns from that table.
 
-    Use default structure of an MLflow SQLite store, with tables for experiments, runs, params,
-    metrics, and latest_metrics.
+    Tables returned:
 
-    Join experiments and runs on experiment_id.
+    - "runs": one row per training run, joined with experiments so each row carries
+      both run_name (e.g. "run_seed105", unique per run) and experiment_name (shared
+      across all runs in the same group). Filtered to lifecycle_stage = 'active' -
+      deleted runs are never visible to callers. This is the backbone table —
+      run_uuid is the join key used by every other table.
+
+    - "params": logged hyperparameters in long format — one row per (run, param name),
+      e.g. (uuid, "lr", "3e-4"). This means each run occupies multiple rows, one per
+      hyperparameter. If you need one row per run with each param as its own column,
+      pivot with df.pivot(index="run_uuid", columns="key", values="value").
+
+    - "metrics": full training curves — one row per (run, metric, step). Can be large
+      (n_runs x n_metrics x n_epochs). Use when you need per-epoch trajectories.
+
+    - "latest": final value only of each metric per run — one row per (run, metric).
+      MLflow maintains this as a materialised snapshot, so it is much smaller than
+      "metrics". Use this as the fast path when only end-of-training numbers are needed.
     """
     queries = {
-        "experiments": """
-            select experiment_id, name, lifecycle_stage, creation_time, last_update_time
-            from experiments
-            order by experiment_id
-        """,
         "runs": """
             select
                 r.run_uuid,
@@ -43,4 +55,11 @@ def load_mlflow_tables(db_path: Path) -> dict[str, pd.DataFrame]:
         "latest": "select run_uuid, key, value, step, timestamp from latest_metrics",
     }
     with sqlite3.connect(db_path) as con:
-        return {name: pd.read_sql_query(sql, con) for name, sql in queries.items()}
+        tables = {name: pd.read_sql_query(sql, con) for name, sql in queries.items()}
+    empty = [name for name, df in tables.items() if df.empty]
+    if empty:
+        raise ValueError(
+            f"Tables {empty} are empty in {db_path!r}. "
+            "Ensure the tracking store has active runs with logged params and metrics."
+        )
+    return tables

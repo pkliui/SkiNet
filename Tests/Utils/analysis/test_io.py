@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from pandas.errors import DatabaseError
 
 from SkiNet.Utils.analysis.io import load_mlflow_tables
 
@@ -17,8 +18,17 @@ def _ts() -> int:
     return int(time.time() * 1000)
 
 
-def create_mlflow_db(path: Path, *, include_deleted_run: bool = False) -> None:
-    """Create a minimal MLflow-compatible SQLite database at *path*."""
+def create_mlflow_db(
+    path: Path,
+    *,
+    include_deleted_run: bool = False,
+    populate: bool = True,
+) -> None:
+    """Create a minimal MLflow-compatible SQLite database at *path*.
+
+    Pass populate=False to create the schema only (no rows), which simulates a
+    freshly initialised tracking store with no experiments or runs.
+    """
     with sqlite3.connect(path) as con:
         cur = con.cursor()
 
@@ -64,6 +74,10 @@ def create_mlflow_db(path: Path, *, include_deleted_run: bool = False) -> None:
                 timestamp INTEGER
             );
         """)
+
+        if not populate:
+            return
+
         # Capture the current millisecond timestamp once
         now = _ts()
 
@@ -76,12 +90,14 @@ def create_mlflow_db(path: Path, *, include_deleted_run: bool = False) -> None:
             ],
         )
 
-        # Active runs
+        # Active runs (run-ccc has no params/metrics; run-ddd references a missing experiment)
         cur.executemany(
             "INSERT INTO runs VALUES (?,?,?,?,?,?,?,?)",
             [
                 ("run-aaa", "run-1", "FINISHED", now, now, "s3://a/1", 1, "active"),
                 ("run-bbb", "run-2", "RUNNING", now, None, "s3://a/2", 2, "active"),
+                ("run-ccc", "run-3", "FAILED", now, now, "s3://a/3", 1, "active"),
+                ("run-ddd", "run-4", "FINISHED", now, now, "s3://a/4", 999, "active"),
             ],
         )
 
@@ -154,7 +170,7 @@ def tables(db_path: Path) -> dict[str, pd.DataFrame]:
 class TestReturnStructure:
     """Test that load_mlflow_tables() returns a dict with the expected keys (as per MLflow)
     and all values are DataFrames."""
-    EXPECTED_KEYS = {"experiments", "runs", "params", "metrics", "latest"}
+    EXPECTED_KEYS = {"runs", "params", "metrics", "latest"}
 
     def test_returns_dict(self, tables: dict[str, pd.DataFrame]) -> None:
         assert isinstance(tables, dict)
@@ -168,33 +184,12 @@ class TestReturnStructure:
 
 
 # ---------------------------------------------------------------------------
-# experiments table
-# ---------------------------------------------------------------------------
-
-class TestExperiments:
-    def test_row_count(self, tables: dict[str, pd.DataFrame]) -> None:
-        assert len(tables["experiments"]) == 2
-
-    def test_columns(self, tables: dict[str, pd.DataFrame]) -> None:
-        expected = {"experiment_id", "name", "lifecycle_stage", "creation_time", "last_update_time"}
-        assert set(tables["experiments"].columns) == expected
-
-    def test_ordered_by_experiment_id(self, tables: dict[str, pd.DataFrame]) -> None:
-        """Verify the ORDER BY experiment_id clause in the query is actually respected."""
-        ids = tables["experiments"]["experiment_id"].tolist()
-        assert ids == sorted(ids)
-
-    def test_names(self, tables: dict[str, pd.DataFrame]) -> None:
-        assert set(tables["experiments"]["name"]) == {"exp-alpha", "exp-beta"}
-
-
-# ---------------------------------------------------------------------------
 # runs table
 # ---------------------------------------------------------------------------
 
 class TestRuns:
     def test_row_count(self, tables: dict[str, pd.DataFrame]) -> None:
-        assert len(tables["runs"]) == 2
+        assert len(tables["runs"]) == 4
 
     def test_columns(self, tables: dict[str, pd.DataFrame]) -> None:
         expected = {
@@ -217,7 +212,7 @@ class TestRuns:
         assert ids == sorted(ids)
 
     def test_statuses_present(self, tables: dict[str, pd.DataFrame]) -> None:
-        assert set(tables["runs"]["status"]) == {"FINISHED", "RUNNING"}
+        assert set(tables["runs"]["status"]) == {"FINISHED", "RUNNING", "FAILED"}
 
 
 # ---------------------------------------------------------------------------
@@ -287,32 +282,45 @@ class TestLatestMetrics:
 # ---------------------------------------------------------------------------
 
 class TestEdgeCases:
-    def test_empty_tables(self, tmp_path: Path) -> None:
-        """Function should return empty DataFrames, not raise, when tables are empty."""
+    def test_empty_db_raises(self, tmp_path: Path) -> None:
+        """Schema with no rows must raise ValueError — silent empty results would corrupt analysis."""
         p = tmp_path / "empty.db"
-        # Build schema only — no rows
+        create_mlflow_db(p, populate=False)
+        with pytest.raises(ValueError, match="empty"):
+            load_mlflow_tables(p)
+
+    @pytest.mark.parametrize("table", ["runs", "params", "metrics", "latest_metrics"])
+    def test_single_empty_table_raises(self, tmp_path: Path, table: str) -> None:
+        """Any one table being empty must raise, regardless of the others being populated."""
+        p = tmp_path / f"missing_{table}.db"
+        create_mlflow_db(p)
         with sqlite3.connect(p) as con:
-            con.executescript("""
-                CREATE TABLE experiments (experiment_id INTEGER PRIMARY KEY, name TEXT,
-                    lifecycle_stage TEXT, creation_time INTEGER, last_update_time INTEGER);
-                CREATE TABLE runs (run_uuid TEXT PRIMARY KEY, name TEXT, status TEXT,
-                    start_time INTEGER, end_time INTEGER, artifact_uri TEXT,
-                    experiment_id INTEGER, lifecycle_stage TEXT DEFAULT 'active');
-                CREATE TABLE params (run_uuid TEXT, key TEXT, value TEXT);
-                CREATE TABLE metrics (run_uuid TEXT, key TEXT, value REAL,
-                    step INTEGER, timestamp INTEGER);
-                CREATE TABLE latest_metrics (run_uuid TEXT, key TEXT, value REAL,
-                    step INTEGER, timestamp INTEGER);
-            """)
-        tables = load_mlflow_tables(p)
-        for key in ("experiments", "runs", "params", "metrics", "latest"):
-            assert len(tables[key]) == 0, f"Expected {key!r} to be empty"
+            con.execute(f"DELETE FROM {table}")
+        with pytest.raises(ValueError, match="empty"):
+            load_mlflow_tables(p)
 
     def test_accepts_path_object(self, db_path: Path) -> None:
-        """db_path should work as a pathlib.Path (not just a string)."""
+        """pathlib.Path input loads all rows correctly."""
         result = load_mlflow_tables(db_path)
-        assert "experiments" in result
+        assert len(result["runs"]) == 4
+
+    def test_accepts_string_path(self, db_path: Path) -> None:
+        """String path is equivalent to a Path object."""
+        result = load_mlflow_tables(Path(db_path))
+        assert len(result["runs"]) == 4
 
     def test_invalid_path_raises(self, tmp_path: Path) -> None:
-        with pytest.raises(Exception):
+        """A path with no MLflow schema raises DatabaseError (SQLite creates a blank file,
+        then the query fails because no tables exist)."""
+        with pytest.raises(DatabaseError):
             load_mlflow_tables(tmp_path / "nonexistent.db")
+
+    def test_run_with_no_params_or_metrics(self, tables: dict[str, pd.DataFrame]) -> None:
+        """run-ccc exists in runs but has no params/metrics rows; slicing returns empty, not an error."""
+        assert len(tables["params"][tables["params"]["run_uuid"] == "run-ccc"]) == 0
+        assert len(tables["metrics"][tables["metrics"]["run_uuid"] == "run-ccc"]) == 0
+
+    def test_missing_experiment_produces_null_name(self, tables: dict[str, pd.DataFrame]) -> None:
+        """run-ddd references experiment_id=999 which doesn't exist; LEFT JOIN yields NaN, not a raise."""
+        row = tables["runs"][tables["runs"]["run_uuid"] == "run-ddd"].iloc[0]
+        assert pd.isna(row["experiment_name"])
