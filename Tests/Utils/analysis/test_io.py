@@ -1,5 +1,6 @@
 import sqlite3
 import time
+from contextlib import closing
 from pathlib import Path
 
 import pandas as pd
@@ -29,7 +30,7 @@ def create_mlflow_db(
     Pass populate=False to create the schema only (no rows), which simulates a
     freshly initialised tracking store with no experiments or runs.
     """
-    with sqlite3.connect(path) as con:
+    with closing(sqlite3.connect(path)) as con:
         cur = con.cursor()
 
         cur.executescript("""
@@ -135,6 +136,7 @@ def create_mlflow_db(
                 ("run-bbb", "loss", 0.8, 0, now),
             ],
         )
+        con.commit()
 
 
 # ---------------------------------------------------------------------------
@@ -294,8 +296,9 @@ class TestEdgeCases:
         """Any one table being empty must raise, regardless of the others being populated."""
         p = tmp_path / f"missing_{table}.db"
         create_mlflow_db(p)
-        with sqlite3.connect(p) as con:
+        with closing(sqlite3.connect(p)) as con:
             con.execute(f"DELETE FROM {table}")
+            con.commit()
         with pytest.raises(ValueError, match="empty"):
             load_mlflow_tables(p)
 

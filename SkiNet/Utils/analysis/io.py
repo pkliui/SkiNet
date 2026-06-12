@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 import pandas as pd
 
@@ -54,12 +55,12 @@ def load_mlflow_tables(db_path: Path) -> dict[str, pd.DataFrame]:
         "metrics": "select run_uuid, key, value, step, timestamp from metrics",
         "latest": "select run_uuid, key, value, step, timestamp from latest_metrics",
     }
-    with sqlite3.connect(db_path) as con:
+    with closing(sqlite3.connect(db_path)) as con:
         tables = {name: pd.read_sql_query(sql, con) for name, sql in queries.items()}
     empty = [name for name, df in tables.items() if df.empty]
     if empty:
         raise ValueError(
-            f"Tables {empty} are empty in {db_path!r}. "
+            f"no active runs or no metrics in {db_path!r} (empty tables: {empty}). "
             "Ensure the tracking store has active runs with logged params and metrics."
         )
     return tables

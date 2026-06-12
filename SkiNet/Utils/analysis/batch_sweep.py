@@ -21,7 +21,6 @@ import pandas as pd
 from SkiNet.Utils.analysis.schema import (
     EXPECTED_BATCH_SIZES,
     MAX_EPOCHS_SWEEP,
-    N_TRAIN_IMAGES_ISIC2017,
     BATCH_SWEEP_METRICS,
     BATCH_SWEEP_COLS,
 )
@@ -315,99 +314,7 @@ def gpu_summary(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows).sort_values(["experiment", "batch_size"]).reset_index(drop=True)
 
 
-# ── Placeholder generation ─────────────────────────────────────────────────────
-
-def make_placeholder(label: str,
-                     batch_sizes: list[int] = EXPECTED_BATCH_SIZES,
-                     max_epochs: int = MAX_EPOCHS_SWEEP,
-                     n_train: int = N_TRAIN_IMAGES_ISIC2017) -> pd.DataFrame:
-    """Generate a synthetic batch-sweep DataFrame with outliers pre-marked.
-
-    Useful for notebook development when the real MLflow DB is unavailable. Output
-    is deterministic for identical arguments (fixed RNG seed).
-
-    :param label: Experiment label written into the ``experiment`` column.
-    :param batch_sizes: Batch sizes to simulate.
-    :param max_epochs: Number of training epochs to simulate.
-    :param n_train: Training set size; controls steps per epoch (``n_train // batch_size``).
-    :return: Tidy DataFrame conforming to :data:`BATCH_SWEEP_COLS` with outliers flagged.
-    """
-    rng = np.random.default_rng(42)
-    frames = []
-    for bs in batch_sizes:
-        steps_per_epoch = max(1, n_train // bs)
-        total_steps = max_epochs * steps_per_epoch
-        base_sps = 100.0 + 3.0 * bs
-        rows = []
-        for step in range(total_steps):
-            rows.append({
-                "experiment": label,
-                "batch_size": bs,
-                "run_uuid": f"placeholder-bs{bs}",
-                "step": step,
-                "samples_per_sec": float(rng.normal(base_sps, 4.0)),
-                "time_per_step_ms": float(bs / base_sps * 1000.0),
-                "epoch_idx": float(step // steps_per_epoch),
-                "gpu_mem_gb": float(0.5 + bs * 0.05),
-                "gpu_util_pct": float(min(99.0, 40.0 + bs * 0.5)),
-                "train_loss": float(0.5 * np.exp(-step / 200.0)),
-                "is_outlier": False,
-                "outlier_reason": "",
-            })
-        df_run = pd.DataFrame(rows, columns=BATCH_SWEEP_COLS)
-        frames.append(mark_outliers(df_run, max_epochs=max_epochs))
-    if not frames:
-        return pd.DataFrame(columns=BATCH_SWEEP_COLS)
-    return pd.concat(frames, ignore_index=True)
-
-
 # ── Scaling metrics ────────────────────────────────────────────────────────────
-
-def add_scaling_metrics(summary: pd.DataFrame,
-                        ref_bs: int) -> pd.DataFrame:
-    """Add ``perfect_scaling`` and ``efficiency_pct`` columns to a throughput summary.
-
-    Both columns are computed per experiment relative to ``ref_bs``. When ``ref_bs``
-    is absent from an experiment's data, both columns are filled with ``NaN``.
-
-    - ``perfect_scaling`` — ideal linear throughput at each batch size:
-      ``(batch_size / ref_bs) * median_at_ref_bs``.
-    - ``efficiency_pct`` — actual vs ideal: ``(median / perfect_scaling) * 100``.
-
-    :param summary: Output of :func:`throughput_summary`.
-    :param ref_bs: Reference batch size used as the baseline (100 % efficiency).
-    :return: Copy of ``summary`` with ``perfect_scaling`` and ``efficiency_pct`` columns added.
-    """
-    out = summary.copy()
-    out["perfect_scaling"] = np.nan
-    out["efficiency_pct"] = np.nan
-    for exp, g in out.groupby("experiment"):
-        ref_rows = g[g["batch_size"] == ref_bs]
-        if ref_rows.empty:
-            continue
-        ref_median = float(ref_rows["median"].iloc[0])
-        idx = g.index
-        out.loc[idx, "perfect_scaling"] = (out.loc[idx, "batch_size"] / ref_bs) * ref_median
-        out.loc[idx, "efficiency_pct"] = (out.loc[idx, "median"] / out.loc[idx, "perfect_scaling"]) * 100.0
-    return out
-
-
-def add_max_efficiency(summary: pd.DataFrame) -> pd.DataFrame:
-    """Add ``eff_max_pct`` — throughput as a percentage of the per-experiment peak.
-
-    ``eff_max_pct = (median / max(median)) * 100`` within each experiment group.
-
-    :param summary: Output of :func:`throughput_summary` (must have a ``median`` column).
-    :return: Copy of ``summary`` with an ``eff_max_pct`` column added.
-    """
-    out = summary.copy()
-    out["eff_max_pct"] = np.nan
-    for exp, g in out.groupby("experiment"):
-        peak = g["median"].max()
-        if peak > 0:
-            out.loc[g.index, "eff_max_pct"] = (g["median"] / peak) * 100.0
-    return out
-
 
 def plateau_batch_sizes(summary: pd.DataFrame,
                         threshold_pct: float = 80.0) -> list[int]:

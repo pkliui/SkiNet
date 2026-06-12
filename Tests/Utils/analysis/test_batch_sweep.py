@@ -7,18 +7,14 @@ from pathlib import Path
 from collections.abc import Sequence
 import numpy as np
 import pandas as pd
-import pytest
 
 from SkiNet.Utils.analysis.batch_sweep import (
-    add_max_efficiency,
-    add_scaling_metrics,
     build_df_batch_sweep_run,
     fetch_run_batch_map,
     get_rule_outlier_steps,
     gpu_summary,
     load_experiment,
     load_metric_series,
-    make_placeholder,
     mark_outliers,
     plateau_batch_sizes,
     recommendation_facts,
@@ -288,29 +284,6 @@ class TestLoadExperiment:
 
 
 # ---------------------------------------------------------------------------
-# make_placeholder
-# ---------------------------------------------------------------------------
-
-class TestMakePlaceholder:
-    def test_returns_all_batch_sizes(self) -> None:
-        df = make_placeholder("no_aug", batch_sizes=[4, 8])
-        assert set(df["batch_size"].unique()) == {4, 8}
-
-    def test_columns_match_batch_sweep_cols(self) -> None:
-        df = make_placeholder("no_aug", batch_sizes=[4])
-        assert list(df.columns) == BATCH_SWEEP_COLS
-
-    def test_outlier_marking_applied(self) -> None:
-        df = make_placeholder("no_aug", batch_sizes=[8], max_epochs=3, n_train=80)
-        assert df["is_outlier"].any(), "Placeholder must have at least step-0 outlier"
-
-    def test_deterministic_output(self) -> None:
-        df1 = make_placeholder("no_aug", batch_sizes=[8], max_epochs=2, n_train=80)
-        df2 = make_placeholder("no_aug", batch_sizes=[8], max_epochs=2, n_train=80)
-        pd.testing.assert_frame_equal(df1, df2)
-
-
-# ---------------------------------------------------------------------------
 # throughput_summary
 # ---------------------------------------------------------------------------
 
@@ -339,64 +312,6 @@ class TestThroughputSummary:
         summary = throughput_summary(df)
         row = summary.iloc[0]
         assert row["p10"] <= row["median"] <= row["p90"]
-
-
-# ---------------------------------------------------------------------------
-# add_scaling_metrics
-# ---------------------------------------------------------------------------
-
-class TestAddScalingMetrics:
-    def _summary(self) -> pd.DataFrame:
-        return pd.DataFrame({
-            "experiment": ["exp"] * 3,
-            "batch_size": [4, 8, 16],
-            "median": [100.0, 180.0, 200.0],
-            "p10": [90.0, 170.0, 190.0],
-            "p90": [110.0, 190.0, 210.0],
-            "median_time_per_step_ms": [30.0, 40.0, 80.0],
-        })
-
-    def test_ref_bs_efficiency_is_100(self) -> None:
-        result = add_scaling_metrics(self._summary(), ref_bs=4)
-        row = result[result["batch_size"] == 4].iloc[0]
-        assert row["efficiency_pct"] == pytest.approx(100.0)
-
-    def test_perfect_scaling_at_bs8(self) -> None:
-        result = add_scaling_metrics(self._summary(), ref_bs=4)
-        row = result[result["batch_size"] == 8].iloc[0]
-        assert row["perfect_scaling"] == pytest.approx(200.0)
-
-    def test_missing_ref_bs_leaves_nan(self) -> None:
-        s = self._summary()
-        s = s[s["batch_size"] != 4].reset_index(drop=True)
-        result = add_scaling_metrics(s, ref_bs=4)
-        assert result["efficiency_pct"].isna().all()
-
-
-# ---------------------------------------------------------------------------
-# add_max_efficiency
-# ---------------------------------------------------------------------------
-
-class TestAddMaxEfficiency:
-    def _summary(self) -> pd.DataFrame:
-        return pd.DataFrame({
-            "experiment": ["exp"] * 3,
-            "batch_size": [4, 8, 16],
-            "median": [100.0, 200.0, 160.0],
-            "p10": [90.0] * 3,
-            "p90": [110.0] * 3,
-            "median_time_per_step_ms": [30.0] * 3,
-        })
-
-    def test_peak_batch_has_100_pct(self) -> None:
-        result = add_max_efficiency(self._summary())
-        peak_row = result.loc[result["median"].idxmax()]
-        assert peak_row["eff_max_pct"] == pytest.approx(100.0)
-
-    def test_all_values_between_0_and_100(self) -> None:
-        result = add_max_efficiency(self._summary())
-        assert (result["eff_max_pct"] >= 0).all()
-        assert (result["eff_max_pct"] <= 100.0 + 1e-9).all()
 
 
 # ---------------------------------------------------------------------------

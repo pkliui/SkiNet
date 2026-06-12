@@ -3,21 +3,31 @@
 from __future__ import annotations
 
 import math
-import textwrap
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import pytest
+
+from unittest.mock import patch
 
 from SkiNet.Utils.analysis.aggregation import (
     _best_metric_columns,
     _latest_value,
     epoch_metrics,
-    family_summary,
+    load_runs,
     metric_inventory,
     parameter_inventory,
-    rank_table,
+    rank_runs,
+    summarize_by_family,
     summarize_runs,
+)
+from SkiNet.Utils.analysis.lr_sweep import (
+    arch_consistency,
+    best_run_per_group,
+    load_sweep_runs,
+    pivot_dim_effect,
+    rank_all_runs,
 )
 
 # ---------------------------------------------------------------------------
@@ -117,24 +127,28 @@ class TestBestMetricColumns:
         )
 
     def test_max_mode_picks_highest_value(self) -> None:
-        result = _best_metric_columns(self._df(), "val_dice", "best_val_dice", "max")
-        assert result["best_val_dice"] == pytest.approx(0.9)
-        assert result["best_val_dice_epoch"] == 2
+        result = _best_metric_columns(self._df(), "val_dice", "max")
+        assert result["val_dice_max"] == pytest.approx(0.9)
+        assert result["val_dice_max_epoch"] == 2
 
     def test_min_mode_picks_lowest_value(self) -> None:
-        result = _best_metric_columns(self._df(), "val_dice", "min_val_dice", "min")
-        assert result["min_val_dice"] == pytest.approx(0.7)
-        assert result["min_val_dice_epoch"] == 1
+        result = _best_metric_columns(self._df(), "val_dice", "min")
+        assert result["val_dice_min"] == pytest.approx(0.7)
+        assert result["val_dice_min_epoch"] == 1
 
     def test_empty_returns_nan(self) -> None:
         empty = pd.DataFrame(columns=["key", "value", "step", "timestamp"])
-        result = _best_metric_columns(empty, "val_dice", "best_val_dice", "max")
-        assert math.isnan(result["best_val_dice"])
-        assert math.isnan(result["best_val_dice_epoch"])
+        result = _best_metric_columns(empty, "val_dice", "max")
+        assert math.isnan(result["val_dice_max"])
+        assert math.isnan(result["val_dice_max_epoch"])
 
     def test_step_preserved(self) -> None:
-        result = _best_metric_columns(self._df(), "val_dice", "best_val_dice", "max")
-        assert result["best_val_dice_step"] == 2
+        result = _best_metric_columns(self._df(), "val_dice", "max")
+        assert result["val_dice_max_step"] == 2
+
+    def test_invalid_mode_raises(self) -> None:
+        with pytest.raises(ValueError, match="median.*val_dice|val_dice.*median"):
+            _best_metric_columns(self._df(), "val_dice", "median")
 
 
 # ---------------------------------------------------------------------------
@@ -143,11 +157,11 @@ class TestBestMetricColumns:
 
 class TestSummarizeRuns:
     def test_one_row_per_run(self, tables: dict[str, pd.DataFrame]) -> None:
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         assert len(result) == 2
 
     def test_sorted_by_monitor_descending(self, tables: dict[str, pd.DataFrame]) -> None:
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         assert result.iloc[0]["val_dice_max"] >= result.iloc[1]["val_dice_max"]
 
     def test_custom_monitor_column_present(self, tables: dict[str, pd.DataFrame]) -> None:
@@ -155,85 +169,50 @@ class TestSummarizeRuns:
         assert "val_dice_max" in result.columns
 
     def test_encoder_merge_parsed(self, tables: dict[str, pd.DataFrame]) -> None:
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         row_a = result[result["run_uuid"] == RUN_A].iloc[0]
         assert row_a["encoder"] == "resnet50"
         assert row_a["merge"] == "add"
 
     def test_duration_min_correct(self, tables: dict[str, pd.DataFrame]) -> None:
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         row_a = result[result["run_uuid"] == RUN_A].iloc[0]
         assert row_a["duration_min"] == pytest.approx(2.0)
 
     def test_run_short_is_8_chars(self, tables: dict[str, pd.DataFrame]) -> None:
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         assert all(result["run_short"].str.len() == 8)
 
     def test_final_metrics_populated(self, tables: dict[str, pd.DataFrame]) -> None:
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         row_a = result[result["run_uuid"] == RUN_A].iloc[0]
         assert row_a["final_train_dice"] == pytest.approx(0.85)
         assert row_a["final_val_dice"] == pytest.approx(0.80)
         assert row_a["samples_per_sec"] == pytest.approx(12.0)
 
     def test_generalization_gap(self, tables: dict[str, pd.DataFrame]) -> None:
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         row_a = result[result["run_uuid"] == RUN_A].iloc[0]
         expected_gap = pytest.approx(0.85 - 0.80)
         assert row_a["generalization_gap_final"] == expected_gap
 
     def test_best_val_dice_epoch_correct(self, tables: dict[str, pd.DataFrame]) -> None:
         # RUN_A val_dice: [0.70, 0.80, 0.75] → best at epoch 2
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         row_a = result[result["run_uuid"] == RUN_A].iloc[0]
         assert row_a["val_dice_max_epoch"] == 2
 
     def test_min_val_loss_epoch_correct(self, tables: dict[str, pd.DataFrame]) -> None:
         # RUN_A val_loss: [0.50, 0.35, 0.40] → min at epoch 2
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         row_a = result[result["run_uuid"] == RUN_A].iloc[0]
         assert row_a["val_loss_min_epoch"] == 2
 
     def test_missing_latest_key_gives_nan(self, tables: dict[str, pd.DataFrame]) -> None:
         # Remove all final/val_iou entries
         tables["latest"] = tables["latest"][tables["latest"]["key"] != "final/val_iou"]
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         assert result["final_val_iou"].isna().all()
-
-    def test_no_artifact_root_no_checkpoint_columns(self, tables: dict[str, pd.DataFrame]) -> None:
-        result = summarize_runs(tables, artifact_root=None)
-        assert "checkpoint" not in result.columns
-        assert "model_total_params" not in result.columns
-
-    def test_artifact_root_missing_checkpoint_dir(self, tables: dict[str, pd.DataFrame], tmp_path: Path) -> None:
-        # Directory exists but contains no .ckpt files → checkpoint=None, checkpoint_mb=NaN
-        result = summarize_runs(tables, artifact_root=tmp_path)
-        assert result["checkpoint"].isna().all()
-        assert result["checkpoint_mb"].isna().all()
-
-    def test_artifact_root_finds_checkpoint(self, tables: dict[str, pd.DataFrame], tmp_path: Path) -> None:
-        ckpt_dir = tmp_path / "1" / RUN_A / "artifacts" / "checkpoints" / "best"
-        ckpt_dir.mkdir(parents=True)
-        ckpt_file = ckpt_dir / "epoch=2-step=100.ckpt"
-        ckpt_file.write_bytes(b"x" * 5_000_000)
-        result = summarize_runs(tables, artifact_root=tmp_path)
-        row_a = result[result["run_uuid"] == RUN_A].iloc[0]
-        assert row_a["checkpoint"] == "epoch=2-step=100.ckpt"
-        assert row_a["checkpoint_mb"] == pytest.approx(5.0)
-
-    def test_artifact_root_reads_model_params(self, tables: dict[str, pd.DataFrame], tmp_path: Path) -> None:
-        model_dir = tmp_path / "1" / RUN_A / "artifacts" / "model"
-        model_dir.mkdir(parents=True)
-        # _model_total_params returns line.split("Total params")[0].strip()
-        summary = textwrap.dedent("""\
-            Layer (type)        Output Shape
-            ----------------------------------
-            3,700,000 Total params
-        """)
-        (model_dir / "model_summary.txt").write_text(summary)
-        result = summarize_runs(tables, artifact_root=tmp_path)
-        row_a = result[result["run_uuid"] == RUN_A].iloc[0]
-        assert row_a["model_total_params"] == "3,700,000"
 
     def test_empty_runs_returns_empty_dataframe(self) -> None:
         tables = {
@@ -241,7 +220,7 @@ class TestSummarizeRuns:
             "metrics": pd.DataFrame(columns=["run_uuid", "key", "value", "step", "timestamp"]),
             "latest": pd.DataFrame(columns=["run_uuid", "key", "value"]),
         }
-        result = summarize_runs(tables)
+        result = summarize_runs(tables, monitor="val_dice")
         assert len(result) == 0
 
 
@@ -318,7 +297,7 @@ class TestParameterInventory:
 
 
 # ---------------------------------------------------------------------------
-# family_summary
+# summarize_by_family
 # ---------------------------------------------------------------------------
 
 class TestFamilySummary:
@@ -337,7 +316,7 @@ class TestFamilySummary:
         )
 
     def test_contains_encoder_and_merge_families(self) -> None:
-        result = family_summary(self._run_summary()).data
+        result = summarize_by_family(self._run_summary(), monitor="val_dice").data
         assert set(result["family"]) == {"encoder", "merge"}
 
     def test_sorted_within_family_descending_dice(self) -> None:
@@ -346,12 +325,12 @@ class TestFamilySummary:
             run_uuid=["rx", "ry"], encoder=["resnet50", "resnet50"],
             val_dice_max=[0.90, 0.70]
         )], ignore_index=True)
-        result = family_summary(summary, group_cols=["encoder"]).data
+        result = summarize_by_family(summary, monitor="val_dice", group_cols=["encoder"]).data
         encoder_rows = result[result["family"] == "encoder"].reset_index(drop=True)
         assert encoder_rows.iloc[0]["mean_best_dice"] >= encoder_rows.iloc[1]["mean_best_dice"]
 
     def test_n_counts_runs_per_group(self) -> None:
-        result = family_summary(self._run_summary(), group_cols=["encoder"]).data
+        result = summarize_by_family(self._run_summary(), monitor="val_dice", group_cols=["encoder"]).data
         assert result["n"].sum() == 2
 
 
@@ -384,7 +363,7 @@ class TestEpochMetrics:
 
 
 # ---------------------------------------------------------------------------
-# rank_table
+# rank_runs
 # ---------------------------------------------------------------------------
 
 class TestRankTable:
@@ -409,28 +388,367 @@ class TestRankTable:
 
     def test_returns_styler(self) -> None:
         from pandas.io.formats.style import Styler
-        assert isinstance(rank_table(self._run_summary()), Styler)
+        assert isinstance(rank_runs(self._run_summary(), monitor="val_dice"), Styler)
 
     def test_sort_by_best_puts_highest_peak_first(self) -> None:
         # RUN_B peak=0.85 > RUN_A peak=0.81
-        df = rank_table(self._run_summary(), sort_by="best").data
+        df = rank_runs(self._run_summary(), monitor="val_dice", sort_by="best").data
         assert df.iloc[0]["val_dice_max"] == pytest.approx(0.85)
 
     def test_sort_by_tail_puts_highest_tail_mean_first(self) -> None:
         # RUN_A tail_mean=0.80 > RUN_B tail_mean=0.77
-        df = rank_table(self._run_summary(), sort_by="tail").data
+        df = rank_runs(self._run_summary(), monitor="val_dice", sort_by="tail").data
         assert df.iloc[0]["val_dice_tail_mean"] == pytest.approx(0.80)
 
     def test_invalid_sort_by_raises(self) -> None:
         with pytest.raises(ValueError, match="sort_by"):
-            rank_table(self._run_summary(), sort_by="median")
+            rank_runs(self._run_summary(), monitor="val_dice", sort_by="median")
 
     def test_caption_best_names_sort_col_and_criterion(self) -> None:
-        caption = rank_table(self._run_summary(), sort_by="best").caption
+        caption = rank_runs(self._run_summary(), monitor="val_dice", sort_by="best").caption
         assert "val_dice_max" in caption
         assert "peak value" in caption
 
     def test_caption_tail_names_sort_col_and_window(self) -> None:
-        caption = rank_table(self._run_summary(), sort_by="tail", tail_n=5).caption
+        caption = rank_runs(self._run_summary(), monitor="val_dice", sort_by="tail", tail_n=5).caption
         assert "val_dice_tail_mean" in caption
         assert "5" in caption
+
+
+# ---------------------------------------------------------------------------
+# load_runs
+# ---------------------------------------------------------------------------
+
+def _mock_tables(run_uuids: list, run_names: list, exp_ids: list) -> dict:
+    return {"runs": pd.DataFrame({
+        "run_uuid": run_uuids,
+        "run_name": run_names,
+        "experiment_id": exp_ids,
+    })}
+
+
+def _mock_summary(run_uuids: list) -> pd.DataFrame:
+    return pd.DataFrame({
+        "run_uuid": run_uuids,
+        "val_dice_max": [0.80] * len(run_uuids),
+    })
+
+
+class TestLoadRuns:
+    EXP_MAP = {1: "arch_a", 2: "arch_b"}
+
+    @patch("SkiNet.Utils.analysis.aggregation.summarize_runs")
+    @patch("SkiNet.Utils.analysis.aggregation.load_mlflow_tables")
+    def test_returns_dataframe(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        uuids = ["a1", "a2", "b1", "b2"]
+        names = ["run_seed100", "run_seed101", "run_seed100", "run_seed101"]
+        exp_ids = [1, 1, 2, 2]
+        mock_load.return_value = _mock_tables(uuids, names, exp_ids)
+        mock_summarize.return_value = _mock_summary(uuids)
+        df = load_runs(tmp_path / "a.db", exp_map=self.EXP_MAP, monitor="val_dice")
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 4
+
+    @patch("SkiNet.Utils.analysis.aggregation.summarize_runs")
+    @patch("SkiNet.Utils.analysis.aggregation.load_mlflow_tables")
+    def test_seed_extracted_correctly(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        uuids = ["a1", "a2", "b1", "b2"]
+        names = ["run_seed100", "run_seed101", "run_seed100", "run_seed101"]
+        exp_ids = [1, 1, 2, 2]
+        mock_load.return_value = _mock_tables(uuids, names, exp_ids)
+        mock_summarize.return_value = _mock_summary(uuids)
+        df = load_runs(tmp_path / "a.db", exp_map=self.EXP_MAP, monitor="val_dice")
+        assert sorted(df["seed"].unique()) == [100, 101]
+
+    @patch("SkiNet.Utils.analysis.aggregation.summarize_runs")
+    @patch("SkiNet.Utils.analysis.aggregation.load_mlflow_tables")
+    def test_arch_mapped_from_exp_id(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        uuids = ["a1", "b1"]
+        names = ["run_seed100", "run_seed100"]
+        exp_ids = [1, 2]
+        mock_load.return_value = _mock_tables(uuids, names, exp_ids)
+        mock_summarize.return_value = _mock_summary(uuids)
+        df = load_runs(tmp_path / "a.db", exp_map=self.EXP_MAP, monitor="val_dice")
+        assert set(df["arch"]) == {"arch_a", "arch_b"}
+
+    @patch("SkiNet.Utils.analysis.aggregation.summarize_runs")
+    @patch("SkiNet.Utils.analysis.aggregation.load_mlflow_tables")
+    def test_two_dbs_concatenated(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        uuids_p1 = ["a1", "b1"]
+        uuids_p2 = ["a2", "b2"]
+        names_p1 = ["run_seed100", "run_seed100"]
+        names_p2 = ["run_seed101", "run_seed101"]
+        exp_ids = [1, 2]
+        mock_load.side_effect = [
+            _mock_tables(uuids_p1, names_p1, exp_ids),
+            _mock_tables(uuids_p2, names_p2, exp_ids),
+        ]
+        mock_summarize.side_effect = [
+            _mock_summary(uuids_p1),
+            _mock_summary(uuids_p2),
+        ]
+        df = load_runs(tmp_path / "a.db", tmp_path / "b.db", exp_map=self.EXP_MAP, monitor="val_dice")
+        assert len(df) == 4
+
+    @patch("SkiNet.Utils.analysis.aggregation.summarize_runs")
+    @patch("SkiNet.Utils.analysis.aggregation.load_mlflow_tables")
+    def test_unbalanced_raises(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        uuids = ["a1", "a2", "b1"]
+        names = ["run_seed100", "run_seed101", "run_seed100"]
+        exp_ids = [1, 1, 2]
+        mock_load.return_value = _mock_tables(uuids, names, exp_ids)
+        mock_summarize.return_value = _mock_summary(uuids)
+        with pytest.raises(ValueError, match=r"Unbalanced seed coverage.*differ.*arch_b"):
+            load_runs(tmp_path / "a.db", exp_map=self.EXP_MAP, monitor="val_dice")
+
+
+# ---------------------------------------------------------------------------
+# Cross-LR sweep fixture
+# ---------------------------------------------------------------------------
+
+def _sweep_df() -> pd.DataFrame:
+    """A small 2-LR × 2-encoder × 2-merge sweep (8 runs) for the cross-LR helpers.
+
+    Values are chosen so that within each LR a known architecture wins, and so
+    the two LRs are cleanly separated on every metric — letting tests assert on
+    ordering and selection without depending on float ties.
+    """
+    rows = []
+    # (lr, encoder, merge, tail_mean, dice_max, tail_std, max_epoch, gap, drop, sps)
+    spec = [
+        ("3e-4", "classical", "he2", 0.826, 0.843, 0.011, 97, 0.078, 0.017, 140.0),
+        ("3e-4", "classical", "classical", 0.818, 0.835, 0.010, 90, 0.082, 0.018, 150.0),
+        ("3e-4", "se", "he2", 0.809, 0.825, 0.009, 70, 0.085, 0.020, 130.0),
+        ("3e-4", "se", "classical", 0.804, 0.820, 0.009, 65, 0.088, 0.021, 138.0),
+        ("1e-4", "classical", "he2", 0.819, 0.827, 0.006, 95, 0.070, 0.012, 128.0),
+        ("1e-4", "classical", "classical", 0.812, 0.821, 0.006, 88, 0.073, 0.013, 145.0),
+        ("1e-4", "se", "he2", 0.802, 0.812, 0.005, 60, 0.075, 0.014, 126.0),
+        ("1e-4", "se", "classical", 0.798, 0.808, 0.005, 55, 0.078, 0.015, 133.0),
+    ]
+    for i, (lr, enc, mrg, tm, dm, ts, me, gap, drop, sps) in enumerate(spec):
+        rows.append({
+            "run_uuid": f"run-{i:02d}",
+            "encoder": enc,
+            "merge": mrg,
+            "lr": lr,
+            "val_dice_tail_mean": tm,
+            "val_dice_max": dm,
+            "val_dice_tail_std": ts,
+            "val_dice_max_epoch": me,
+            "generalization_gap_final": gap,
+            "drop_peak_to_final": drop,
+            "samples_per_sec": sps,
+        })
+    return pd.DataFrame(rows)
+
+
+@pytest.fixture()
+def sweep() -> pd.DataFrame:
+    return _sweep_df()
+
+
+# ---------------------------------------------------------------------------
+# load_sweep_runs
+# ---------------------------------------------------------------------------
+
+class TestLoadSweepRuns:
+    EXPERIMENTS = {
+        "3e-4": ("lr_3e-4.db", "exp-3e-4"),
+        "1e-4": ("lr_1e-4.db", "exp-1e-4"),
+    }
+
+    @patch("SkiNet.Utils.analysis.lr_sweep.summarize_runs")
+    @patch("SkiNet.Utils.analysis.lr_sweep.load_mlflow_tables")
+    def test_concatenates_all_experiments(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        mock_load.return_value = {"runs": pd.DataFrame()}
+        mock_summarize.side_effect = [
+            pd.DataFrame({"run_uuid": ["a", "b"]}),
+            pd.DataFrame({"run_uuid": ["c", "d"]}),
+        ]
+        df = load_sweep_runs(self.EXPERIMENTS, tmp_path, monitor="val_dice")
+        assert len(df) == 4
+
+    @patch("SkiNet.Utils.analysis.lr_sweep.summarize_runs")
+    @patch("SkiNet.Utils.analysis.lr_sweep.load_mlflow_tables")
+    def test_group_label_tagged_per_experiment(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        mock_load.return_value = {"runs": pd.DataFrame()}
+        mock_summarize.side_effect = [
+            pd.DataFrame({"run_uuid": ["a", "b"]}),
+            pd.DataFrame({"run_uuid": ["c"]}),
+        ]
+        df = load_sweep_runs(self.EXPERIMENTS, tmp_path, monitor="val_dice")
+        assert df.loc[df["run_uuid"] == "a", "lr"].iloc[0] == "3e-4"
+        assert df.loc[df["run_uuid"] == "c", "lr"].iloc[0] == "1e-4"
+
+    @patch("SkiNet.Utils.analysis.lr_sweep.summarize_runs")
+    @patch("SkiNet.Utils.analysis.lr_sweep.load_mlflow_tables")
+    def test_group_by_column_name_is_configurable(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        mock_load.return_value = {"runs": pd.DataFrame()}
+        mock_summarize.side_effect = [pd.DataFrame({"run_uuid": ["a"]}), pd.DataFrame({"run_uuid": ["b"]})]
+        df = load_sweep_runs(self.EXPERIMENTS, tmp_path, monitor="val_dice", group_by="phase")
+        assert "phase" in df.columns
+        assert "lr" not in df.columns
+
+    @patch("SkiNet.Utils.analysis.lr_sweep.summarize_runs")
+    @patch("SkiNet.Utils.analysis.lr_sweep.load_mlflow_tables")
+    def test_resolves_db_path_relative_to_mlruns(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        mock_load.return_value = {"runs": pd.DataFrame()}
+        mock_summarize.return_value = pd.DataFrame({"run_uuid": ["a"]})
+        load_sweep_runs({"3e-4": ("lr_3e-4.db", "exp")}, tmp_path, monitor="val_dice")
+        called_path = mock_load.call_args[0][0]
+        assert called_path == tmp_path / "lr_3e-4.db"
+
+    @patch("SkiNet.Utils.analysis.lr_sweep.summarize_runs")
+    @patch("SkiNet.Utils.analysis.lr_sweep.load_mlflow_tables")
+    def test_index_is_reset_contiguous(self, mock_load: Any, mock_summarize: Any, tmp_path: Path) -> None:
+        mock_load.return_value = {"runs": pd.DataFrame()}
+        mock_summarize.side_effect = [
+            pd.DataFrame({"run_uuid": ["a", "b"]}),
+            pd.DataFrame({"run_uuid": ["c", "d"]}),
+        ]
+        df = load_sweep_runs(self.EXPERIMENTS, tmp_path, monitor="val_dice")
+        assert df.index.tolist() == [0, 1, 2, 3]
+
+
+# ---------------------------------------------------------------------------
+# best_run_per_group
+# ---------------------------------------------------------------------------
+
+class TestBestPerGroup:
+    def test_returns_styler(self, sweep: pd.DataFrame) -> None:
+        from pandas.io.formats.style import Styler
+        assert isinstance(best_run_per_group(sweep), Styler)
+
+    def test_one_row_per_group(self, sweep: pd.DataFrame) -> None:
+        result = best_run_per_group(sweep).data
+        assert len(result) == sweep["lr"].nunique()
+
+    def test_picks_highest_tail_mean_within_each_group(self, sweep: pd.DataFrame) -> None:
+        result = best_run_per_group(sweep).data
+        # classical+he2 is the per-LR tail-mean winner at both LRs
+        for lr in sweep["lr"].unique():
+            row = result[result["lr"] == lr].iloc[0]
+            assert (row["encoder"], row["merge"]) == ("classical", "he2")
+
+    def test_sorted_by_rank_metric_descending(self, sweep: pd.DataFrame) -> None:
+        result = best_run_per_group(sweep).data
+        tail = result["val_dice_tail_mean"].tolist()
+        assert tail == sorted(tail, reverse=True)
+
+    def test_custom_rank_metric(self, sweep: pd.DataFrame) -> None:
+        # Ranking by throughput selects classical+classical (the fastest) at each LR
+        result = best_run_per_group(sweep, rank_by="samples_per_sec").data
+        for lr in sweep["lr"].unique():
+            row = result[result["lr"] == lr].iloc[0]
+            assert row["merge"] == "classical"
+
+
+# ---------------------------------------------------------------------------
+# rank_all_runs
+# ---------------------------------------------------------------------------
+
+class TestRankAllRuns:
+    def test_returns_styler(self, sweep: pd.DataFrame) -> None:
+        from pandas.io.formats.style import Styler
+        assert isinstance(rank_all_runs(sweep), Styler)
+
+    def test_keeps_every_run(self, sweep: pd.DataFrame) -> None:
+        result = rank_all_runs(sweep).data
+        assert len(result) == len(sweep)
+
+    def test_sorted_by_tail_mean_descending(self, sweep: pd.DataFrame) -> None:
+        result = rank_all_runs(sweep).data
+        tail = result["val_dice_tail_mean"].tolist()
+        assert tail == sorted(tail, reverse=True)
+
+    def test_top_run_is_overall_best_tail_mean(self, sweep: pd.DataFrame) -> None:
+        result = rank_all_runs(sweep).data
+        top = result.iloc[0]
+        assert (top["lr"], top["encoder"], top["merge"]) == ("3e-4", "classical", "he2")
+
+    def test_columns_renamed_to_compact_aliases(self, sweep: pd.DataFrame) -> None:
+        result = rank_all_runs(sweep).data
+        assert {"tail_std", "epoch", "gen_gap", "drop"} <= set(result.columns)
+        assert "val_dice_tail_std" not in result.columns
+
+    def test_sort_by_peak_reorders(self, sweep: pd.DataFrame) -> None:
+        result = rank_all_runs(sweep, sort_by="val_dice_max").data
+        peaks = result["val_dice_max"].tolist()
+        assert peaks == sorted(peaks, reverse=True)
+
+    def test_missing_optional_column_tolerated(self, sweep: pd.DataFrame) -> None:
+        trimmed = sweep.drop(columns=["drop_peak_to_final"])
+        result = rank_all_runs(trimmed).data
+        assert "drop" not in result.columns
+        assert len(result) == len(trimmed)
+
+
+# ---------------------------------------------------------------------------
+# pivot_dim_effect
+# ---------------------------------------------------------------------------
+
+class TestPivotDimEffect:
+    def test_returns_styler(self, sweep: pd.DataFrame) -> None:
+        from pandas.io.formats.style import Styler
+        assert isinstance(pivot_dim_effect(sweep, "encoder"), Styler)
+
+    def test_rows_follow_group_order(self, sweep: pd.DataFrame) -> None:
+        result = pivot_dim_effect(sweep, "encoder", group_order=["1e-4", "3e-4"]).data
+        assert result.index.tolist() == ["1e-4", "3e-4"]
+
+    def test_outer_columns_follow_dim_order(self, sweep: pd.DataFrame) -> None:
+        result = pivot_dim_effect(sweep, "encoder", dim_order=["classical", "se"]).data
+        outer = list(dict.fromkeys(c[0] for c in result.columns))
+        assert outer == ["classical", "se"]
+
+    def test_mean_and_std_columns_present_per_dim(self, sweep: pd.DataFrame) -> None:
+        result = pivot_dim_effect(sweep, "encoder", dim_order=["classical", "se"]).data
+        assert ("classical", "mean") in result.columns
+        assert ("classical", "std") in result.columns
+
+    def test_mean_matches_groupby_mean(self, sweep: pd.DataFrame) -> None:
+        result = pivot_dim_effect(sweep, "encoder").data
+        expected = sweep[(sweep.lr == "3e-4") & (sweep.encoder == "classical")]["val_dice_tail_mean"].mean()
+        assert result.loc["3e-4", ("classical", "mean")] == pytest.approx(expected)
+
+    def test_absent_dim_value_becomes_nan_column(self, sweep: pd.DataFrame) -> None:
+        result = pivot_dim_effect(sweep, "encoder", dim_order=["classical", "he2"]).data
+        # he2 is not an encoder in this fixture -> NaN column
+        assert result[("he2", "mean")].isna().all()
+
+
+# ---------------------------------------------------------------------------
+# arch_consistency
+# ---------------------------------------------------------------------------
+
+class TestArchConsistency:
+    def test_returns_styler(self, sweep: pd.DataFrame) -> None:
+        from pandas.io.formats.style import Styler
+        assert isinstance(arch_consistency(sweep), Styler)
+
+    def test_one_row_per_architecture(self, sweep: pd.DataFrame) -> None:
+        result = arch_consistency(sweep).data
+        assert len(result) == 4  # 2 encoders × 2 merges
+
+    def test_sorted_by_mean_descending(self, sweep: pd.DataFrame) -> None:
+        result = arch_consistency(sweep).data
+        means = result["mean_tail_mean"].tolist()
+        assert means == sorted(means, reverse=True)
+
+    def test_top_architecture_has_highest_cross_lr_mean(self, sweep: pd.DataFrame) -> None:
+        result = arch_consistency(sweep).data
+        top = result.iloc[0]
+        assert (top["encoder"], top["merge"]) == ("classical", "he2")
+
+    def test_mean_std_min_max_match_manual(self, sweep: pd.DataFrame) -> None:
+        result = arch_consistency(sweep).data
+        row = result[(result["encoder"] == "classical") & (result["merge"] == "he2")].iloc[0]
+        vals = sweep[(sweep["encoder"] == "classical") & (sweep["merge"] == "he2")]["val_dice_tail_mean"]
+        assert row["mean_tail_mean"] == pytest.approx(vals.mean())
+        assert row["std_tail_mean"] == pytest.approx(vals.std())
+        assert row["min_tail_mean"] == pytest.approx(vals.min())
+        assert row["max_tail_mean"] == pytest.approx(vals.max())
+
+    def test_value_col_drives_column_suffix(self, sweep: pd.DataFrame) -> None:
+        result = arch_consistency(sweep, value_col="val_dice_max").data
+        assert {"mean_max", "std_max", "min_max", "max_max"} <= set(result.columns)

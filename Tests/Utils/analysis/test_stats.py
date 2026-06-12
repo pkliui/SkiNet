@@ -251,11 +251,8 @@ class TestHolmStepDown:
         assert result.loc["only", "threshold"] == pytest.approx(0.05)
 
     def test_thresholds_increase_with_rank(self) -> None:
-        # Smallest p is held to the strictest (smallest) threshold, so the
-        # per-rank threshold alpha / (k - i) grows as rank i increases.
         result = holm_step_down({"a": 0.01, "b": 0.02, "c": 0.03}, alpha=0.06)
         thresholds = result["threshold"].tolist()
-        # threshold at rank 0: 0.06/3=0.02, rank 1: 0.06/2=0.03, rank 2: 0.06/1=0.06
         assert thresholds[0] < thresholds[1] < thresholds[2]
 
 
