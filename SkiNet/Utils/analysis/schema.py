@@ -29,10 +29,7 @@ DURATION_MIN = "duration_min"
 EXPECTED_BATCH_SIZES: list[int] = [4, 8, 16, 32, 64, 128]
 MAX_EPOCHS_SWEEP: int = 10
 N_TRAIN_IMAGES_ISIC2017: int = 2000
-EFFICIENCY_THRESHOLD_PCT: float = 80.0
-REFERENCE_BS: int = 4
-
-STEP_METRICS: list[str] = [
+BATCH_SWEEP_METRICS: list[str] = [
     "perf/samples_per_sec",
     "perf/time_per_step_ms",
     "system/gpu_mem_allocated_gb",
@@ -41,7 +38,7 @@ STEP_METRICS: list[str] = [
     "epoch",
 ]
 
-TIDY_COLS: list[str] = [
+BATCH_SWEEP_COLS: list[str] = [
     "experiment", "batch_size", "run_uuid", "step",
     "samples_per_sec", "time_per_step_ms",
     "epoch_idx", "gpu_mem_gb", "gpu_util_pct", "train_loss",

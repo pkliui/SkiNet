@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from collections.abc import Sequence
 import numpy as np
@@ -11,10 +12,10 @@ import pytest
 from SkiNet.Utils.analysis.batch_sweep import (
     add_max_efficiency,
     add_scaling_metrics,
-    build_run_frame,
+    build_df_batch_sweep_run,
+    fetch_run_batch_map,
     get_rule_outlier_steps,
     gpu_summary,
-    load_active_runs,
     load_experiment,
     load_metric_series,
     make_placeholder,
@@ -23,7 +24,7 @@ from SkiNet.Utils.analysis.batch_sweep import (
     recommendation_facts,
     throughput_summary,
 )
-from SkiNet.Utils.analysis.schema import TIDY_COLS
+from SkiNet.Utils.analysis.schema import BATCH_SWEEP_COLS
 
 
 # ---------------------------------------------------------------------------
@@ -99,38 +100,34 @@ def _minimal_tidy(batch_sizes: Sequence[int] = (4, 8, 16),
                 "is_outlier": False,
                 "outlier_reason": "",
             })
-    return pd.DataFrame(rows, columns=TIDY_COLS)
+    return pd.DataFrame(rows, columns=BATCH_SWEEP_COLS)
 
 
 # ---------------------------------------------------------------------------
-# load_active_runs
+# fetch_run_batch_map
 # ---------------------------------------------------------------------------
 
-class TestLoadActiveRuns:
+class TestFetchRunBatchMap:
     def test_returns_expected_columns(self) -> None:
-        con = _make_db()
-        result = load_active_runs(con)
+        with closing(_make_db()) as con:
+            result = fetch_run_batch_map(con)
         assert set(result.columns) == {"run_uuid", "batch_size"}
-        con.close()
 
     def test_batch_size_is_int(self) -> None:
-        con = _make_db()
-        result = load_active_runs(con)
+        with closing(_make_db()) as con:
+            result = fetch_run_batch_map(con)
         assert result["batch_size"].dtype == int
-        con.close()
 
     def test_filters_to_allowed_batch_sizes(self) -> None:
-        con = _make_db(batch_sizes=[8, 16, 32])
-        result = load_active_runs(con, batch_sizes=[8, 16])
+        with closing(_make_db(batch_sizes=[8, 16, 32])) as con:
+            result = fetch_run_batch_map(con, batch_sizes=[8, 16])
         assert set(result["batch_size"]) == {8, 16}
-        con.close()
 
     def test_excludes_deleted_runs(self) -> None:
-        con = _make_db(batch_sizes=[8])
-        con.execute("UPDATE runs SET lifecycle_stage = 'deleted' WHERE run_uuid = 'run-bs8'")
-        result = load_active_runs(con, batch_sizes=[8])
+        with closing(_make_db(batch_sizes=[8])) as con:
+            con.execute("UPDATE runs SET lifecycle_stage = 'deleted' WHERE run_uuid = 'run-bs8'")
+            result = fetch_run_batch_map(con, batch_sizes=[8])
         assert len(result) == 0
-        con.close()
 
 
 # ---------------------------------------------------------------------------
@@ -139,54 +136,46 @@ class TestLoadActiveRuns:
 
 class TestLoadMetricSeries:
     def test_returns_step_value_timestamp(self) -> None:
-        con = _make_db(batch_sizes=[8], steps_per_bs=5)
-        uuid = "run-bs8"
-        result = load_metric_series(con, uuid, "perf/samples_per_sec")
+        with closing(_make_db(batch_sizes=[8], steps_per_bs=5)) as con:
+            result = load_metric_series(con, "run-bs8", "perf/samples_per_sec")
         assert set(result.columns) >= {"step", "value", "timestamp"}
-        con.close()
 
     def test_ordered_by_step(self) -> None:
-        con = _make_db(batch_sizes=[8], steps_per_bs=20)
-        result = load_metric_series(con, "run-bs8", "perf/samples_per_sec")
+        with closing(_make_db(batch_sizes=[8], steps_per_bs=20)) as con:
+            result = load_metric_series(con, "run-bs8", "perf/samples_per_sec")
         assert list(result["step"]) == sorted(result["step"].tolist())
-        con.close()
 
     def test_unknown_key_returns_empty(self) -> None:
-        con = _make_db(batch_sizes=[8], steps_per_bs=5)
-        result = load_metric_series(con, "run-bs8", "nonexistent/key")
+        with closing(_make_db(batch_sizes=[8], steps_per_bs=5)) as con:
+            result = load_metric_series(con, "run-bs8", "nonexistent/key")
         assert result.empty
-        con.close()
 
 
 # ---------------------------------------------------------------------------
-# build_run_frame
+# build_df_batch_sweep_run
 # ---------------------------------------------------------------------------
 
 class TestBuildRunFrame:
-    def test_output_columns_match_tidy_cols(self) -> None:
-        con = _make_db(batch_sizes=[8], steps_per_bs=20)
-        result = build_run_frame(con, "run-bs8", 8, "no_aug")
-        assert list(result.columns) == TIDY_COLS
-        con.close()
+    def test_output_columns_match_batch_sweep_cols(self) -> None:
+        with closing(_make_db(batch_sizes=[8], steps_per_bs=20)) as con:
+            result = build_df_batch_sweep_run(con, "run-bs8", 8, "no_aug")
+        assert list(result.columns) == BATCH_SWEEP_COLS
 
     def test_experiment_and_batch_size_set(self) -> None:
-        con = _make_db(batch_sizes=[16], steps_per_bs=10)
-        result = build_run_frame(con, "run-bs16", 16, "with_aug")
+        with closing(_make_db(batch_sizes=[16], steps_per_bs=10)) as con:
+            result = build_df_batch_sweep_run(con, "run-bs16", 16, "with_aug")
         assert (result["experiment"] == "with_aug").all()
         assert (result["batch_size"] == 16).all()
-        con.close()
 
     def test_is_outlier_false_by_default(self) -> None:
-        con = _make_db(batch_sizes=[8], steps_per_bs=10)
-        result = build_run_frame(con, "run-bs8", 8, "no_aug")
+        with closing(_make_db(batch_sizes=[8], steps_per_bs=10)) as con:
+            result = build_df_batch_sweep_run(con, "run-bs8", 8, "no_aug")
         assert not result["is_outlier"].any()
-        con.close()
 
     def test_empty_on_missing_run_uuid(self) -> None:
-        con = _make_db(batch_sizes=[8], steps_per_bs=5)
-        result = build_run_frame(con, "nonexistent-uuid", 8, "no_aug")
+        with closing(_make_db(batch_sizes=[8], steps_per_bs=5)) as con:
+            result = build_df_batch_sweep_run(con, "nonexistent-uuid", 8, "no_aug")
         assert result.empty
-        con.close()
 
 
 # ---------------------------------------------------------------------------
@@ -195,22 +184,22 @@ class TestBuildRunFrame:
 
 class TestGetRuleOutlierSteps:
     def test_step0_always_included(self) -> None:
-        result = get_rule_outlier_steps(spe=50)
+        result = get_rule_outlier_steps(steps_per_epoch=50)
         assert 0 in result
         assert result[0] == "step0"
 
     def test_epoch_last_step_included(self) -> None:
-        result = get_rule_outlier_steps(spe=50, max_epochs=10)
+        result = get_rule_outlier_steps(steps_per_epoch=50, max_epochs=10)
         assert 49 in result
         assert result[49] == "epoch_last_high"
 
     def test_epoch_first_step_included(self) -> None:
-        result = get_rule_outlier_steps(spe=50, max_epochs=10)
+        result = get_rule_outlier_steps(steps_per_epoch=50, max_epochs=10)
         assert 50 in result
         assert result[50] == "epoch_first_low"
 
     def test_returns_dict(self) -> None:
-        assert isinstance(get_rule_outlier_steps(spe=10), dict)
+        assert isinstance(get_rule_outlier_steps(steps_per_epoch=10), dict)
 
 
 # ---------------------------------------------------------------------------
@@ -238,14 +227,14 @@ class TestMarkOutliers:
         assert n_clean > 0
 
     def test_empty_frame_returns_empty(self) -> None:
-        empty = pd.DataFrame(columns=TIDY_COLS)
+        empty = pd.DataFrame(columns=BATCH_SWEEP_COLS)
         result = mark_outliers(empty)
         assert result.empty
 
     def test_spe_stored_in_attrs(self) -> None:
         df = mark_outliers(self._frame(n=100))
-        assert "spe" in df.attrs
-        assert df.attrs["spe"] >= 1
+        assert "steps_per_epoch" in df.attrs
+        assert df.attrs["steps_per_epoch"] >= 1
 
     def test_iqr_outlier_flagged(self) -> None:
         df = _minimal_tidy(batch_sizes=[8], n_steps=200).copy()
@@ -271,32 +260,31 @@ class TestLoadExperiment:
 
     def test_loads_real_db(self, tmp_path: Path) -> None:
         db_path = tmp_path / "test.db"
-        con = sqlite3.connect(str(db_path))
-        # copy the in-memory DB structure to a file-backed DB
-        _make_db(batch_sizes=[8, 16], steps_per_bs=30)
-        # rebuild directly as a file DB
-        con.executescript("""
-            CREATE TABLE runs (run_uuid TEXT PRIMARY KEY, lifecycle_stage TEXT);
-            CREATE TABLE params (run_uuid TEXT, key TEXT, value TEXT);
-            CREATE TABLE metrics (run_uuid TEXT, key TEXT, value REAL,
-                                  step INTEGER, timestamp INTEGER);
-        """)
-        rng = np.random.default_rng(0)
-        for bs in [8, 16]:
-            uuid = f"r-{bs}"
-            con.execute("INSERT INTO runs VALUES (?, 'active')", (uuid,))
-            con.execute("INSERT INTO params VALUES (?, 'batch_size', ?)", (uuid, str(bs)))
-            for step in range(30):
-                con.execute(
-                    "INSERT INTO metrics VALUES (?, 'perf/samples_per_sec', ?, ?, ?)",
-                    (uuid, float(rng.normal(120, 5)), step, step),
-                )
-        con.commit()
-        con.close()
+        with closing(sqlite3.connect(str(db_path))) as con:
+            # copy the in-memory DB structure to a file-backed DB
+            _make_db(batch_sizes=[8, 16], steps_per_bs=30)
+            # rebuild directly as a file DB
+            con.executescript("""
+                CREATE TABLE runs (run_uuid TEXT PRIMARY KEY, lifecycle_stage TEXT);
+                CREATE TABLE params (run_uuid TEXT, key TEXT, value TEXT);
+                CREATE TABLE metrics (run_uuid TEXT, key TEXT, value REAL,
+                                      step INTEGER, timestamp INTEGER);
+            """)
+            rng = np.random.default_rng(0)
+            for bs in [8, 16]:
+                uuid = f"r-{bs}"
+                con.execute("INSERT INTO runs VALUES (?, 'active')", (uuid,))
+                con.execute("INSERT INTO params VALUES (?, 'batch_size', ?)", (uuid, str(bs)))
+                for step in range(30):
+                    con.execute(
+                        "INSERT INTO metrics VALUES (?, 'perf/samples_per_sec', ?, ?, ?)",
+                        (uuid, float(rng.normal(120, 5)), step, step),
+                    )
+            con.commit()
         result = load_experiment("no_aug", db_path, batch_sizes=[8, 16])
         assert not result.empty
         assert set(result["batch_size"].unique()) == {8, 16}
-        assert list(result.columns) == TIDY_COLS
+        assert list(result.columns) == BATCH_SWEEP_COLS
 
 
 # ---------------------------------------------------------------------------
@@ -308,9 +296,9 @@ class TestMakePlaceholder:
         df = make_placeholder("no_aug", batch_sizes=[4, 8])
         assert set(df["batch_size"].unique()) == {4, 8}
 
-    def test_columns_match_tidy_cols(self) -> None:
+    def test_columns_match_batch_sweep_cols(self) -> None:
         df = make_placeholder("no_aug", batch_sizes=[4])
-        assert list(df.columns) == TIDY_COLS
+        assert list(df.columns) == BATCH_SWEEP_COLS
 
     def test_outlier_marking_applied(self) -> None:
         df = make_placeholder("no_aug", batch_sizes=[8], max_epochs=3, n_train=80)
