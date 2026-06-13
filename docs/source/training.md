@@ -41,9 +41,11 @@ The core training logic lives in {py:class}`SkiNet.ML.model.lightning_model.Ligh
 
 | Metric logged | Description |
 |---|---|
+| `train_loss` / `val_loss` / `test_loss` | Epoch-mean loss for the configured `loss_name` |
 | `train_dice` / `val_dice` / `test_dice` | `BinaryF1Score` at the fixed or swept threshold |
 | `train_iou` / `val_iou` / `test_iou` | `BinaryJaccardIndex` |
-| `val_best_dice_at_threshold` | Best Dice found across the threshold sweep |
+| `val_best_dice_at_threshold` | Best dataset-aggregated Dice found across the threshold sweep |
+| `val_mean_dice_per_image` | Mean of per-image Dice at the best threshold; **schema default monitor** (`MetricsKey.default_monitor()`) |
 | `val_optimal_threshold` | Threshold that achieved `val_best_dice_at_threshold` |
 | `val_dice_threshold_gain` | Dice gain from using the optimal threshold vs. 0.5 |
 | `val_threshold_used` | Threshold actually applied during validation |
@@ -52,7 +54,7 @@ The core training logic lives in {py:class}`SkiNet.ML.model.lightning_model.Ligh
 
 - **Optimizer:** Adam or AdamW (set via `optimizer_name`), with configurable `lr` and `weight_decay`.
 - **Scheduler:** controlled by `scheduler_type` (`"reduce_on_plateau"` or `"cosine_annealing"`); toggled via `use_lr_scheduler`.
-  - `"reduce_on_plateau"` (default): `ReduceLROnPlateau` monitors `val_best_dice_at_threshold` (mode `"max"`, patience 5, factor 0.5). Configured via `lr_scheduler_config`.
+  - `"reduce_on_plateau"` (schema default): `ReduceLROnPlateau`, mode `"max"`, schema defaults patience `5` / factor `0.5` (the shipped `main_config.yaml` sets patience `3`). It monitors the propagated `SWEEP_CONFIG.monitor` (schema default `val_mean_dice_per_image`; `val_best_dice_at_threshold` in the shipped config) — do not set `monitor` under `lr_scheduler_config`. Configured via `lr_scheduler_config`.
   - `"cosine_annealing"`: `CosineAnnealingLR` with `T_max` (defaults to `max_epochs` when `None`) and `eta_min` (default `1e-6`). Configured via `cosine_annealing_config`.
 
 ### Mixed precision and gradient scale monitoring
@@ -115,7 +117,9 @@ MODEL_CONFIG:
 
 ## Best threshold selection
 
-At the end of each validation epoch, {py:func}`SkiNet.ML.training.training_utils.find_best_threshold` sweeps 51 evenly-spaced candidate values from 1.0 down to 0.0 using `torch.linspace`. For every threshold it computes true positives, false positives, and false negatives in a single vectorised broadcast across the entire validation set, then derives Dice (F1) as `2·tp / (2·tp + fp + fn)`. The threshold with the highest Dice is selected; when multiple thresholds tie, the **highest** one wins because the sweep is descending and `argmax` returns the first occurrence. `val_best_dice_at_threshold` is the metric monitored by early stopping and Optuna.
+At the end of each validation epoch, **when `optimal_threshold` is `null`**, {py:func}`SkiNet.ML.training.training_utils.find_best_threshold` sweeps 51 evenly-spaced candidate values from 1.0 down to 0.0 using `torch.linspace`. For every threshold it computes true positives, false positives, and false negatives in a single vectorised broadcast across the entire validation set, then derives Dice (F1) as `2·tp / (2·tp + fp + fn)`. The threshold with the highest Dice is selected; when multiple thresholds tie, the **highest** one wins because the sweep is descending and `argmax` returns the first occurrence.
+
+When `optimal_threshold` is set to a fixed float (as in the shipped `main_config.yaml`, `0.5`), the sweep is **skipped**: `val_best_dice_at_threshold` and `val_mean_dice_per_image` are computed directly at that fixed threshold and `val_optimal_threshold` echoes it. In both cases `val_dice_threshold_gain` reports the Dice difference relative to a plain 0.5 cutoff. `val_best_dice_at_threshold` is the metric monitored by early stopping and Optuna.
 
 ## Callbacks
 
@@ -126,8 +130,8 @@ All callbacks are opt-in via boolean flags in `TrainConfig`. They are wired toge
 |---|---|---|
 | {py:class}`SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback` | always on | Background thread logs CPU%, RAM%, GPU memory (allocated/reserved), and GPU utilisation every `system_metrics_interval_sec` (default 5 s) |
 | {py:class}`SkiNet.Utils.logging.throughput.ThroughputCallback` | always on | Logs `perf/samples_per_sec` and `perf/time_per_step_ms` after every training batch; primary signal for GPU saturation and DataLoader bottleneck diagnosis |
-| `EarlyStopping` | `use_early_stopping` | Monitors `val_best_dice_at_threshold` (mode `"max"`, patience 5); config via {py:class}`SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig` |
-| `ModelCheckpoint` | `use_checkpoint` | Saves best checkpoint by `val_best_dice_at_threshold`; config via {py:class}`SkiNet.ML.configs.train_configs.train_config.CheckpointConfig` |
+| `EarlyStopping` | `use_early_stopping` | Monitors the propagated `SWEEP_CONFIG.monitor` (mode `"max"`); config via {py:class}`SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig` (schema default patience 5; `main_config.yaml` uses 30) |
+| `ModelCheckpoint` | `use_checkpoint` | Saves the best checkpoint by the propagated `SWEEP_CONFIG.monitor`; config via {py:class}`SkiNet.ML.configs.train_configs.train_config.CheckpointConfig` |
 | `MLFlowLogger` | `use_mlflow_logger` | Logs params, metrics, model summary, and artifacts; supports nested Optuna child runs; config via {py:class}`SkiNet.ML.configs.train_configs.train_config.MLflowConfig` |
 | `LearningRateMonitor` | any logger enabled | Logs LR each epoch |
 | {py:class}`SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback` | `use_mlflow_logger` | Logs model summary at fit start; logs early-stopping state and best checkpoint as artifacts at fit end |
@@ -151,17 +155,32 @@ When running `optuna_sweep.py`, a single MLflow parent run wraps the whole study
   |---|---|---|
   | `HyperparamKey.LR` | `"lr"` | Learning rate (scaled linearly by batch size: `lr * batch_size / min_batch_size`). Fixed to a single value in `main_config.yaml` after E1 LR search; set multiple values in `SWEEP_CONFIG.lr` only when searching LR for a new architecture. |
   | `HyperparamKey.WEIGHT_DECAY` | `"weight_decay"` | L2 regularisation strength |
-  | `HyperparamKey.BATCH_SIZE` | `"batch_size"` | Number of samples per training batch |
+  | `HyperparamKey.BATCH_SIZE` | `"batch_size"` | Samples per training batch (also rescales LR — see below) |
   | `HyperparamKey.NUM_WORKERS` | `"num_workers"` | DataLoader worker count |
   | `HyperparamKey.PREFETCH_FACTOR` | `"prefetch_factor"` | Batches pre-loaded per worker |
+  | `HyperparamKey.SCHEDULER_TYPE` | `"scheduler_type"` | LR scheduler per trial: `"none"` (sets `use_lr_scheduler=False`), `"cosine_annealing"`, or `"reduce_on_plateau"` |
 
-  Default grid in `SweepConfig`: `lr = [3e-4]` (fixed, not varied — determined by the E1 LR search), `weight_decay ∈ [1e-4, 1e-3]`, `batch_size ∈ [16, 32]`, `num_workers ∈ [4, 8]`, `prefetch_factor ∈ [2, 4]` → 16 trials. Override `lr` in the YAML `SWEEP_CONFIG` section if you need to re-run an LR search for a new architecture.
+  Each field is a **list of GridSampler candidates** for one dimension; the effective search space is
+  the Cartesian product of the lists, and `optuna_sweep.py` runs the full product
+  (`n_combos = ∏ len(list)`) unless `--trials N` caps it. Single-element lists are held constant.
+
+  Every `SweepConfig` field defaults to a **single value, kept consistent with the `SWEEP_CONFIG`
+  block in `main_config.yaml`** (`lr=[3e-4]`, `weight_decay=[0.0]`, `batch_size=[8]`, `num_workers=[2]`,
+  `prefetch_factor=[4]`, `scheduler_type=["none"]`), so the default grid is a **1-combo no-op sweep**.
+  To search a dimension, widen its list in the YAML — in practice vary **one** at a time. Note
+  `num_workers` and `prefetch_factor` are throughput knobs that do not affect model quality, and
+  `batch_size` is usually swept to find the largest size that fits GPU memory rather than as a
+  generalisation target. When `batch_size` is varied, `lr` is rescaled per trial by
+  `scale_lr` (anchored to the smallest batch in the sweep), so a sampled `lr` always denotes the rate
+  at the reference batch size.
 
 - **`SWEEP_CONFIG.monitor` and `SWEEP_CONFIG.direction` in the YAML are the single source of truth** for the
   optimisation objective. {py:class}`SkiNet.ML.configs.experiment_config.ExperimentConfig` automatically propagates `monitor` into
   `early_stopping_config`, `checkpoint_config`, and `lr_scheduler_config` at config-load time —
   do **not** set `monitor` in those sub-sections. If they disagree, a `ValueError` is raised at
-  startup so the mismatch is caught before any training runs.
+  startup so the mismatch is caught before any training runs. The schema default (when
+  `SWEEP_CONFIG.monitor` is unset) is `val_mean_dice_per_image`; the shipped `main_config.yaml`
+  overrides it to `val_best_dice_at_threshold`, which is what the callbacks below then monitor.
 
   ```yaml
   SWEEP_CONFIG:
@@ -177,8 +196,8 @@ When running `optuna_sweep.py`, a single MLflow parent run wraps the whole study
   overrides; leaving them unset means the YAML values are used.
 
 - MLflow run naming:
-  - Parent: `optuna_study_{experiment_name}_{monitor}`
-  - Child: `trial_{n}_lr{lr}_wd{weight_decay}_bs{batch_size}`
+  - Parent: `optuna_study_{TRAIN_CONFIG.experiment_name}_{monitor}`
+  - Child: `trial_{n}_lr{lr}_wd{weight_decay}_bs{batch_size}_nw{num_workers}_pf{prefetch_factor}_sched{scheduler_type}`
 
 Example — monitor and direction taken from `SWEEP_CONFIG` in the YAML (recommended):
 ```bash
@@ -245,12 +264,12 @@ ssh -N -L 5000:localhost:5000 ssh_connection_string_from_your_studio@ssh.lightni
 nvidia-smi dmon -s u
 ```
 
-(reproducibility)=
 ## Reproducibility
 
 ### How the same seed value is guaranteed
 
-Three independent seed fields are read from the YAML and set to the same integer (default 100):
+Three independent seed fields are read from the YAML and, in the shipped `main_config.yaml`, set to the
+same integer `100` (Pydantic schema defaults differ: `split_random_seed=42`, `seed_value=None`, `seed=42`):
 
 ```python
 DATA_CONFIG.split_random_seed   # used once when datasets are split
@@ -262,12 +281,16 @@ Then in `configure_reproducibility()`:
 
 ```python
 L.seed_everything(train_cfg.seed, workers=True)  # seeds Python, NumPy, PyTorch, and DataLoader workers
-# fallback: if TRANSFORM_CONFIG.seed_value is None, set it to train_cfg.seed
+# fallback: if TRANSFORM_CONFIG.seed_value is None (and compose_kwargs has no "seed"), set it to train_cfg.seed
 ```
 
 All three fields are set to a constant in the YAML — nothing overrides them at runtime.
 
-> **Note:** A run with `visualize=True` and one with `visualize=False` will produce different model weight initialisations. Re-seed after visualisation to avoid this.
+> **Note:** Toggling `train_and_evaluate(..., visualize=...)` (default `True`, which calls
+> `visualize_augmented_data` on the train split) does **not** change model weight initialisation:
+> `visualize_augmented_data` snapshots torch/NumPy/Python/CUDA RNG state and restores it in a
+> `finally` block, so the RNG seen by downstream model init and training is identical with or without
+> visualisation. No manual re-seeding is needed.
 
 ### Platform notes — Deterministic mode (Apple Silicon / MPS)
 

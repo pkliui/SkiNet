@@ -1,4 +1,4 @@
-# Documenation
+# Documentation
 
 At present the documentation is built with sphinx in the dev branch and its remote version (GitHub Pages site https://pkliui.github.io/SkiNet/) is updated upon a push to the dev branch as specified in the workflow (see below).
 
@@ -9,8 +9,12 @@ To complete the documentation further:
 ### Quick start: install dependencies with pip on Docker host
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements_docs.txt
 ```
+
+This installs `sphinx`, `furo`, `myst-parser`, `sphinx-togglebutton`, `autodoc-pydantic`, `nbsphinx`,
+and `ipykernel` (the contents of `requirements_docs.txt`; `nbsphinx`/`ipykernel` render the analysis
+notebooks). The CI build uses the equivalent `skinet-docs` conda environment in `environment_docs.yaml`.
 
 ### Configure documentation
 
@@ -51,7 +55,12 @@ Contents
 
 ```
 
-- Customize the documentation using ```conf.py``` file. Example:
+- Customize the documentation using ```conf.py``` file. The example below is the original
+  scaffold; the **current** `docs/source/conf.py` is the source of truth and additionally enables
+  `nbsphinx` (renders the analysis notebooks; `nbsphinx_execute = "never"`), `sphinx.ext.autodoc`,
+  `sphinx.ext.napoleon`, `sphinx.ext.viewcode`, `sphinx.ext.intersphinx`,
+  `sphinxcontrib.autodoc_pydantic`, and `myst_heading_anchors = 3` for the API reference and
+  cross-file links. Edit that file directly rather than copying this snippet.
 
 ```python
 # Configuration file for the Sphinx documentation builder.
@@ -141,50 +150,15 @@ To publish the documentation on Github Pages, please follow these instructions:
 ```bash
 git checkout dev
 ```
-- Put the following .yaml file under ```.github/workflow```  to specify the workflow for building documentation:
-e.g. build-docs.yaml file
 
-```yaml
-name: Workflow to update documentation upon push to dev branch
+- The deploy workflow lives at [`.github/workflows/build-docs.yaml`](https://github.com/pkliui/SkiNet/blob/dev/.github/workflows/build-docs.yaml) (the source of truth). On every push to `dev` it:
+  1. checks out the repo (`actions/checkout@v4`);
+  2. creates the `skinet-docs` conda env from `environment_docs.yaml` via `conda-incubator/setup-miniconda@v3` (`activate-environment: skinet-docs`, `auto-activate-base: false`);
+  3. **validates links**: `sphinx-build docs/source -b linkcheck -d docs/source docs/build/html`;
+  4. **builds HTML into `docs/`** (so `index.html` sits at the publish root): `sphinx-build -b html docs/source/ docs/` then `touch docs/.nojekyll`;
+  5. **deploys** to the `gh-pages` branch via `peaceiris/actions-gh-pages@v4` (`publish_dir: docs/`, `publish_branch: gh-pages`, `force_orphan: true`).
 
-on:
-  push:
-    branches:
-      - dev
-
-jobs:
-  docs:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out at the current branch
-        uses: actions/checkout@v4
-
-      - name: Set up micromamba environment "skinet-docs" to build documentation
-        uses: mamba-org/setup-micromamba@v2
-        with:
-          environment-file: environment_docs.yaml
-          environment-name: skinet-docs
-          init-shell: bash
-
-      - name: Build the documentation using Sphinx
-        shell: bash -l {0}  # -l to ensure a login bash, where the conda environment is correctly set; {0} a template placeholder, replaced at pipeline execution time by the actual script command to execute
-        run: | # build sphinx documentation directly into /docs to have index.html in /docs; this is expected so when the GitHub Pages site is being built from branch "gh-pages", folder "/root" (see Settings/Pages/Build and deployment)
-          sphinx-build -b html docs/source/ docs/
-          touch docs/.nojekyll
-
-      - name: Deploy the documentation to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
-        with: # the branch specified in "publish_branch" should be the same as in Settings/Pages, e.g. "gh-pages" and folder "/root"
-          publish_branch: gh-pages
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs/
-          force_orphan: true
-
-```
-
-- Under "docs" folder please add an empty ".nojekyll" file.
-      - The ".nojekyll" file is used to disable Jekyll processing on GitHub Pages and ensure sphinx-generated documentation is correctly served
+- The `docs/.nojekyll` file (created by the workflow) disables Jekyll so the Sphinx `_static`/`_sources` directories are served.
 
 - Push the changes to remote
 

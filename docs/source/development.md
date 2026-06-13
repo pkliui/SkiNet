@@ -68,7 +68,6 @@ docker run -it --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/wo
 If you do not need FUSE inside the container (recommended): mount blobfuse on the VM host and only bind the mounted directory into the container; then you can omit the SYS_ADMIN/device flags.
 
 
-(lightning-studio)=
 ## Lightning Studio
 
 ### Set up the environment on Studio
@@ -98,6 +97,7 @@ The scripts bootstrap Docker and dispatch to the Python entry points. For what t
 
 | MODE | What runs |
 |---|---|
+| `interactive` | Drops into a `bash` shell inside the container (default when `MODE` is unset) |
 | `train` | `python main_run.py --config main_config.yaml` |
 | `seeds` | `python run_seeds.py --config main_config.yaml --seeds <SEEDS> [--encoder-modes ...] [--merge-modes ...]` |
 | `sweep` | `python optuna_sweep.py --config main_config.yaml` (monitor/direction from `SWEEP_CONFIG` in YAML) |
@@ -139,7 +139,7 @@ RUN_TRAINING=true DATASET=isic2017 ENCODER_MODES="classical" MERGE_MODES="classi
 RUN_TRAINING=true MODE=sweep bash on_start_gpu.sh
 
 # Optuna sweep — one-off override without editing the YAML
-RUN_TRAINING=true MODE=sweep SWEEP_MONITOR=perf/samples_per_sec SWEEP_DIRECTION=maximize bash on_start_gpu.sh
+RUN_TRAINING=true MODE=sweep SWEEP_MONITOR=val_best_dice_at_threshold SWEEP_DIRECTION=maximize bash on_start_gpu.sh
 
 # Threshold calibration
 RUN_TRAINING=true MODE=calibrate bash on_start_gpu.sh
@@ -186,6 +186,93 @@ EOF
 - Modify it by adding relevant ports as follows for e.g. port 1455:
 ssh -N -L 1455:localhost:1455 <user>@ssh.lightning.ai
 
+
+
+## Running tests
+
+Tests use pytest. Run from the repo root:
+
+```bash
+# Run all tests
+python -m pytest Tests/
+
+# Run a specific module
+python -m pytest Tests/ML/configs/
+
+# Run with verbose output
+python -m pytest Tests/ -v
+
+# Run with coverage
+python -m pytest Tests/ --cov=SkiNet --cov-report=term-missing
+
+# Skip slow forward/backward passes on large inputs (the `slow` marker, defined in pytest.ini)
+python -m pytest Tests/ -m "not slow"
+```
+
+`pytest.ini` sets `testpaths = Tests` and `addopts = -q --tb=short`, and registers the `slow` and
+`unet2d` markers.
+
+The test suite is organized to mirror the source tree:
+- `Tests/ML/configs/` -- Pydantic config validation
+- `Tests/ML/datasets/` (and `Tests/ML/datasets/preprocessing/`) -- datasets and CSV builders
+- `Tests/ML/dataloaders/` -- DataLoader behaviour
+- `Tests/ML/model/` (with `architecture/` and `blocks/`) -- UNet2D architecture and blocks
+- `Tests/ML/transformations/` -- augmentation pipelines
+- `Tests/ML/training/` -- loss and training utilities
+- `Tests/ML/utils/` -- config loading, sampling
+- `Tests/Utils/` -- analysis, data, logging, MLops helpers
+- `Tests/Azure/` -- Azure integration (requires credentials)
+
+`conftest.py` at the repo root defines shared fixtures.
+
+## Linting and type checking
+
+```bash
+# Flake8 (configured in .flake8)
+flake8 SkiNet/ Tests/
+
+# mypy via the repo wrapper (uses mypy.ini; defaults to the SkiNet and Tests packages)
+python check_types.py
+
+# run every hook against the whole tree
+pre-commit run --all-files
+```
+
+Pre-commit hooks are defined in `.pre-commit-config.yaml` (all `language: system`, i.e. run in your
+active env). Three hooks run:
+
+| Hook id | Command | Notes |
+|---|---|---|
+| `flake8` | `flake8` | Python files only |
+| `mypy-custom` | `python check_types.py -f` | mypy via the wrapper; `-f` checks the changed files |
+| `run-pytest-tests` | `python SkiNet/Utils/test_utils/run_pytest_tests.py` | `always_run`, `pass_filenames: false` — runs the **entire** `Tests/` suite (`pytest Tests/ -v -s`) on every commit |
+
+Install once with:
+
+```bash
+pre-commit install
+```
+
 ## Kaggle notebooks
 
-| `on_start_kaggle.sh` | — | Kaggle notebook environment, for e.g. GPU training |
+`on_start_kaggle.sh` runs SkiNet directly in a Kaggle GPU session — **no Docker**. It
+clones/updates the repo, starts MLflow, generates the dataset metadata CSV, and dispatches to a
+Python entry point. The ISIC 2017 data is expected to be attached to the notebook as a Kaggle
+dataset (mounted under `/kaggle/input/...`).
+
+| Variable | Values / default | Notes |
+|---|---|---|
+| `MODE` | `train` \| `seeds` \| `sweep` (required) | Maps to `main_run.py` / `run_seeds.py` / `optuna_sweep.py` |
+| `DATASET` | `isic2017` (default) \| `ph2` | Selects data dir and config |
+| `SEEDS` | space-separated, required for `seeds` | `run_seeds.py` has no default |
+| `ENCODER_MODES` / `MERGE_MODES` | space-separated; omit to use YAML | Override architecture sweep modes |
+| `RUN_TRAINING` | unset → dry run | The script executes only when `RUN_TRAINING=true`; any other value (including unset) prints the resolved command and skips execution. The script's header comment says `Default: true`, but the code guard is `[[ "$RUN_TRAINING" != "true" ]]` — set it explicitly to run. |
+
+```bash
+# Single ISIC 2017 training run on Kaggle
+RUN_TRAINING=true MODE=train bash on_start_kaggle.sh
+
+# Multi-seed run with explicit architecture modes
+RUN_TRAINING=true DATASET=isic2017 ENCODER_MODES="classical" MERGE_MODES="he2 attention_gate" \
+  MODE=seeds SEEDS="100 101 102" bash on_start_kaggle.sh
+```

@@ -1,100 +1,102 @@
 # Note about modification to PyTorch's default dataloader
 
-- This section describes modifications to PyTorch's default DataLoader used in SkiNet to prevent spawning new processes at the beginning of each epoch.
+This section describes modifications to PyTorch's default DataLoader used in SkiNet to prevent
+spawning new processes at the beginning of each epoch.
 
-- A Jupyter notebook with examples is available here: [RepeatDataloaders Example Notebook](../../SkiNet/ML/dataloaders/examples/RepeatDataloaders.ipynb)
+A Jupyter notebook with examples is available at:
+`SkiNet/ML/dataloaders/examples/RepeatDataloaders.ipynb`
 
+---
 
 ## Motivation
 
-Spawning new worker processes at the beginning of each epoch in PyTorch's DataLoader (when num_workers > 0 and persistent_workers=False) can lead to several disadvantages:
-- Overhead of initialising the dataset in each worker (by deserialising from the main process), slowing down training
-- Memory overhead as each worker process requires its own memory space
-- Any state maintained by workers (cached data, preloaded resources) is lost when workers are shut down
-- If the dataset contains python ojects such as lists and dictionaries, the copy-on-write behaviour during spawning can increase memory consumption futher
-- May result in deadlocks and race conditions if shared resources are not managed properly
+Spawning new worker processes at the beginning of each epoch in PyTorch's DataLoader
+(when `num_workers > 0` and `persistent_workers=False`) causes:
+
+- Overhead of initialising the dataset in each worker (by deserialising from the main process)
+- Memory overhead as each worker requires its own memory space
+- Any worker-cached state is lost when workers are shut down
+- Copy-on-write behaviour during fork increases memory if the dataset contains Python lists or dicts
+- Potential deadlocks and race conditions with shared resources
+
+---
 
 ## Dataloaders and subprocesses
 
-- Let us have a look what happens when we start iterating over a dataloader:
-  - **Dataset initialisation** begins with the ```Dataset.__init__()``` and runs in the main process
-  - **Dataloader initialisation** is done in the ```Dataloader.__init__()```  and runs in the main process
+When iterating over a DataLoader:
 
-  - **Prefetching & Queues:** Pytorch uses multiprocessing library and exactly at the beginning of epoch 0, when we start iterating over epochs, *Pytorch spawns ```num_workers > 1 ``` separate subprocesses (with their own PIDs) to handle loading the data*.
+1. **Dataset initialisation** runs in the main process (`Dataset.__init__`).
+2. **DataLoader initialisation** runs in the main process (`DataLoader.__init__`).
+3. **Prefetching & Queues:** At the start of epoch 0, PyTorch spawns `num_workers` separate
+   subprocesses. Dataset indices are put in worker input queues (up to `prefetch_factor × num_workers`
+   indices ahead). Each worker calls `__getitem__` asynchronously; the main process collects results.
 
-  - At this point, the dataset indices are  sent to the workers. This “prefetching” is done by putting up to (prefetch_factor × num_workers) indices in the worker input queues. This happens before the first batch is actually yielded (see *Dataloader with persistent workers*  and *Dataloader with RepeatSampler* sections in [RepeatDataloaders Example Notebook](../../SkiNet/ML/dataloaders/examples/RepeatDataloaders.ipynb))
+At the start of each epoch, `for batch in loader` calls `iter(loader)`, which calls `__iter__()`:
 
-  - Each worker process picks up an index from its queue and calls getitem to fetch the data and does this asynchronously. The main process collects these results from a shared result queue and the individual samples are eventually being grouped into batches by the DataLoader. E.g. the pre-collected indicies from epoch 1 may be seen in batches yielded in epoch 2
+- If `persistent_workers=True` and `num_workers > 0` and no iterator exists yet, `_get_iterator()`
+  creates a new iterator.
+- If an iterator exists (epoch > 0), its state is reset via `_reset()` — workers are reused.
+- If `persistent_workers=False` and `num_workers > 0`, `_get_iterator()` is called every epoch,
+  creating **new workers each time**.
 
+When `num_workers > 0`, `_get_iterator()` returns `_MultiProcessingDataLoaderIter(self)`. New workers
+are created in `_MultiProcessingDataLoaderIter.__init__()`. Workers are normally shut down when the
+sampler is exhausted at epoch end.
 
-  - **What happens under the hood at the beginning of each epoch:** At the beginning of each epoch, we call ```for batch in loader``` and under the hood Pytorch calls
-a
-    ```
-    iterator = iter(loader)
-    batch = next(iterator
-    ```
+---
 
-  - At this point, the ```__iter__()``` method  distinguishes between two scenarios based on whether persistent workers are enabled and if there are any worker processes (i.e., ```num_workers > 0```).
-    - If ```persistent_workers=True``` and ```num_workers > 0``` and the iterator does not already exist (e.g. ```self._iterator``` is None at epoch 0), the method  ```_get_iterator()``` is called to create a new iterator.
-    - However, if an iterator exists, it is not recreated; instead, its state is reset by invoking its ```_reset``` method with the current loader instance. In essense, in this case, the iterator is created only once during the lifetime of the DataLoader so that the worker processes can be reused across iterations.
-    - If ```persistent_workers=False``` and ```num_workers > 0```,  the ```_get_iterator()``` method is called to create a new iterator (and hence new workers!).
+## How SkiNet prevents new worker spawning: RepeatDataLoader
 
-  - If ```num_workers > 0```,  ```_MultiProcessingDataLoaderIter(self)``` is returned:
+`SkiNet.ML.dataloaders.dataloaders.RepeatDataLoader` subclasses `torch.utils.data.DataLoader` and
+relies on a single mechanism — **persistent workers**. This replaces an earlier
+`_RepeatSampler`/iterator-override implementation (the previous infinite-sampler approach is gone).
 
-    ```
-    def _get_iterator(self) -> "_BaseDataLoaderIter":
-        if self.num_workers == 0:
-            return _SingleProcessDataLoaderIter(self)
-        else:
-            self.check_worker_number_rationality()
-            return _MultiProcessingDataLoaderIter(self)
-    ```
+In `RepeatDataLoader.__init__`:
 
-    and **new workers are created in the``` _MultiProcessingDataLoaderIter.__init__()``` method at the beginning of each epoch** (unless we prevent this from happening by some means).
+- `persistent_workers` defaults to `num_workers > 0` (set only if the caller did not pass it). With
+  `num_workers=0` the flag is invalid and PyTorch raises, so it is left `False`. Persistent workers
+  survive across epochs: PyTorch's `_MultiProcessingDataLoaderIter` is created once and `_reset()`
+  between epochs instead of being torn down and respawned.
+- `worker_init_fn` defaults to `default_worker_init_fn`, which sets `cv2.setNumThreads(0)` and seeds
+  `numpy`/`random` per worker from `torch.initial_seed() % 2**32` for reproducibility.
+- `collate_fn` defaults to `collate_preserving_specs` (see below).
+- The dataset must be sized (`__len__`), else `TypeError` is raised.
+- `max_num_to_repeat` is accepted for backward compatibility but **ignored** — Lightning's `Trainer`
+  controls epoch iteration via `max_epochs`.
 
-  - Each worker obtains its own Dataset instance (deserialized from the main one via pickle)
+---
 
-  - And **each dataloader receives a sampler** that is used to determine which data indices to extract from the dataset and in what order.  *Normally, the workers are shut down when the sampler is exhausted in the``` _MultiProcessingDataLoaderIter._next_data()``` method* (unless we prevent this from happening by some means).
+## Usage with ISIC 2017
 
+`create_segmentation_dataloaders(main_config)` is the segmentation entry point: it calls
+`create_segmentation_datasets_from_config` then `create_dataloaders_from_datasets`, which builds the
+`RepeatDataLoader` instances for the train, val, and test splits:
 
-  ## How to prevent Pytroch from spawning new processes for each new epoch?
+```python
+from SkiNet.ML.configs.load_config_from_yaml import load_config_from_yaml
+from SkiNet.ML.dataloaders.create_dataloaders import create_dataloaders_from_datasets
+from SkiNet.ML.datasets.dataset_factory import create_segmentation_datasets_from_config
 
-- To prevent spawning new processes, we should ensure two things:
-  1. **Re-use the iterator in our Dataloader across all epochs**, i.e. whenever a new epoch is started and __iter__ is called, there should be the same iterator available.
-  2. **Provide an infinite sampler** that would prevent us from shutting down the workers once the sample is exhausted, i.e. at the end of an epoch
+cfg = load_config_from_yaml("main_config.yaml")
+datasets = create_segmentation_datasets_from_config(cfg)
+loaders = create_dataloaders_from_datasets(datasets, cfg.trainconfig)
 
-  ### Re-use of the iterator
-- In SkiNet, this is done by specifying ```self.iterator = None``` in the ```_RepeatDataloader.__init__()``` method and then calling the ```Dataloader.__iter__()``` only ONCE at epoch 0  in ```_RepeatDataloader.__iter__()```  (as at all other epochs it will not be None):
-
-    ```
-    def __iter__(self) -> Any:
-        if self.iterator is None:
-            self.iterator = super().__iter__()  # type: ignore
-    ```
-
-
-  ### Inifinite sampler
-
-- Normally, if no persistent workers are set and the iterator's sampler is exhausted, no new index can be delivered to the iterator. In this case,```StopIteration``` is raised and the code shuts down the workers. See  ```_MultiProcessingDataLoaderIter._next_data()```.
-
-- To make sure samples are yielded indefinitely by the iterator, I extend Pytorch's BatchSampler so that it never runs out of indicies being supplied to the iterator. This is done in the ```SkiNet.ML.dataloaders.dataloaders._RepeatSampler.__iter__()```  class:
--
-```
-def __iter__(self) -> Any:
-    num_to_repeat = 0
-    # __iter__ is called each time we start iterating over the data loader, such as at the beginning of each epoch
-    # i.e. calling iter on the data loader leads to calling __iter__ on the sampler, see _BaseDataLoaderIter.__init__()
-    while self.max_num_to_repeat == 0 or num_to_repeat < self.max_num_to_repeat:
-        print("Iter of sampler in RepeatSampler.__iter__   ", iter(self.sampler))
-        yield from iter(self.sampler)
-        # this is being incremented each epoch
-        num_to_repeat += 1
+# loaders.train, loaders.val, loaders.test are RepeatDataLoader instances
 ```
 
-- The ```_RepeatSampler.__iter__()``` method implements the repeating logic, where it keeps yielding indicies from the sampler either indefinitely or a specified max number of times (as required by the number of epochs). When one calls ```__iter()__``` on a DataLoader, it eventually constructs a DataLoader iterator (for example, a ```_SingleProcessDataLoaderIter``` or ```_MultiProcessingDataLoaderIter```). In the initialization of that iterator, in the ```_BaseDataLoaderIter.__init__``` method, it calls
+Key dataloader settings from `TrainConfig` that affect worker behaviour:
 
-```
-  self._sampler_iter = iter(self._index_sampler)
-```
+| Field | Effect |
+|---|---|
+| `num_workers` | Auto-set to `os.cpu_count()` for single-GPU; divided by device count for DDP |
+| `pin_memory` | Auto-set `True` on CUDA, `False` on MPS/CPU |
+| `prefetch_factor` | Batches pre-loaded per worker; `None` when `num_workers=0` |
+| `cache_in_ram` | Eliminates disk I/O in workers when `True` (recommended for small datasets) |
 
-- If auto-collation is enabled (which is the case when a batch_sampler is used), ```self._index_sampler``` simply returns the ```batch_sampler ```that was passed to the DataLoader. In other words, calling ```iter(loader)``` leads to calling ```iter()``` on the ```batch_sampler```. And that’s where the iter method of  _RepeatSampler is invoked providing indicies to the iterator.
+---
+
+## Custom collate function
+
+`RepeatDataLoader` uses `collate_preserving_specs` as its `collate_fn`. This preserves the
+`specs` field (sample metadata) as a Python list rather than attempting to stack it into a tensor,
+since metadata values are heterogeneous strings.

@@ -1,0 +1,37 @@
+GENERAL_CONFIG:
+  experiment_type: "segmentation"
+  model: "UNET2D_MODEL"
+  dataset: "PH2_DATASET"
+DATA_CONFIG:
+  local_data_root:
+  azure_data: True
+  azure_blob_mount_point: "/teamspace/lightning_storage/ph2/"
+MODEL_CONFIG:
+
+TRAIN_CONFIG:
+  batch_size: 8
+  num_workers: 0
+  lr: 0.0001
+  max_epochs: 1
+  accelerator: "auto"
+  devices: "auto"
+  log_every_n_steps: 1
+  log_dir: "lightning_logs"
+  experiment_name: "unet2d_ph2_debug"
+  use_tensorboard_logger: true
+  use_csv_logger: true
+  use_litlogger_logger: true
+  use_mlflow_logger: false
+  mlflow_tracking_uri:
+  mlflow_experiment_name:
+  mlflow_run_name:
+  mlflow_log_model: "all"
+  mlflow_enable_system_metrics: false
+  mlflow_checkpoint_monitor: "val/loss"
+  mlflow_checkpoint_mode: "min"
+  mlflow_checkpoint_save_top_k: 1
+  mlflow_checkpoint_save_last: true
+  litlogger_teamspace: "l-pkliui"
+  litlogger_log_model: false
+  litlogger_save_logs: false
+  litlogger_checkpoint_name:
