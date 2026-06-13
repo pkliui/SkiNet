@@ -137,6 +137,12 @@ linkcheck_ignore = [
     r"http://localhost:\d+",
 ]
 
+# docs.pytorch.org/docs/stable/* serves a JS redirect to the versioned page;
+# linkcheck can't run JS so it reports anchors like #torch.Tensor as not found.
+linkcheck_anchors_ignore_for_url = [
+    r"https://docs\.pytorch\.org/docs/stable/.*",
+]
+
 
 # -- HTML output -------------------------------------------------------------
 html_theme = 'furo'
