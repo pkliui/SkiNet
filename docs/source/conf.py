@@ -49,6 +49,52 @@ napoleon_use_rtype = True
 # Put types in the signature box (InnerEye style), not scattered in the body
 autodoc_typehints = "signature"
 
+# The docs build env (environment_docs.yaml) installs only Sphinx tooling, so
+# every heavy runtime dependency must be mocked for autodoc to import the
+# modules and document their signatures. pydantic, IPython and psutil are left
+# real because the docs env provides them (autodoc-pydantic / ipykernel) and
+# autodoc-pydantic needs the real pydantic to render model fields.
+autodoc_mock_imports = [
+    "torch",
+    "torchvision",
+    "torchmetrics",
+    "lightning",
+    "segmentation_models_pytorch",
+    "pandas",
+    "numpy",
+    "scipy",
+    "sklearn",
+    "skimage",
+    "cv2",
+    "PIL",
+    "albumentations",
+    "matplotlib",
+    "seaborn",
+    "plotly",
+    "dash",
+    "mlflow",
+    "azureml",
+    "yaml",
+    "pytest",
+]
+
+# Several Pydantic models annotate fields with mocked types (e.g.
+# `Union[torch.Tensor, np.ndarray]` in sample_specs.Sample). With those modules
+# mocked, Pydantic resolves the annotation to a Sphinx mock object, detects its
+# auto-generated `__get_pydantic_core_schema__`, and fails to build a schema.
+# Teach the mock to declare itself as `Any` so model classes import cleanly.
+from typing import Any
+
+from sphinx.ext.autodoc.mock import _MockObject
+from pydantic_core import core_schema
+
+
+def _mock_get_pydantic_core_schema(cls: type, *args: Any, **kwargs: Any) -> core_schema.CoreSchema:
+    return core_schema.any_schema()
+
+
+_MockObject.__get_pydantic_core_schema__ = classmethod(_mock_get_pydantic_core_schema)  # type: ignore[attr-defined]
+
 # autodoc-pydantic: show fields with their types, defaults, and descriptions
 autodoc_pydantic_model_show_json = False
 autodoc_pydantic_model_show_config_summary = False
@@ -86,6 +132,9 @@ exclude_patterns: list[str] = []
 linkcheck_ignore = [
     r"https://docs\.pytorch\.org/docs/stable/notes/randomness\.html.*",
     r"https://challenge\.isic-archive\.com/.*",
+    # MLflow example URI in TrainConfig.tracking_uri docstring; not reachable in CI
+    r"http://127\.0\.0\.1:\d+",
+    r"http://localhost:\d+",
 ]
 
 

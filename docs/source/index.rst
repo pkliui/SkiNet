@@ -34,7 +34,6 @@ Welcome to SkiNet documentation!
    :maxdepth: 2
    :caption: Performance and debugging
 
-   gpu_performance
    debugging
    plotting
 
@@ -42,7 +41,6 @@ Welcome to SkiNet documentation!
    :maxdepth: 2
    :caption: Contributing
 
-   contributing
    documentation
 
 .. toctree::
