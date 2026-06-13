@@ -129,6 +129,17 @@ Fig 2. Forest plot of paired Dice differences (He2 − attention-gate) across 10
 | Weight init | Kaiming normal (fan_in, ReLU) for all Conv2d/ConvTranspose2d; BN weights ~ N(1, 0.01) |
 | Checkpoint | Best val Dice saved; optimal sigmoid threshold stored in checkpoint buffer |
 
+Key design decisions and their supporting experiments:
+
+| Decision | Experiment | Notebook |
+|---|---|---|
+| Batch size | E0 batch size sweep | [E0-batch-size-sweep-analysis-unet2d-isic2017.ipynb](E0-batch-size-sweep-analysis-unet2d-isic2017.ipynb) |
+| Learning rate | E1 LR sweep (lr in [1e-3, 6e-4, 3e-4, 1e-4]) | [E1-isic2017-unet2d-modelsw-summary-all-lr.ipynb](E1-isic2017-unet2d-modelsw-summary-all-lr.ipynb) |
+| Architecture (encoder/merge modes) | E2 10-seed tiebreak | [E2-isic2017-unet2d-model-tiebreak-10seed.ipynb](E2-isic2017-unet2d-model-tiebreak-10seed.ipynb) |
+| LR scheduler | E3 cosine annealing vs ReduceOnPlateau | [E3-isic2017-unet2d-lr-decay-study.ipynb](../../analysis_results/E3-isic2017-unet2d-lr-decay-study.ipynb) |
+| Threshold | E4 threshold sweep | [E4-isic2017-unet2d-threshold-selection.ipynb](E4-isic2017-unet2d-threshold-selection.ipynb) |
+| Production model | EF model selection | [EF_isic2017_unet2d_E4_production_model_selection.ipynb](EF_isic2017_unet2d_E4_production_model_selection.ipynb) |
+
 **Batch size rationale.** Throughput sweep (bs 2→64, 2×T4): bs=8 is the smallest batch on the
 plateau (≥81% of peak throughput in both augmented and non-augmented conditions) and the last
 point before the time-per-step inflection. Augmentations add negligible cost at this size.

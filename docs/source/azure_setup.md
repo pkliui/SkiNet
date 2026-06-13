@@ -47,23 +47,26 @@ Now we need to make a new storage account to keep our images.
 @unique
 class DatasetKey(Enum):
     PH2 = "PH2_DATASET"
-    ANOTHERSET = "ANOTHER_SET"
+    ISIC2017 = "ISIC2017_DATASET"
 ```
 
 - Create a YAML config file (e.g., azure_settings.yaml), where add a section `PATH_ON_DATASTORE` mapping `dataset_name`s from `DatasetKey` to the respective relative paths to data on the datastore.
 - The `dataset_name`s in `DatasetKey` Enum must match the YAML keys under `PATH_ON_DATASTORE`. The corresponding YAML value `data_root_on_azure` points to relative paths to data on the datastore.
 
-**Example YAML config**
+**Example YAML config** (values as in `SkiNet/Azure/azure_settings.yaml`)
 ```yaml
 PATH_ON_DATASTORE:
     PH2_DATASET: "PH2DATA/"
-    ANOTHER_DATASET: "another/path/"
+    ISIC2017_DATASET: "ISIC2017DATA_256"
 ```
+
+PH2 is the dataset currently stored on the Azure datastore; the Azure examples below use it. ISIC2017
+training data is held locally / on Kaggle (see [data.md](data.md)).
 
 | Enum Member (dataset_key)   | Enum Value or YAML key (dataset_name) | YAML Value (data_root_on_azure)     |
 |-----------------------------|---------------------------------------|-------------------------------------|
 | PH2                         | "PH2_DATASET"                         | "PH2DATA/"                          |
-| ANOTHERSET                  | "ANOTHER_SET"                         | "another/path/"                     |
+| ISIC2017                    | "ISIC2017_DATASET"                    | "ISIC2017DATA_256"                  |
 
 ## Access data in Azure Blob Storage
 
@@ -98,7 +101,7 @@ WORKSPACE_NAME: "<workspace-name>"
 DATASTORE_NAME: "<datastore-name>"
 PATH_ON_DATASTORE:
     PH2_DATASET: "PH2DATA/"
-    ANOTHER_DATASET: "another/path/"
+    ISIC2017_DATASET: "ISIC2017DATA_256"
 ```
 
 - Now when we have set up the service principal, we need to grant it with appropriate rights
@@ -113,15 +116,20 @@ PATH_ON_DATASTORE:
 #### Access datasets from code
 
 ```python
-from SkiNet.Azure.azure_setup import AzureSetup
-AzureSetup.service_principal_authentication()
+from SkiNet.Azure.azure_setup import AzureSetup, service_principal_authentication
+from SkiNet.Utils.experiment_keys import DatasetKey
 
-dataset_name= DatasetKey.PH2.value  # "PH2_DATASET"
+service_principal_authentication()  # module-level function, not an AzureSetup method
+
+dataset_name = DatasetKey.PH2.value  # "PH2_DATASET"
 fs = AzureSetup.get_azureml_filesystem(dataset_name)
 ```
 
-In this example, dataset_name (DatasetKey.PH2.value == "PH2_DATASET") matches the YAML key PH2_DATASET,
-which maps to the path "PH2DATA/" on the Azure datastore. This allows the code to access the correct dataset on Azure.
+In this example, dataset_name (`DatasetKey.PH2.value == "PH2_DATASET"`) matches the YAML key
+`PH2_DATASET`, which maps to the path "PH2DATA/" on the Azure datastore.
+`get_azureml_filesystem` is a classmethod that resolves the URI via `get_azure_uri` (which loads
+`azure_settings.yaml`); `service_principal_authentication` and `managed_identity_authentication` are
+module-level functions in `SkiNet.Azure.azure_setup`, not methods of `AzureSetup`.
 
 ### Access via Blobfuse2 mounts using managed identity and SP authentication
 

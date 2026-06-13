@@ -160,52 +160,6 @@ DATA_CONFIG:
 
 ---
 
-## PH2 Dataset
-
-> **Deprecated as a training dataset.** PH2 code and documentation are kept for reference.
-> Use ISIC 2017 for all new experiments.
-
-**Copyright:** Teresa Mendonça, Pedro M. Ferreira, Jorge Marques, Andre R. S. Marcal, Jorge Rozeira.
-"PH² - A dermoscopic image database for research and benchmarking," 35th International Conference
-of the IEEE Engineering in Medicine and Biology Society, July 3-7, 2013, Osaka, Japan.
-
-Expected file structure:
-
-```
-root_dir/
-├── sample1/
-│   ├── sample1_Dermoscopic_Image/
-│   │   └── sample1.bmp
-│   └── sample1_lesion/
-│       └── sample1_lesion.bmp
-└── sample2/
-    └── ...
-```
-
-One image per `_Dermoscopic_Image` folder; one mask per `_lesion` folder.
-
-### Data format
-
-Original images are `.bmp` and must be converted to `.png` for use with torchvision.
-
-### Generate metadata CSV
-
-```bash
-python -m SkiNet.ML.datasets.preprocessing.metadata_csv_factory \
-  --dataset-key-str PH2 \
-  --local-data-root "path/to/PH2folder"
-```
-
-Generates `ph2_metadata.csv` in `PH2folder`. For Azure (e.g. if data are kept on Azure):
-
-```bash
-python -m SkiNet.ML.datasets.preprocessing.metadata_csv_factory \
-  --dataset-key-str PH2 \
-  --azure-data
-```
-
----
-
 ## Metadata lazy loading
 
 `BaseDataConfig` exposes dataset metadata as a pandas DataFrame through the `metadata` property.

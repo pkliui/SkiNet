@@ -27,6 +27,17 @@ extensions = [
 # myst_parser: enable {autoclass} / {autofunction} directives inside .md files
 myst_enable_extensions = ["colon_fence"]
 
+# nbsphinx: never re-run notebooks; render the stored outputs as-is.
+nbsphinx_execute = "never"
+
+# Make notebook code-input cells collapsible (collapsed by default, click to
+# reveal). nbsphinx emits each input cell as a `.nbinput` container; the assets
+# in _static/ add a "Show code" toggle to each one. Self-contained so it does
+# not depend on sphinx-togglebutton internals.
+html_static_path = ['_static']
+html_css_files = ['collapse_nbinput.css']
+html_js_files = ['collapse_nbinput.js']
+
 # Auto-generate anchors for h1-h3 headings so cross-file links like
 # [text](development.md#lightning-studio) resolve to the heading slug.
 myst_heading_anchors = 3

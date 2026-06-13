@@ -5,3 +5,4 @@ sphinx-togglebutton
 autodoc-pydantic
 nbsphinx
 ipykernel
+pandadoc
