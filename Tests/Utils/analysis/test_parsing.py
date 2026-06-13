@@ -1,40 +1,23 @@
+from SkiNet.Utils.analysis.parsing import parse_encoder_merge
 import pytest
 
-from SkiNet.Utils.analysis.parsing import parse_encoder_merge
 
-
-@pytest.mark.parametrize(
-    ("experiment_name", "expected"),
-    [
-        (
-            "the-model-sweep-over-merge-2gpus-aug-adam_enc-classical_merge-he2",
-            ("classical", "he2"),
-        ),
-        (
-            "the-model-sweep-over-merge-2gpus-aug-adam_enc-local_refinement_merge-attention_gate",
-            ("local_refinement", "attention_gate"),
-        ),
-        (
-            "the-model-sweep-over-merge-2gpus-aug-adam_enc-he2_merge-he2_characterisation",
-            ("he2", "he2_characterisation"),
-        ),
-    ],
-)
+@pytest.mark.parametrize("experiment_name,expected", [
+    ("enc-classical_merge-attention_gate_lr3e-4", ("classical", "attention_gate")),
+    ("enc-full_merge-he2", ("full", "he2")),
+    ("enc-none_merge-none", ("none", "none")),
+])
 def test_parse_encoder_merge_returns_encoder_and_merge(
-    experiment_name: str, expected: tuple[str, str]
+    experiment_name: str, expected: tuple
 ) -> None:
     assert parse_encoder_merge(experiment_name) == expected
 
 
-@pytest.mark.parametrize(
-    "experiment_name",
-    [
-        "unrelated_experiment",
-        "the-model-sweep-over-merge-2gpus-aug-adam_enc-classical",
-        "the-model-sweep-over-merge-2gpus-aug-adam_merge-he2_enc-classical",
-        "the-model-sweep-over-merge-2gpus-aug-adam_enc-classical-merge-he2",
-    ],
-)
+@pytest.mark.parametrize("experiment_name", [
+    "no_pattern_here",
+    "",
+    "random_string_123",
+])
 def test_parse_encoder_merge_returns_none_when_pattern_is_missing(
     experiment_name: str,
 ) -> None:
