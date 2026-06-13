@@ -8,20 +8,48 @@ Welcome to SkiNet documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Documentation
+   :caption: Getting started
 
-   documentation
    development
+   azure_setup
    config
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Data
+
    data
    datasets
    dataloaders
-   azure_setup
-   plotting
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Model and training
+
+   network_design
    training
+   export_onnx
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Performance and debugging
+
    gpu_performance
    debugging
-   model_selection
+   plotting
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contributing
+
+   contributing
+   documentation
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Experiments
+
+   experiments
 
 .. toctree::
    :maxdepth: 2

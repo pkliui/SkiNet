@@ -12,10 +12,11 @@ class ReduceOnPlateauConfig(BaseModel):
     """
     Learning rate ReduceOnPlateau scheduler configuration for PyTorch Lightning.
     """
-    monitor: MetricsKey = Field(default=MetricsKey.default_monitor())
-    mode: Literal["min", "max"] = Field(default="max")
-    patience: int = Field(default=5, ge=0)
-    factor: float = Field(default=0.5, gt=0, lt=1)
+    monitor: MetricsKey = Field(default=MetricsKey.default_monitor(),
+                                description="Metric to watch; propagated from SWEEP_CONFIG — do not set in YAML.")
+    mode: Literal["min", "max"] = Field(default="max", description="'max' or 'min' for the monitored metric.")
+    patience: int = Field(default=5, ge=0, description="Epochs without improvement before reducing the LR.")
+    factor: float = Field(default=0.5, gt=0, lt=1, description="Multiplicative LR reduction factor.")
 
 
 class CosineAnnealingConfig(BaseModel):
@@ -23,8 +24,9 @@ class CosineAnnealingConfig(BaseModel):
     CosineAnnealingLR scheduler configuration.
     T_max is set to max_epochs at runtime when None.
     """
-    T_max: int | None = Field(default=None, ge=1)
-    eta_min: float = Field(default=1e-6, ge=0)
+    T_max: int | None = Field(default=None, ge=1,
+                              description="Cosine period in epochs; resolved to max_epochs at runtime when None.")
+    eta_min: float = Field(default=1e-6, ge=0, description="Minimum LR at the end of each cosine cycle.")
 
 
 class CheckpointConfig(BaseModel):
@@ -33,11 +35,12 @@ class CheckpointConfig(BaseModel):
     """
     model_config = ConfigDict(extra='ignore', validate_assignment=True)
     # ok For segmentation, sometimes Dice/IoU is a better “best model” criterion than validation loss, depending on what you care about.
-    monitor: MetricsKey = Field(default=MetricsKey.default_monitor())
-    mode: Literal["min", "max"] = Field(default="max")  # ok ModelCheckpoint
-    save_top_k: int = Field(default=1, ge=0)  # ok ModelCheckpoint
-    save_last: bool = Field(default=True)  # ok ModelCheckpoint
-    filename: str = Field(default="epoch{epoch:03d}")  # ok
+    monitor: MetricsKey = Field(default=MetricsKey.default_monitor(),
+                                description="Metric to watch; propagated from SWEEP_CONFIG — do not set in YAML.")
+    mode: Literal["min", "max"] = Field(default="max", description="'max' or 'min' for the monitored metric.")
+    save_top_k: int = Field(default=1, ge=0, description="Number of best checkpoints to keep.")
+    save_last: bool = Field(default=True, description="Always save the last checkpoint.")
+    filename: str = Field(default="epoch{epoch:03d}", description="Checkpoint filename template.")
 
 
 class EarlyStoppingConfig(BaseModel):  # passed all, ok
@@ -45,14 +48,17 @@ class EarlyStoppingConfig(BaseModel):  # passed all, ok
     Configuration for early stopping.
     """
     model_config = ConfigDict(extra='ignore', validate_assignment=True)
-    monitor: MetricsKey = Field(default=MetricsKey.default_monitor())
-    mode: Literal["min", "max"] = Field(default="max")
-    min_delta: float = Field(default=0.0)
-    patience: int = Field(default=5, ge=0)
-    strict: bool = Field(default=True)
-    check_finite: bool = Field(default=True)
-    stopping_threshold: float | None = Field(default=None)
-    divergence_threshold: float | None = Field(default=None)
+    monitor: MetricsKey = Field(default=MetricsKey.default_monitor(),
+                                description="Metric to watch; propagated from SWEEP_CONFIG — do not set in YAML.")
+    mode: Literal["min", "max"] = Field(default="max", description="'max' or 'min' for the monitored metric.")
+    min_delta: float = Field(default=0.0, description="Minimum change to count as an improvement.")
+    patience: int = Field(default=5, ge=0, description="Epochs without improvement before stopping.")
+    strict: bool = Field(default=True, description="Raise an error if the monitored metric is missing.")
+    check_finite: bool = Field(default=True, description="Stop if the metric becomes NaN or Inf.")
+    stopping_threshold: float | None = Field(
+        default=None, description="Stop immediately once the metric passes this value.")
+    divergence_threshold: float | None = Field(
+        default=None, description="Stop immediately if the metric falls below this value.")
 
     @model_validator(mode="after")
     def warn_monitor_is_default(self) -> "EarlyStoppingConfig":
@@ -69,10 +75,12 @@ class MLflowConfig(BaseModel):
     Configuration for MLflow logging.
     """
     model_config = ConfigDict(extra='ignore', validate_assignment=True)
-    fallback_to_local_mlflow: bool = Field(default=False)
-    tracking_uri: str | None = Field(default=None)  # ok logger
-    log_model: bool | Literal["all"] = Field(default="all")  # ok logger
-    log_model_summary: bool = Field(default=True)  # ok MLflowTrainingArtifactsCallback
+    fallback_to_local_mlflow: bool = Field(
+        default=False, description="Fall back to local MLflow when the remote server is unreachable.")
+    tracking_uri: str | None = Field(
+        default=None, description="MLflow tracking server URI, e.g. 'http://127.0.0.1:5000'.")
+    log_model: bool | Literal["all"] = Field(default="all", description="Log model artifacts; 'all' logs every checkpoint.")
+    log_model_summary: bool = Field(default=True, description="Log the model summary as an artifact.")
 
 
 class LitLoggerConfig(BaseModel):
@@ -80,10 +88,10 @@ class LitLoggerConfig(BaseModel):
     Configuration for LitLogger logging.
     """
     model_config = ConfigDict(extra='ignore', validate_assignment=True)
-    teamspace: str | None = Field(default=None)  # ok
-    log_model: bool = Field(default=False)  # ok
-    save_logs: bool = Field(default=False)  # ok
-    checkpoint_name: str | None = Field(default=None)  # ok
+    teamspace: str | None = Field(default=None, description="Lightning Studio teamspace name.")
+    log_model: bool = Field(default=False, description="Log the model to LitLogger.")
+    save_logs: bool = Field(default=False, description="Persist logs to disk.")
+    checkpoint_name: str | None = Field(default=None, description="Checkpoint name for LitLogger.")
 
     @model_validator(mode="after")
     def warn_if_no_teamspace(self) -> "LitLoggerConfig":
@@ -108,65 +116,118 @@ class TrainConfig(BaseModel):
     model_config = ConfigDict(extra='forbid', validate_assignment=True)
 
     # --- General params ---
-    log_dir: str = Field(default="experiment_logs")  # ok
-    experiment_name: str = Field(default="unet2d_experiment")
-    run_test_after_fit: bool = Field(default=False)
-    test_on_val_split: bool = Field(default=False)  # do not run test on validation set by default unless required
+    log_dir: str = Field(default="experiment_logs", description="Local directory for logs and checkpoints.")
+    experiment_name: str = Field(
+        default="unet2d_experiment",
+        description="MLflow experiment name and run-name prefix. Drives run naming "
+                    "(run = '{experiment_name}_seed{seed}_{YYYYMMDD-HHMMSS}'); checkpoints "
+                    "are written under '{log_dir}/checkpoints/{run_name}'.",
+    )
+    run_test_after_fit: bool = Field(default=False, description="Run test-set evaluation after training completes.")
+    test_on_val_split: bool = Field(
+        default=False,
+        description="Use the validation split as the test set. Metrics may be optimistic; "
+                    "leave False unless you have no held-out test set.",
+    )
 
     # --- Fit and optimizer params
     # DataLoader params
-    batch_size: int = Field(default=8, ge=1)
-    num_workers: int | None = Field(default=None, ge=0)
-    pin_memory: bool | None = Field(default=None)
-    prefetch_factor: int | None = Field(default=None, ge=1)
-    cache_in_ram: bool = Field(default=True)
-    use_torch_compile: bool = Field(default=False)
-    torch_compile_backend: str = Field(default="inductor")
+    batch_size: int = Field(default=8, ge=1, description="Samples per batch.")
+    num_workers: int | None = Field(
+        default=None, ge=0,
+        description="DataLoader worker processes. When None, auto-set to os.cpu_count() "
+                    "(single GPU) or cpu_count // devices under DDP.",
+    )
+    pin_memory: bool | None = Field(
+        default=None,
+        description="Pin host memory for faster H2D copies. When None, auto-set True on "
+                    "CUDA/GPU and False on MPS/CPU.",
+    )
+    prefetch_factor: int | None = Field(
+        default=None, ge=1,
+        description="Batches pre-loaded per worker. Ignored (forced None) when num_workers=0.",
+    )
+    cache_in_ram: bool = Field(default=True, description="Pre-load all images into RAM at startup.")
+    use_torch_compile: bool = Field(default=False, description="Wrap the model with torch.compile.")
+    torch_compile_backend: str = Field(
+        default="inductor",
+        description="torch.compile backend. Use 'eager' to avoid an nvcc dependency.",
+    )
     # LightningModel params
     loss_name: LossFunctionKey = Field(
         default=LossFunctionKey.BCE_DICE,
         description="Loss function name. Supported: 'bce', 'dice', 'bce_dice'."
     )
-    optimizer_name: str = Field(default="adamw")
-    lr: float = Field(default=1e-4, gt=0)
-    weight_decay: float = Field(default=1e-4, ge=0)
+    optimizer_name: str = Field(default="adamw", description="Optimizer name: 'adam' or 'adamw'.")
+    lr: float = Field(default=1e-4, gt=0, description="Base learning rate.")
+    weight_decay: float = Field(default=1e-4, ge=0, description="L2 regularisation (weight decay).")
     optimal_threshold: float | None = Field(
         default=None, ge=0.0, le=1.0,
         description="Fixed sigmoid threshold to use instead of sweeping. "
                     "When None (default), the threshold is found via grid search each validation epoch."
     )
-    seed: int = Field(default=42, ge=0)
-    deterministic: bool = Field(default=True)
+    seed: int = Field(default=42, ge=0, description="Global RNG seed passed to L.seed_everything.")
+    deterministic: bool = Field(default=True, description="Enable cuDNN deterministic mode.")
     # L.Trainer params
-    max_epochs: int = Field(default=1, ge=1)
-    accelerator: str = Field(default="auto")
-    devices: str | int = Field(default="auto")
-    strategy: str = Field(default="auto")
-    precision: PrecisionType | None = Field(default=None)
-    log_every_n_steps: int = Field(default=1, ge=1)
-    check_val_every_n_epoch: int = Field(default=1, ge=1)
-    num_sanity_val_steps: int = Field(default=0, ge=0)
+    max_epochs: int = Field(default=1, ge=1, description="Maximum number of training epochs.")
+    accelerator: str = Field(
+        default="auto",
+        description="Lightning accelerator: 'auto', 'gpu', 'mps', or 'cpu'.",
+    )
+    devices: str | int = Field(default="auto", description="Number of devices, or 'auto'.")
+    strategy: str = Field(default="auto", description="Lightning strategy: 'auto', 'ddp', etc.")
+    precision: PrecisionType | None = Field(
+        default=None,
+        description="Training precision. When None, auto-set to '16-mixed' on GPU/MPS and "
+                    "'32-true' on CPU.",
+    )
+    log_every_n_steps: int = Field(default=1, ge=1, description="Logging frequency in steps.")
+    check_val_every_n_epoch: int = Field(default=1, ge=1, description="Validation frequency in epochs.")
+    num_sanity_val_steps: int = Field(default=0, ge=0, description="Sanity validation steps before training.")
 
     # --- Nested configs  for callbacks and loggers ---
-    early_stopping_config: EarlyStoppingConfig = Field(default_factory=EarlyStoppingConfig)
-    checkpoint_config: CheckpointConfig = Field(default_factory=CheckpointConfig)
-    mlflow_config: MLflowConfig = Field(default_factory=MLflowConfig)
-    litlogger_config: LitLoggerConfig = Field(default_factory=LitLoggerConfig)
+    early_stopping_config: EarlyStoppingConfig = Field(
+        default_factory=EarlyStoppingConfig,
+        description="Early-stopping callback config. Its 'monitor' is propagated from SWEEP_CONFIG.",
+    )
+    checkpoint_config: CheckpointConfig = Field(
+        default_factory=CheckpointConfig,
+        description="Model-checkpoint callback config. Its 'monitor' is propagated from SWEEP_CONFIG.",
+    )
+    mlflow_config: MLflowConfig = Field(default_factory=MLflowConfig, description="MLflow logger config.")
+    litlogger_config: LitLoggerConfig = Field(
+        default_factory=LitLoggerConfig, description="Lightning Studio LitLogger config.")
 
     # --- Other configs ---
-    use_lr_scheduler: bool = Field(default=True)
-    scheduler_type: Literal["reduce_on_plateau", "cosine_annealing"] = Field(default="reduce_on_plateau")
-    lr_scheduler_config: ReduceOnPlateauConfig = Field(default_factory=ReduceOnPlateauConfig)
-    cosine_annealing_config: CosineAnnealingConfig = Field(default_factory=CosineAnnealingConfig)
+    use_lr_scheduler: bool = Field(
+        default=True, description="Master toggle; when False no LR scheduler is attached.")
+    scheduler_type: Literal["reduce_on_plateau", "cosine_annealing"] = Field(
+        default="reduce_on_plateau",
+        description="Which scheduler sub-config is used: 'reduce_on_plateau' → lr_scheduler_config, "
+                    "'cosine_annealing' → cosine_annealing_config.",
+    )
+    lr_scheduler_config: ReduceOnPlateauConfig = Field(
+        default_factory=ReduceOnPlateauConfig,
+        description="ReduceLROnPlateau config; used when scheduler_type='reduce_on_plateau'. "
+                    "Its 'monitor' is propagated from SWEEP_CONFIG.",
+    )
+    cosine_annealing_config: CosineAnnealingConfig = Field(
+        default_factory=CosineAnnealingConfig,
+        description="CosineAnnealingLR config; used when scheduler_type='cosine_annealing'.",
+    )
 
     #  --- Other callbacks params ---
-    system_metrics_interval_sec: float = Field(default=5.0, gt=0)
+    system_metrics_interval_sec: float = Field(
+        default=5.0, gt=0, description="System-metrics logging interval in seconds.")
 
     # --- Logger toggles ---
-    use_mlflow_logger: bool = Field(default=False)
-    use_checkpoint: bool = Field(default=False)
-    use_early_stopping: bool = Field(default=False)
-    use_litlogger_logger: bool = Field(default=False)
+    use_mlflow_logger: bool = Field(
+        default=False,
+        description="Enable MLflow logging. Requires mlflow_config.tracking_uri to be set.",
+    )
+    use_checkpoint: bool = Field(default=False, description="Enable model checkpointing.")
+    use_early_stopping: bool = Field(default=False, description="Enable early stopping.")
+    use_litlogger_logger: bool = Field(default=False, description="Enable the Lightning Studio LitLogger.")
 
     def _resolve_accelerator(self) -> str | None:
         """

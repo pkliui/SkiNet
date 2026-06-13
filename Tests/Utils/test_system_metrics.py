@@ -45,11 +45,13 @@ _make_callback()   — creates a callback with a short interval (50 ms) so
 _null_trainer()    — trainer with no loggers; used when logging output is
                      irrelevant to the test.
 """
+import logging
 import math
 import time
 from typing import Any, cast
 
 import lightning as L
+import pytest
 
 from SkiNet.Utils.logging.system_metrics import SystemMetricsThreadCallback
 
@@ -202,7 +204,9 @@ def test_flush_metrics_skips_all_nan_snapshot() -> None:
     assert logger.calls == [({"system/ram_percent": 50.0}, 1)]
 
 
-def test_flush_metrics_continues_after_logger_failure() -> None:
+def test_flush_metrics_continues_after_logger_failure(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """
     A RuntimeError raised by one logger backend must not prevent subsequent
     loggers from receiving the same snapshot.
@@ -211,15 +215,22 @@ def test_flush_metrics_continues_after_logger_failure() -> None:
     try/except, so a broken backend (e.g. a misconfigured MLflow server)
     is isolated: it is logged as a warning and the loop moves on. This test
     places the failing logger first to confirm the good logger still fires.
+
+    The failing logger emits an ERROR-level record via logger.exception(); we
+    capture it with caplog so it is recorded rather than surfacing as bare
+    "Captured stderr" noise in the test report, and assert the failure *was*
+    logged — turning the expected error into a positive assertion.
     """
     callback = SystemMetricsThreadCallback()
     callback._metrics_queue.put({"system/cpu_percent": 12.0})
     good_logger = _RecordingLogger()
     trainer = _TrainerStub(loggers=[_FailingLogger(), good_logger], global_step=11)
 
-    callback._flush_metrics(_as_trainer(trainer))
+    with caplog.at_level(logging.ERROR, logger="SkiNet.Utils.logging.system_metrics"):
+        callback._flush_metrics(_as_trainer(trainer))
 
     assert good_logger.calls == [({"system/cpu_percent": 12.0}, 11)]
+    assert "Failed to log system metrics" in caplog.text
 
 
 def test_flush_metrics_none_loggers_is_noop() -> None:
