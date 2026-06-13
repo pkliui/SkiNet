@@ -8,11 +8,12 @@ def test_sweep_config_defaults() -> None:
     """SweepConfig should build with no arguments and populate the default sweep settings.
 
     This covers the baseline contract used by the Optuna entrypoint: the default
-    monitor, optimization direction, experiment name, and the built-in candidate
-    values for weight decay and batch size must all be present.
+    monitor, optimization direction, experiment name, and the per-field candidate
+    values must all be present.
 
-    LR defaults to a single fixed value (3e-4, determined by the E1 LR search) so
-    it is not varied in the sweep unless explicitly overridden in the YAML config.
+    Every candidate field defaults to a single value (kept consistent with the
+    SWEEP_CONFIG block in main_config.yaml), so the default grid is a 1-combo no-op
+    sweep; a dimension is only varied when its list is widened in the YAML config.
     """
     cfg = SweepConfig()
 
@@ -20,10 +21,11 @@ def test_sweep_config_defaults() -> None:
     assert cfg.direction == "maximize"
     assert cfg.experiment_name == "optuna_sweep"
     assert cfg.lr == [3e-4]
-    assert 1e-4 in cfg.weight_decay
-    assert 16 in cfg.batch_size
-    assert 4 in cfg.num_workers
-    assert 2 in cfg.prefetch_factor
+    assert cfg.weight_decay == [0.0]
+    assert cfg.batch_size == [8]
+    assert cfg.num_workers == [2]
+    assert cfg.prefetch_factor == [4]
+    assert cfg.scheduler_type == ["none"]
 
 
 def test_sweep_config_search_space_contains_all_keys() -> None:
@@ -109,5 +111,5 @@ def test_sweep_config_search_space_mutation_does_not_affect_config() -> None:
     space[HyperparamKey.PREFETCH_FACTOR].append(16)
 
     assert cfg.lr == [3e-4]
-    assert cfg.batch_size == [16, 32]
-    assert cfg.prefetch_factor == [2, 4]
+    assert cfg.batch_size == [8]
+    assert cfg.prefetch_factor == [4]

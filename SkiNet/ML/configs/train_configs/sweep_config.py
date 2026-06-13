@@ -17,13 +17,17 @@ class SweepConfig(BaseModel):
     monitor: MetricsKey = Field(default=MetricsKey.default_monitor())
     direction: str = Field(default="maximize", pattern="^(maximize|minimize)$")
     experiment_name: str = Field(default="optuna_sweep")
+    # Each field is a list of GridSampler candidates for one dimension. Defaults are a single value
+    # per field, kept consistent with the SWEEP_CONFIG block in main_config.yaml, so SweepConfig()
+    # yields a 1-combo (no-op) grid; widen a field in the YAML to sweep that dimension. In practice
+    # tune one dimension at a time.
     lr: list[float] = Field(default_factory=lambda: [3e-4])
-    weight_decay: list[float] = Field(default_factory=lambda: [1e-4, 1e-3])
-    batch_size: list[int] = Field(default_factory=lambda: [16, 32])
-    num_workers: list[int] = Field(default_factory=lambda: [4, 8])
-    prefetch_factor: list[int] = Field(default_factory=lambda: [2, 4])
+    weight_decay: list[float] = Field(default_factory=lambda: [0.0])
+    batch_size: list[int] = Field(default_factory=lambda: [8])
+    num_workers: list[int] = Field(default_factory=lambda: [2])
+    prefetch_factor: list[int] = Field(default_factory=lambda: [4])
     scheduler_type: list[str] = Field(
-        default_factory=lambda: ["none", "cosine_annealing", "reduce_on_plateau"],
+        default_factory=lambda: ["none"],
         description=(
             "LR scheduler variants to sweep. Use 'none' to disable the scheduler "
             "for a given trial; 'cosine_annealing' and 'reduce_on_plateau' map "
