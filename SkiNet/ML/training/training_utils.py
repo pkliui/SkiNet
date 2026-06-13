@@ -34,12 +34,7 @@ def find_best_threshold(probs: torch.Tensor,
         where computation should occur (CPU or GPU).
     :param targets: 1D tensor of ground-truth binary labels with shape [N]. Values will be converted to boolean internally.
     :param n_thresholds: Number of evenly spaced thresholds in the range [0.0, 1.0]. Defaults to 51.
-    :return:
-        dict[str, float]:
-            {
-                "best_threshold": float,
-                "best_dice": float
-            }
+    :return: A dict with keys ``"best_threshold"`` (float) and ``"best_dice"`` (float).
     """
     # e.g. torch.Size([51])
     thresholds = torch.linspace(1.0, 0.0, n_thresholds, device=probs.device)

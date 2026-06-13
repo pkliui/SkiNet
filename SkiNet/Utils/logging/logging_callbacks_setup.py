@@ -34,8 +34,7 @@ def setup_logging_and_callbacks(*, main_config: ExperimentConfig) -> TrainerComp
     Sets up loggers and callbacks based on the provided configuration.
 
     :param main_config: The main configuration object loaded from the configuration file
-    :return: A LoggingSetup dataclass containing the run name, loggers, callbacks, mlflow logger,
-    and early stopping callback (if used).
+    :return: A TrainerComponents dataclass with the run name, loggers, callbacks, and mlflow logger.
     """
 
     # initialize loggers and callbacks
