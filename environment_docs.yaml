@@ -7,6 +7,7 @@ dependencies:
   - furo
   - myst-parser
   - sphinx-togglebutton
+  - pandoc
   - pip
   - pip:
     - autodoc-pydantic
