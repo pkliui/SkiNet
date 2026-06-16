@@ -2,6 +2,7 @@ import importlib
 import inspect
 import logging
 from typing import Optional
+
 from SkiNet.ML.utils.configs.default.class_module_mapping import default_class_module_mapping
 
 
@@ -13,16 +14,16 @@ class DynamicClassLoader:
     def __init__(self, class_name: str, class_to_module_mapping: Optional[dict] = None):
         """
         :param class_name: Name of a class to load dynamically
-        :param class_to_module_mapping: Dictionary mapping class names to their respective locations in modules, 
+        :param class_to_module_mapping: Dictionary mapping class names to their respective locations in modules,
             e.g. {"class_name": "module.where.this.class.is"}
         """
-        self.class_name = class_name 
-        self.class_to_module_mapping =  class_to_module_mapping or default_class_module_mapping()
+        self.class_name = class_name
+        self.class_to_module_mapping = class_to_module_mapping or default_class_module_mapping()
 
     def load_the_class(self) -> Optional[object]:
         """
         Load the specified class dynamically.
-        
+
         :return: The specified class if found, otherwise None.
         """
         try:
@@ -38,7 +39,7 @@ class DynamicClassLoader:
                 found_class for found_name, found_class in inspect.getmembers(imported_module)
                 # check if  "found_class" is a class and its name is that of the provided "class_name"
                 # and additionally check if the found_class is actually being defined within the specified imported_module
-                if inspect.isclass(found_class) and found_name == self.class_name 
+                if inspect.isclass(found_class) and found_name == self.class_name
                 and inspect.getmodule(found_class) == imported_module
             )
             logging.getLogger(__name__).info(f"Found class {loaded_class} in file {imported_module}")
@@ -46,4 +47,6 @@ class DynamicClassLoader:
         except Exception as e:
             if str(e) != "":
                 logging.getLogger(__name__).warning(f"Loading module for class  {self.class_name} has not succeed: {str(e)}")
+            return None
+            return None
             return None

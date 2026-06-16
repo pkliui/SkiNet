@@ -1,65 +1,83 @@
-FROM ubuntu:22.04
+FROM ubuntu:22.04 AS base
+# common setup for all stages except torch installs
 ENV RUNNING_IN_DOCKER=true
+ENV PIP_NO_CACHE_DIR=1
+SHELL ["/bin/bash", "-lc"]
 
+# Environment name and path to the project root directory
 ARG ENV_NAME=skinet
 ENV PROJECT_PATH=/workplace/SkiNet
-ENV CONDA_DIR=/opt/conda
+# Set python path
+ENV PYTHONPATH=${PROJECT_PATH}
+# Specify work directory
+WORKDIR ${PROJECT_PATH}
+# Copy conda's environment file and label the image using its hash
 COPY environment.yaml .
-COPY pip_requirements.txt .
+ARG ENV_HASH
+LABEL org.opencontainers.image.version="v9" \
+      org.opencontainers.image.description="SkiNet segmentation" \
+      skinet.environment_sha=$ENV_HASH
+
+# specify mamba root -where environments will live i.e. /opt/micromamba/envs/skinet
+ENV MAMBA_ROOT_PREFIX=/opt/micromamba
 
 # install necessary packages
-# DEBIAN_FRONTEND=noninteractive to prevent any additional prompts to further customize installation options
+# DEBIAN_FRONTEND=noninteractive to prevent any additional prompts during the package installation
 # rm -rf cleans up respective folder after installations
 # build-essential is required to install conda
+# lsb-release and blobfuse2 are required to mount Azure Blob Storage as a file system in Linux
 RUN DEBIAN_FRONTEND=noninteractive \
-    apt-get update && apt-get install -y sudo wget curl unzip build-essential && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    sudo wget curl unzip build-essential git lsb-release ca-certificates && \
+    wget https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb && \
+    dpkg -i packages-microsoft-prod.deb && \
+    apt-get update && apt-get install -y --no-install-recommends blobfuse2 && \
+    rm -f packages-microsoft-prod.deb && \
+    apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# install conda and it to path
-# a separate ARG step to make this step cacheable
-ARG MINICONDA_URL=https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-RUN wget $MINICONDA_URL -O ~/miniconda.sh && \
-    /bin/bash ~/miniconda.sh -b -p ${CONDA_DIR}
-ENV PATH=/root/.local/bin:${CONDA_DIR}/bin:${PATH}s
+# install micromamba and create the environment
+ARG MAMBA_URL=https://micro.mamba.pm/api/micromamba/linux-64/latest
+RUN curl -Ls $MAMBA_URL | \
+    tar -xvj -C /usr/local/bin --strip-components=1 bin/micromamba && \
+    micromamba create -y -n ${ENV_NAME} -f environment.yaml && \
+    micromamba clean --all --yes && \
+    rm -rf /root/.cache
 
-# create a new environment and install packages
-# conda init bash is required to make conda available in bash
-# use mamba to speed up the process - conda often fails with connection failed error
-RUN conda install -n base -c conda-forge mamba && \
-    mamba env create -n skinet -f environment.yaml -y && rm environment.yaml && \
-    conda init bash
-# alternative way to create a conda environment, no mamba
-#RUN conda init && conda env create -n skinet -f environment.yaml -y && rm environment.yaml
+# clean up installs and remove build-essential since it's not needed after conda installation
+RUN apt-get purge -y wget curl unzip build-essential && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-# add pip dependencies
-# the reason for having a separate requirements file for pip is that conda fails with "conflicting versions" error if pip packages are installed from yaml
-# don't install for the moment due to version conflics in Azure
-#RUN pip install -r pip_requirements.txt && rm pip_requirements.txt
+# add skinet's python executable to path
+ENV PATH=/root/.local/bin:${MAMBA_ROOT_PREFIX}/envs/${ENV_NAME}/bin:${PATH}
+# Prefer shared libraries from the micromamba environment over possible Ubuntu's older system runtime.
+ENV LD_LIBRARY_PATH=""
+ENV LD_LIBRARY_PATH=${MAMBA_ROOT_PREFIX}/envs/${ENV_NAME}/lib:${LD_LIBRARY_PATH}
 
-# activate the environment by default
-ENV CONDA_DEFAULT_ENV=${ENV_NAME}
-RUN echo "conda activate ${ENV_NAME}" >> ~/.bashrc
-# LD_LIBRARY_PATH fixing "import torch" error https://github.com/pytorch/pytorch/issues/111469, 
-# alongside with mamba install python pytorch torchvision torchdata (specified in environment.yaml without any fixed versions)
-ENV LD_LIBRARY_PATH=/opt/conda/envs/skinet/lib/python3.11/site-packages/nvidia/nvjitlink/lib:$LD_LIBRARY_PATH
-# add conda environment to path
-ENV PATH=/opt/conda/envs/${ENV_NAME}/bin:${PATH}
+RUN micromamba shell init -s bash -r ${MAMBA_ROOT_PREFIX} && \
+    echo "micromamba activate ${ENV_NAME}" >> /root/.bashrc
 
-# add project's directory to python's path
-ENV PYTHONPATH="${PYTHONPATH}:${PROJECT_PATH}"
-WORKDIR /workplace/SkiNet
-
-# install AWS CLI
-#RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
-#    unzip awscliv2.zip && \
-#    rm awscliv2.zip && \
-#    ./aws/install
-
-# install Azure CLI
-# required for authentication ?
-RUN curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash 
+# Add environment variables to ensure the correct LD_LIBRARY_PATH is set when the environment is activated,
+# which is necessary for matplotlib to find the correct shared libraries.
+RUN mkdir -p ${MAMBA_ROOT_PREFIX}/envs/${ENV_NAME}/etc/conda/activate.d && \
+    printf '%s\n' \
+    "export LD_LIBRARY_PATH=${MAMBA_ROOT_PREFIX}/envs/${ENV_NAME}/lib\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}" \
+    > ${MAMBA_ROOT_PREFIX}/envs/${ENV_NAME}/etc/conda/activate.d/env_vars.sh
 
 # add a default user instead of using root in docker
 #RUN useradd -ms /bin/bash skinet_runner
 #USER skinet_runner
+CMD ["/bin/bash", "-i"]
 
+FROM base AS cpu
+RUN micromamba run -n skinet python -m pip install --no-cache-dir \
+    torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+    micromamba run -n skinet python -m pip install --no-cache-dir torchdata && \
+    rm -rf /root/.cache
+
+FROM base AS gpu
+RUN micromamba run -n skinet python -m pip install --no-cache-dir \
+    torch torchvision torchaudio torchdata && \
+    rm -rf /root/.cache

@@ -1,24 +1,42 @@
 ---
 name: skinet
 channels:
-  - defaults
   - conda-forge
-  - pytorch
+  - defaults
+
 dependencies:
   - numpy
   - pytest
-  - python  # the latest supported version required by s3torchconnector is 3.11, remving this to fix an "import torch" error
+  - python=3.11 # the latest supported version required by s3torchconnector is 3.11; Not specifying 3.11 will result in an error "Cannot install azureml-fsspec because these package versions have conflicting dependencies.""
   - scikit-image
   - matplotlib
+  - libgcc-ng
+  - libstdcxx-ng
   - ipykernel
   - jupyterlab
   - dash
   - plotly
   - pandas
   - param
-  - pytorch
-  - torchvision
-  - torchaudio
-  - torchdata
-  - pip
   - yacs
+  - pip:
+      - albumentationsx[headless]
+      - litlogger
+      - lightning
+      - mlflow
+      - optuna
+      - segmentation-models-pytorch
+      - torch
+      - torchvision
+      - torchaudio
+      - torchdata
+      - autopep8
+      - azureml-fsspec==1.3.1
+      - azure-ai-ml
+      - flake8
+      - mltable
+      - mypy
+      - pre-commit
+      - pynvml
+      - tensorboard
+      - types-PyYAML

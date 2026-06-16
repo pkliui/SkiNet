@@ -26,23 +26,20 @@ def get_repo_root_directory() -> Path:
     return root
 
 
-#######################################################################################################################################################################################################
-
+# ________________REPO_PATHS_____________
+# Repo root
+REPO_ROOT = get_repo_root_directory()
 # Name of the project
-SKINET_PROJECT_NAME = 'SkiNet'
+SKINET_PROJECT_NAME = "SkiNet"
 # Root directory of the project, i.e. SkiNet/SkiNet
 SKINET_ROOT_DIR = get_repo_root_directory() / SKINET_PROJECT_NAME
 
-
-##########################################################################################____TESTS____##########################################################################################
-
+# ________________TESTS__________________
 # Name and path to Tests directory
 TEST_DIR_NAME = "Tests"
 TESTS_DIR = get_repo_root_directory() / TEST_DIR_NAME
 
-
-##########################################################################################____SKINET/AZURE____##########################################################################################
-
+# ______________SKINET/AZURE_____________
 # Name and path to a directory containing Azure-related code
 AZURE_DIR_NAME = "Azure"
 AZURE_DIR = SKINET_ROOT_DIR / AZURE_DIR_NAME
@@ -54,3 +51,46 @@ AZURE_SETTINGS_YAML = AZURE_DIR / AZURE_SETTINGS_YAML_NAME
 # Name and path to a file keeping Azure secrets - must NOT be version-controlled!!!
 PRIVATE_AZURE_SECRETS_YAML_NAME = "PrivateAzureSecrets.yaml"
 PRIVATE_AZURE_SECRETS_YAML = AZURE_DIR / PRIVATE_AZURE_SECRETS_YAML_NAME
+
+# ______________Data-related_____________
+
+# PH2 dataset
+
+# NB: For the dataset keys see SkiNet.ML.configs.datasets.dataset_keys.DatasetKey class
+# Name of the CSV file containing metadata for the PH2 dataset, how it is saved or read from the disk
+PH2_CSV_NAME = "ph2_metadata.csv"
+
+# Name of the TXT file containing the PH2 dataset's metadata as it is originally provided by the dataset authors
+PH2_TXT_NAME = "PH2_dataset.txt"
+
+# Local image and mask patterns
+PH2_IMAGE_PATTERN_LOCAL = "**/*_Dermoscopic_Image/*.png"
+PH2_MASK_PATTERN_LOCAL = "**/*_lesion/*.png"
+PH2_IMAGE_PATTERN_AZURE = "**_Dermoscopic_Image/**.png"
+PH2_MASK_PATTERN_AZURE = "**_lesion/**.png"
+
+
+# ISIC 2017 dataset
+# NB: For the dataset keys see SkiNet.ML.configs.datasets.dataset_keys.DatasetKey class
+ISIC2017_CSV_NAME = "isic2017_metadata.csv"
+
+# Names of the three ground-truth diagnosis CSV files as provided by the ISIC 2017 challenge
+ISIC2017_TRAIN_GT_CSV_NAME = "ISIC-2017_Training_Part3_GroundTruth.csv"
+ISIC2017_VAL_GT_CSV_NAME = "ISIC-2017_Validation_Part3_GroundTruth.csv"
+ISIC2017_TEST_GT_CSV_NAME = "ISIC-2017_Test_v2_Part3_GroundTruth.csv"
+
+# Glob patterns for local file system
+ISIC2017_IMAGE_PATTERN_LOCAL = "ISIC-2017_*_Data/*/*.jpg"
+ISIC2017_MASK_PATTERN_LOCAL = "ISIC-2017_*_Part1_GroundTruth/*/*_segmentation.png"
+
+# Glob patterns for Azure file system
+ISIC2017_IMAGE_PATTERN_AZURE = "**_Data/**.jpg"
+ISIC2017_MASK_PATTERN_AZURE = "**_Part1_GroundTruth/**_segmentation.png"
+
+
+# ______________Data-related for Azure machine_____________
+# Path to a directory on Azure where data from Azure Blob Container is mounted
+AZURE_MOUNT_PATH: Path = Path("/mnt/azure_blob_data/")
+
+# Path to blobfuse2 configuration file
+BLOBFUSE2_CONFIG_PATH = AZURE_DIR / "blobfuse2.yaml"

@@ -1,9 +1,10 @@
-import yaml 
-from typing import Any, Dict, Optional, cast, List, Union
 from pathlib import Path
+from typing import Dict, cast
+
+import yaml
 
 
-def get_config_from_yaml(path_to_yaml: Path)-> Dict:
+def get_config_from_yaml(path_to_yaml: Path) -> Dict:
     """
     Read a YAML configuration file and return its contents as a dictionary.
 
@@ -14,7 +15,7 @@ def get_config_from_yaml(path_to_yaml: Path)-> Dict:
         with open(path_to_yaml, 'r') as file:
             yaml_data = yaml.safe_load(file)
             if yaml_data:
-                return yaml_data
+                return cast(Dict, yaml_data)
             return dict()
     except FileNotFoundError as e:
         raise ValueError(f"Config file specified in {path_to_yaml} not found") from e

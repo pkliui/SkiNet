@@ -6,25 +6,64 @@ import argparse
 import logging
 from pathlib import Path
 from typing import Union
+
 import dash
-from dash import html, dcc
+import numpy as np
 import plotly.graph_objects as go
+from dash import dcc, html
+from matplotlib import pyplot as plt
 from plotly.subplots import make_subplots
 from torch.utils.data.dataset import Dataset
 
-from SkiNet.Plotting.get_data.get_images_and_masks import get_random_sample
-from SkiNet.Plotting.adjust_data.adjust_masks import adjust_mask_for_goimage
+from SkiNet.ML.transformations.transform_data import ensure_np_image
 from SkiNet.ML.utils.configs.dynamic_class_loader import DynamicClassLoader
-
-import logging
+from SkiNet.Plotting.adjust_data.adjust_masks import adjust_mask_for_goimage
+from SkiNet.Plotting.get_data.get_images_and_masks import get_random_sample
 from SkiNet.Utils.loggers import stdout_logging
+
+def plot_images_masks_side_by_side_matplotlib(dataset, num_samples=5):
+    """
+    Plots images and their corresponding masks side by side with colorbars using matplotlib
+
+    :param dataset: A PyTorch Dataset that returns a dictionary with the keys "image" and "mask"
+        Each image and mask is assumed to be of type numpy array
+    :param num_samples: Number of image-mask pairs to plot.
+    """
+
+
+    # Create a figure with subplots
+    fig, axes = plt.subplots(num_samples, 2, figsize=(10, 5 * num_samples))
+    if num_samples == 1:
+        axes = [axes]  # Ensure axes is iterable for a single sample
+
+    for i in range(num_samples):
+        # Get a sample from the dataset
+        sample = dataset[i]
+
+        image = ensure_np_image(sample['image'])
+        mask = ensure_np_image(sample['mask'])
+
+        # Plot the image
+        im = axes[i][0].imshow(image)
+        axes[i][0].set_title(f"Image {i+1}")
+        axes[i][0].axis('off')
+        fig.colorbar(im, ax=axes[i][0], orientation='vertical')
+
+        # Plot the mask
+        m = axes[i][1].imshow(mask, cmap='gray')
+        axes[i][1].set_title(f"Mask {i+1}")
+        axes[i][1].axis('off')
+        fig.colorbar(m, ax=axes[i][1], orientation='vertical')
+
+    plt.tight_layout()
+    plt.show()
 
 
 def create_images_masks_subplot(data_set, sample_index_to_plot, random_sample=True):
     """
     Create a figure where images and masks are placed side by side as subplots
 
-    :param data_set: A dataset object, e.g. PH2Dataset returning one image and one mask at a time by providing the sample number
+    :param data_set: A PyTorch Dataset that returns a dictionary with the keys "image" and "mask"
     :param sample_num_to_plot: Number of a sample to plot
     :param random_sample: If True, a random sample is picked from the dataset, default is True
 
@@ -37,7 +76,7 @@ def create_images_masks_subplot(data_set, sample_index_to_plot, random_sample=Tr
     else:
         # or get a specific sample
         sample = data_set[sample_index_to_plot]
-        sample_name = Path(data_set.images_list[sample_index_to_plot]).parent.parent.name
+        sample_name = Path(str(data_set.images_list[sample_index_to_plot])).parent.parent.name # images_list may return numpy array, convert it to str and then to Path
     #
     # make a figure
     fig = make_subplots(rows=1, cols=2, subplot_titles=("Image", "Mask"))
@@ -60,6 +99,10 @@ def plot_images_masks_side_by_side(dataset_name: str = None, dataset: Dataset = 
     :param num_images_to_plot: Number of image-mask pairs to display
     :param random_sample: If True, a random sample is picked from the dataset, default is True
     :param path_to_data: Path to a directory with images and masks or str
+
+    Example of use from command line (being in SkiNet/ within SkiNet environment):
+    python SkiNet/Plotting/plot_images_masks_side_by_side.py --dataset-name "PH2Dataset" --path-to-data "PH2_Dataset_images" --num-images-to-plot 10
+
     """
     #
     # load the dataset by providing its name (respective dataset calss should exist as checked in the DynamicClassLoader)
@@ -95,7 +138,7 @@ def plot_images_masks_side_by_side(dataset_name: str = None, dataset: Dataset = 
         ])
     ])
 
-    app.run_server(debug=True)
+    app.run(debug=True)
 
 if __name__ == '__main__':
     stdout_logging(logging.DEBUG)

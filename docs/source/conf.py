@@ -1,0 +1,149 @@
+import sys
+import os
+
+# Make the SkiNet package importable by autodoc
+sys.path.insert(0, os.path.abspath('../..'))
+
+# -- Project information -----------------------------------------------------
+project = 'SkiNet'
+copyright = '2024, Pavel Kliuiev'
+author = 'Pavel Kliuiev'
+release = '1.0.0'
+
+
+# -- General configuration ---------------------------------------------------
+
+extensions = [
+    'myst_parser',
+    'nbsphinx',
+    'sphinx_togglebutton',
+    'sphinx.ext.autodoc',       # pulls docstrings from source into API pages
+    'sphinx.ext.napoleon',      # understands :param:/:return: Sphinx style
+    'sphinx.ext.viewcode',      # adds [source] links next to every documented symbol
+    'sphinx.ext.intersphinx',   # lets {py:class}`torch.Tensor` resolve to PyTorch docs
+    'sphinxcontrib.autodoc_pydantic',
+]
+
+# myst_parser: enable {autoclass} / {autofunction} directives inside .md files
+myst_enable_extensions = ["colon_fence"]
+
+# nbsphinx: never re-run notebooks; render the stored outputs as-is.
+nbsphinx_execute = "never"
+
+# Make notebook code-input cells collapsible (collapsed by default, click to
+# reveal). nbsphinx emits each input cell as a `.nbinput` container; the assets
+# in _static/ add a "Show code" toggle to each one. Self-contained so it does
+# not depend on sphinx-togglebutton internals.
+html_static_path = ['_static']
+html_css_files = ['collapse_nbinput.css']
+html_js_files = ['collapse_nbinput.js']
+
+# Auto-generate anchors for h1-h3 headings so cross-file links like
+# [text](development.md#lightning-studio) resolve to the heading slug.
+myst_heading_anchors = 3
+
+# sphinx.ext.napoleon: use Sphinx-style :param:/:return: (not Google/NumPy style)
+napoleon_use_param = True
+napoleon_use_rtype = True
+
+# Put types in the signature box (InnerEye style), not scattered in the body
+autodoc_typehints = "signature"
+
+# The docs build env (environment_docs.yaml) installs only Sphinx tooling, so
+# every heavy runtime dependency must be mocked for autodoc to import the
+# modules and document their signatures. pydantic, IPython and psutil are left
+# real because the docs env provides them (autodoc-pydantic / ipykernel) and
+# autodoc-pydantic needs the real pydantic to render model fields.
+autodoc_mock_imports = [
+    "torch",
+    "torchvision",
+    "torchmetrics",
+    "lightning",
+    "segmentation_models_pytorch",
+    "pandas",
+    "numpy",
+    "scipy",
+    "sklearn",
+    "skimage",
+    "cv2",
+    "PIL",
+    "albumentations",
+    "matplotlib",
+    "seaborn",
+    "plotly",
+    "dash",
+    "mlflow",
+    "azureml",
+    "yaml",
+    "pytest",
+]
+
+# Several Pydantic models annotate fields with mocked types (e.g.
+# `Union[torch.Tensor, np.ndarray]` in sample_specs.Sample). With those modules
+# mocked, Pydantic resolves the annotation to a Sphinx mock object, detects its
+# auto-generated `__get_pydantic_core_schema__`, and fails to build a schema.
+# Teach the mock to declare itself as `Any` so model classes import cleanly.
+from typing import Any
+
+from sphinx.ext.autodoc.mock import _MockObject
+from pydantic_core import core_schema
+
+
+def _mock_get_pydantic_core_schema(cls: type, *args: Any, **kwargs: Any) -> core_schema.CoreSchema:
+    return core_schema.any_schema()
+
+
+_MockObject.__get_pydantic_core_schema__ = classmethod(_mock_get_pydantic_core_schema)  # type: ignore[attr-defined]
+
+# autodoc-pydantic: show fields with their types, defaults, and descriptions
+autodoc_pydantic_model_show_json = False
+autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_validator_summary = False
+autodoc_pydantic_model_members = True
+autodoc_pydantic_model_undoc_members = True
+autodoc_pydantic_field_list_validators = False
+autodoc_pydantic_field_show_default = True
+# Use only the class docstring — Pydantic generates noisy __init__ boilerplate
+autoclass_content = "class"
+# Global autodoc defaults for all autoclass/autofunction directives
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": True,
+    "show-inheritance": True,
+}
+
+# intersphinx: resolve cross-refs to upstream libraries
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "torch": ("https://pytorch.org/docs/stable", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+}
+
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
+
+master_doc = 'index'
+templates_path = ['_templates']
+exclude_patterns: list[str] = []
+
+# pytorch.org moved the randomness page; anchor no longer resolves
+linkcheck_ignore = [
+    r"https://docs\.pytorch\.org/docs/stable/notes/randomness\.html.*",
+    r"https://challenge\.isic-archive\.com/.*",
+    # MLflow example URI in TrainConfig.tracking_uri docstring; not reachable in CI
+    r"http://127\.0\.0\.1:\d+",
+    r"http://localhost:\d+",
+]
+
+# docs.pytorch.org/docs/stable/* serves a JS redirect to the versioned page;
+# linkcheck can't run JS so it reports anchors like #torch.Tensor as not found.
+linkcheck_anchors_ignore_for_url = [
+    r"https://docs\.pytorch\.org/docs/stable/.*",
+]
+
+
+# -- HTML output -------------------------------------------------------------
+html_theme = 'furo'
+# html_theme = "pydata_sphinx_theme"

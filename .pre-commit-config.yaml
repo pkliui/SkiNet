@@ -1,0 +1,21 @@
+repos:
+  - repo: local
+    hooks:
+      - id: flake8
+        name: flake8 check
+        entry: flake8
+        language: system
+        types: [python]
+
+      - id: mypy-custom
+        name: mypy type check via check_types.py
+        entry: python check_types.py -f
+        language: system
+        types: [python]
+
+      - id: run-pytest-tests
+        name: Run Pytests Tests
+        entry: python SkiNet/Utils/test_utils/run_pytest_tests.py
+        language: system
+        always_run: true
+        pass_filenames: false
