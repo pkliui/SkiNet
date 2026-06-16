@@ -5,6 +5,8 @@ Binary segmentation of dermoscopic skin lesions on **ISIC 2017**, using a UNet2D
 A single checkpoint at the default threshold reaches an **IoU of 0.7494**, which places
 SkiNet **just outside the top 7** of the official ISIC 2017 Task 1 leaderboard.
 
+Full documentation is built with Sphinx and hosted at **<https://pkliui.github.io/SkiNet/>**.
+
 <p align="center">
   <img src="docs/assets/arch_overview.svg" width="720" alt="UNet2D architecture overview">
 </p>
