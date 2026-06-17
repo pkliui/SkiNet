@@ -32,11 +32,8 @@ Important notes
 
 ```bash
 ENV_HASH=$(sha256sum environment.yaml | cut -c1-64)
-IMAGE_TAG="pkliui/skinet:v9gpu"   # adjust tag to match the version in on_start_gpu.sh / on_start_cpu.sh
-docker build \
-  --build-arg ENV_HASH=$ENV_HASH \
-  --target gpu \
-  -t $IMAGE_TAG .
+IMAGE_TAG="pkliui/skinet:vtest"   # adjust tag to match the version in on_start_gpu.sh / on_start_cpu.sh
+docker build --no-cache --build-arg ENV_HASH=$ENV_HASH --target gpu -t $IMAGE_TAG .
 docker push $IMAGE_TAG
 ```
 
@@ -53,10 +50,18 @@ Build GPU image locally:
 docker build --target gpu -t skinet:gpu .
 ```
 
-Run container bind-mount repo locally:
+
+
+Run container bind-mount repo locally (and a host data dir at `/mnt/data`):
 ```bash
-docker run -it --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/workplace/SkiNet skinet:cpu bash
+docker run -it \
+  -p 5000:5000 \
+  --mount type=bind,src=/Users/Pavel/Documents/repos/SkiNet,dst=/workplace/SkiNet \
+  --mount type=bind,src=/path/to/host/isic2017,dst=/mnt/data \
+  skinet:gpu bash
 ```
+
+**WARNING:** When you launch a container manually like this, always bind-mount a host directory at `/mnt/data` *before* downloading data into it. If you run `kaggle datasets download -p /mnt/data` inside a container where `/mnt/data` is **not** mounted, the data is written to the container's ephemeral writable layer and is lost the moment the container is removed (`docker rm`, or `docker run --rm`). Similarly, publish MLflow's port with `-p 5000:5000`, or the UI started by `start_mlflow.sh` runs inside the container but is unreachable from the host. The startup scripts (`on_start_gpu.sh` / `on_start_cpu.sh`) handle both the mount and the port publish for you.
 
 ### Additional options
 
@@ -80,7 +85,7 @@ The following startup scripts are provided (each clones/updates the repo, pulls 
 | `on_start_cpu.sh` | `pkliui/skinet:v9cpu` | CPU development / debugging |
 
 
-**NOTE:** When running code on Lightning Studio, data must be placed in Lightning Storage. The startup scripts bind-mount it into the container at `/mnt/data/`. Set `azure_data: False` and `local_data_root: "/mnt/data/"` in `main_config.yaml`.
+**NOTE:** When running code on Lightning Studio, data must be placed in Lightning Storage. The startup scripts bind-mount it into the container at `/mnt/data/`. Set `azure_data: False` and `local_data_root: "/mnt/data/"` in `main_config.yaml`. The host data directory defaults to Lightning Storage but is overridable per dataset — set `ISIC_OUT_DIR` (ISIC 2017) or `PH2_DATA_DIR` (PH2) to read data from any host path.
 
 #### CPU modes (`on_start_cpu.sh`)
 

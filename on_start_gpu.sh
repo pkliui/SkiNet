@@ -31,18 +31,22 @@
 #   Dry run — build command but skip container launch:
 #     RUN_TRAINING=false MODE=train bash on_start_gpu.sh
 #
-#   Keep GPU after training (default: release):
-#     RELEASE_GPU=false MODE=train bash on_start_gpu.sh
+#   Release GPU after training (default: keep):
+#     RELEASE_GPU=true MODE=train bash on_start_gpu.sh
 #
-#   Select dataset (default: ph2):
+#   Select dataset (default: isic2017):
 #     DATASET=ph2      MODE=seeds SEEDS="1 2 3" bash on_start_gpu.sh
 #     DATASET=isic2017 MODE=seeds SEEDS="1 2 3" bash on_start_gpu.sh
 #
+#   Point the data at a custom host path (instead of the Lightning Storage default):
+#     ISIC_OUT_DIR=/data/isic2017 RUN_TRAINING=true MODE=train bash on_start_gpu.sh
+#     DATASET=ph2 PH2_DATA_DIR=/data/ph2 RUN_TRAINING=true MODE=train bash on_start_gpu.sh
+#
 # ── INPUT VARIABLES ──────────────────────────────────────────────────────────
 #
-#   MODE              Required. One of: train | seeds | sweep | test | calibrate | interactive
-#   RUN_TRAINING      Launch the container. Default: true
-#   RELEASE_GPU       Switch to CPU after training. Default: true
+#   MODE              Required. One of: train | seeds | sweep | test | interactive
+#   RUN_TRAINING      Launch the container (non-interactive modes). Default: false
+#   RELEASE_GPU       Switch to CPU after training. Default: false
 #
 #   CONFIG_FILE       YAML config filename (resolved inside the container workdir).
 #                     Default: main_config.yaml
@@ -57,11 +61,13 @@
 #   SWEEP_DIRECTION   maximize | minimize.  Optional override — defaults to SWEEP_CONFIG.direction in the YAML.
 #
 #   -- dataset --
-#   DATASET           Dataset to use. One of: ph2 | isic2017. Default: ph2
+#   DATASET           Dataset to use. One of: ph2 | isic2017. Default: isic2017
 #                     ph2:      read from Lightning Storage (must be uploaded beforehand).
 #                     isic2017: downloaded from Kaggle on first run, preprocessed once.
+#   PH2_DATA_DIR      Host path to PH2 data (bind-mounted into the container).
+#                     Default: /teamspace/lightning_storage/ph2/
 #   ISIC_OUT_DIR      Local download path for ISIC 2017.
-#                     Default: /teamspace/studios/this_studio/isic2017
+#                     Default: /teamspace/lightning_storage/isic2017/ISIC2017DATA_256
 #   KAGGLE_DATASET    Kaggle dataset slug for ISIC 2017.
 #                     Default: johnchfr/isic-2017
 #
@@ -79,7 +85,7 @@
 #
 # ── NOTES ────────────────────────────────────────────────────────────────────
 #
-#   PH2:      data is read from Lightning Storage at /teamspace/lightning_storage/ph2/.
+#   PH2:      data is read from $PH2_DATA_DIR (default /teamspace/lightning_storage/ph2/).
 #             Ensure your data is uploaded there before running (path configured in
 #             repos/SkiNet/SkiNet/Azure/azure_settings.yaml under PATH_ON_DATASTORE).
 #
@@ -123,7 +129,7 @@ CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}" # "/kaggle/working/isi
 
 case "$DATASET" in
   ph2)
-    LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
+    LIGHTNING_MOUNT_PATH="${PH2_DATA_DIR:-/teamspace/lightning_storage/ph2/}"
     ;;
   isic2017)
     ISIC_OUT_DIR="${ISIC_OUT_DIR:-/teamspace/lightning_storage/isic2017/ISIC2017DATA_256}"
@@ -324,14 +330,11 @@ elif [[ "$MODE" == "test" ]]; then
   fi
   PYTHON_CMD="$PYTHON_BIN -u main_run.py --config $CONFIG_FILE --test-only --checkpoint $CHECKPOINT"
 
-elif [[ "$MODE" == "calibrate" ]]; then
-  PYTHON_CMD="$PYTHON_BIN -u calibrate_threshold.py --config $CONFIG_FILE"
-
 elif [[ "$MODE" == "interactive" ]]; then
   PYTHON_CMD=""  # interactive: drop to bash, no training command
 
 else
-  echo "ERROR: Unknown MODE='$MODE'. Valid values: train | seeds | sweep | test | calibrate | interactive"
+  echo "ERROR: Unknown MODE='$MODE'. Valid values: train | seeds | sweep | test | interactive"
   exit 1
 fi
 
@@ -344,6 +347,7 @@ if [[ "$MODE" == "interactive" ]]; then
   mkdir -p "$HOST_REPO/mlruns"
   CONTAINER_NAME="skinet-interactive-$(date +%s)"
   docker run --rm -it \
+    -p 5000:5000 \
     --name "$CONTAINER_NAME" \
     --gpus all \
     --ipc=host \

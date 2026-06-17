@@ -19,6 +19,10 @@
 #     DATASET=ph2      MODE=interactive bash on_start_cpu.sh
 #     DATASET=isic2017 MODE=test CHECKPOINT=... bash on_start_cpu.sh
 #
+#   Point the data at a custom host path (instead of the Lightning Storage default):
+#     ISIC_OUT_DIR=/data/isic2017 MODE=interactive bash on_start_cpu.sh
+#     DATASET=ph2 PH2_DATA_DIR=/data/ph2 MODE=interactive bash on_start_cpu.sh
+#
 # ── INPUT VARIABLES ──────────────────────────────────────────────────────────
 #
 #   MODE              Required. One of: interactive | test
@@ -28,6 +32,8 @@
 #   DATASET           Dataset to use. One of: ph2 | isic2017. Default: isic2017
 #                     ph2:      read from Lightning Storage (must be uploaded beforehand).
 #                     isic2017: downloaded from Kaggle on first run, preprocessed once.
+#   PH2_DATA_DIR      Host path to PH2 data (bind-mounted into the container).
+#                     Default: /teamspace/lightning_storage/ph2/
 #   ISIC_OUT_DIR      Local download path for ISIC 2017.
 #                     Default: /teamspace/lightning_storage/isic2017/ISIC2017DATA_256
 #   KAGGLE_DATASET    Kaggle dataset slug for ISIC 2017.
@@ -47,7 +53,7 @@
 #
 # ── NOTES ────────────────────────────────────────────────────────────────────
 #
-#   PH2:      data is read from Lightning Storage at /teamspace/lightning_storage/ph2/.
+#   PH2:      data is read from $PH2_DATA_DIR (default /teamspace/lightning_storage/ph2/).
 #             Ensure your data is uploaded there before running.
 #
 #   ISIC2017: data is downloaded from Kaggle to $ISIC_OUT_DIR on the first run.
@@ -82,7 +88,7 @@ CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"
 
 case "$DATASET" in
   ph2)
-    LIGHTNING_MOUNT_PATH="/teamspace/lightning_storage/ph2/"
+    LIGHTNING_MOUNT_PATH="${PH2_DATA_DIR:-/teamspace/lightning_storage/ph2/}"
     ;;
   isic2017)
     ISIC_OUT_DIR="${ISIC_OUT_DIR:-/teamspace/lightning_storage/isic2017/ISIC2017DATA_256}"

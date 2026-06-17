@@ -243,7 +243,7 @@ Plateau Dice tilts to attention-gate (8/10 seeds); peak Dice is an even split.</
 | Setting | Value |
 |---------|-------|
 | Dataset | ISIC 2017 — 2 000 train / 150 val / 600 test dermoscopic images |
-| Input resolution | 256×256 px, resized offline; normalised with dataset-computed mean & std |
+| Input resolution | 256×256 px (the expected input size), resized offline; normalised with dataset-computed mean & std. The network is fully convolutional and accepts any H×W divisible by 16 (the 4 stride-2 downsampling stages), but 256×256 is what the model is trained and deployed at and what the exported ONNX graph fixes. |
 | Batch size | 8 per GPU × 2 GPUs = 16 effective (DDP, ddp_spawn) |
 | Max epochs | 200 |
 | Loss | BCE-Dice: 0.5 × BCEWithLogitsLoss + 0.5 × Dice loss |

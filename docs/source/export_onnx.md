@@ -69,10 +69,16 @@ Either `--run` **or** both `--ckpt` and `--config` must be supplied. If `--run` 
 | Property | Value |
 |---|---|
 | Input name | `image` |
-| Input shape | `(batch, 3, 256, 256)` — batch axis is dynamic |
+| Input shape | `(batch, 3, 256, 256)` — only the batch axis is dynamic |
 | Output name | `mask_prob` |
 | Output shape | `(batch, 1, 256, 256)` — probabilities in [0, 1] |
 | Default opset | `17` |
+
+```{note}
+Only the batch axis is dynamic. The spatial dimensions are fixed at **256×256**, so every
+input must be resized to 256×256 before inference — feeding any other height/width will fail
+ONNXRuntime's shape check. 256 is the size the model is trained and deployed at.
+```
 
 ## iOS / mobile preprocessing constants
 

@@ -37,9 +37,12 @@ RUN DEBIAN_FRONTEND=noninteractive \
     rm -rf /var/lib/apt/lists/*
 
 # install micromamba and create the environment
-ARG MAMBA_URL=https://micro.mamba.pm/api/micromamba/linux-64/latest
-RUN curl -Ls $MAMBA_URL | \
-    tar -xvj -C /usr/local/bin --strip-components=1 bin/micromamba && \
+# Pull from the official GitHub release: micro.mamba.pm currently serves an
+# expired Let's Encrypt cert, which broke the previous curl/wget download.
+ARG MAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/latest/download/micromamba-linux-64.tar.bz2
+RUN wget -qO /tmp/micromamba.tar.bz2 "$MAMBA_URL" && \
+    tar -xvj -C /usr/local/bin --strip-components=1 -f /tmp/micromamba.tar.bz2 bin/micromamba && \
+    rm /tmp/micromamba.tar.bz2 && \
     micromamba create -y -n ${ENV_NAME} -f environment.yaml && \
     micromamba clean --all --yes && \
     rm -rf /root/.cache
