@@ -8,7 +8,7 @@ SkiNet **just outside the top 7** of the official ISIC 2017 Task 1 leaderboard.
 Full documentation is built with Sphinx and hosted at **<https://pkliui.github.io/SkiNet/>**.
 
 <p align="center">
-  <img src="docs/assets/arch_overview.svg" width="720" alt="UNet2D architecture overview">
+  <img src="docs/source/_static/arch_overview.svg" width="720" alt="UNet2D architecture overview">
 </p>
 
 ---
@@ -58,7 +58,7 @@ Each decision is documented in a self-contained analysis notebook in
 
 ### E0 — Batch size
 
-*What per-GPU batch size to train at on a T4.* Treated as a throughput knob, **not** a
+*What per-GPU batch size to train at on a T4.* Treated as a throughput knob, **not** as a
 model hyperparameter. Swept `bs ∈ {4, 8, 16, 32, 64, 128}`; chose the smallest batch that
 saturates the GPU (≥ 80 % util) while staying on the throughput plateau and well within the
 16 GB envelope. → **bs = 16** (80 % util, 0.72 GB peak).
@@ -85,7 +85,7 @@ primary metric — **plateau Dice 0.8300 vs 0.8275** (Δ +0.0025, Wilcoxon p = 0
 
 ### E4 — Decision threshold
 
-*Does a validation-tuned threshold τ\* beat the default τ = 0.5?* The in-sample gain is real
+*Does a validation-tuned threshold τ\* beat the default τ = 0.5?* The in-sample gain is substantial
 (+0.0203 Dice, p = 0.002) but **τ\* fails both deployability tests**: it straddles 0.5 across
 seeds (median 0.46, SD 0.106) and never converges within a run (range [0.06, 0.81]). The gain
 is an artefact of fitting τ on the evaluation set. → **Retain τ = 0.5.**
@@ -99,7 +99,7 @@ the headline result above. No threshold or model choice is made on the test set.
 
 ---
 
-## What's in the box
+## Main features
 
 - **Custom UNet2D** from scratch — configurable encoder/decoder residual modes (classical,
   He2, SE, attention gate, local refinement)
@@ -107,7 +107,7 @@ the headline result above. No threshold or model choice is made on the test set.
 - **Optuna HPO** (GridSampler) with nested MLflow run tracking
 - **RepeatDataLoader** — persistent workers, no per-epoch respawn
 - **Mixed precision** (`16-mixed`) auto-applied on CUDA
-- **Per-epoch threshold sweep** (51 thresholds), multi-seed training (`run_seeds.py`)
+- **Per-epoch threshold sweep** (51 thresholds), multi-seed training (`run_seeds.py`) - final training uses the fixed threshold
 - **ONNX export** for mobile / runtime deployment
 - **Azure Blob Storage** via blobfuse2 and `AzureMachineLearningFileSystem`
 

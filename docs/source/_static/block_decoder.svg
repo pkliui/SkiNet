@@ -21,5 +21,5 @@
   <polygon points="305,38 313,42 305,46" fill="#666"/>
 
   <text x="315" y="38" font-size="11" font-family="system-ui,sans-serif" fill="#444">dec_out</text>
-  <text x="315" y="52" font-size="9"  font-family="system-ui,sans-serif" fill="#999" font-style="italic">→ He2 Merge</text>
+  <text x="315" y="52" font-size="9"  font-family="system-ui,sans-serif" fill="#999" font-style="italic">→ AttnGate Merge</text>
 </svg>
