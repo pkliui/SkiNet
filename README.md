@@ -27,7 +27,7 @@ ISIC-2017 per-image averaging. The threshold is the untuned default τ = 0.5 (se
 ### How it compares to the ISIC 2017 leaderboard
 
 <p align="center">
-  <img src="docs/assets/leaderboard.png" width="700" alt="ISIC 2017 Task 1 leaderboard with SkiNet highlighted">
+  <img src="docs/assets/leaderboard.svg" width="700" alt="ISIC 2017 Task 1 leaderboard with SkiNet highlighted">
 </p>
 
 | Rank | Team | IoU (Jaccard) |
@@ -65,7 +65,7 @@ saturates the GPU (≥ 80 % util) while staying on the throughput plateau and we
 [Notebook ›](source/E0-batch-size-sweep-analysis-unet2d-isic2017.ipynb)
 
 <p align="center">
-  <img src="docs/assets/batchsize_sweep.png" width="560" alt="E0 batch-size throughput and GPU utilisation sweep">
+  <img src="docs/assets/batchsize_sweep.svg" width="560" alt="E0 batch-size throughput and GPU utilisation sweep">
 </p>
 
 ### E2 — Architecture tie-break (10 seeds)
