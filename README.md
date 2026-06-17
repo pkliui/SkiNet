@@ -75,10 +75,10 @@ primary metric — **plateau Dice 0.8300 vs 0.8275** (Δ +0.0025, Wilcoxon p = 0
 `attention_gate` merge.** [Notebook ›](analysis_results/E2-isic2017-unet2d-model-tiebreak-10seed.ipynb)
 
 <p align="center">
-  <img src="docs/assets/E2_slopegraph.png" width="760" alt="E2 per-seed paired slopegraph: attention gate vs HE2 on peak and plateau Dice">
+  <img src="docs/source/_static/model_selection/E2_fig1_paired_slopegraph.png" width="760" alt="E2 per-seed paired slopegraph: attention gate vs HE2 on peak and plateau Dice">
 </p>
 <p align="center">
-  <img src="docs/assets/E2_forest.png" width="620" alt="E2 forest plot of paired AG−HE2 differences with BCa 95% CIs">
+  <img src="docs/source/_static/model_selection/E2_fig2_forest_paired_diff.png" width="620" alt="E2 forest plot of paired AG−HE2 differences with BCa 95% CIs">
 </p>
 
 ### E4 — Decision threshold
