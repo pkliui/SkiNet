@@ -271,10 +271,17 @@ plateau (≥81% of peak throughput in both augmented and non-augmented condition
 point before the time-per-step inflection. Augmentations add negligible cost at this size.
 Peak GPU memory: 0.43 GB/GPU.
 
-**Learning rate rationale.** 5-point log-spaced sweep [1e-4 … 3e-3], AdamW, 2×T4, 100 epochs.
-lr=3×10⁻⁴ achieved the highest mean val Dice (0.806), lowest epoch variance (σ=0.018), and
-cleanest convergence. Consistent with two prior Adam sweeps. lr=3×10⁻³ caused clear degradation
-(mean Dice −0.018, convergence to 0.80 delayed by 35 epochs).
+**Learning rate rationale.** Joint architecture × LR sweep (E1): the 3×3 encoder × merge grid
+trained at four LRs, ranked on tail-mean (last-10-epoch) val Dice. lr=3×10⁻⁴ was best for the
+`classical` encoder and the modal winner overall (top LR for 6 of 9 architectures). It also gave the
+most LR-robust result for the leading architectures, so no LR schedule was needed at this point.
+
+**Architecture rationale.** E1 eliminated all but the `classical` encoder and two merge finalists,
+`he2` and `attention_gate`, separated by noise. E2 broke the tie with a paired 10-seed test (shared
+init, both at lr=3×10⁻⁴): on the pre-registered plateau-Dice metric `attention_gate` wins (Δ +0.0025,
+p = 0.037, 8/10 seeds); peak accuracy is a tie and `he2`'s only edge is ~13 % faster training. CIs
+are an optimistic bound, since all seeds reuse one fixed split. **Locked: `classical` encoder +
+`attention_gate` merge at lr=3×10⁻⁴.**
 
 **LR schedule rationale.** Scheduler sweep (cosine annealing vs ReduceLROnPlateau, single seed):
 cosine annealing 0.8635 val Dice at epoch 142; ReduceLROnPlateau 0.8625 at epoch 102.
