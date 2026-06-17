@@ -46,28 +46,28 @@
 
   <!-- ── Decoder blocks ── -->
   <rect x="520" y="235" width="140" height="55" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
-  <text x="590" y="253" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">He2-Merge 4</text>
+  <text x="590" y="253" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">AttnGate Merge 4</text>
   <text x="590" y="270" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#3a7a3a">128 ch · 32×32</text>
 
   <line x1="520" y1="262" x2="498" y2="262" stroke="#666" stroke-width="1.5"/>
   <polygon points="498,258 490,262 498,266" fill="#666"/>
 
   <rect x="350" y="235" width="140" height="55" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
-  <text x="420" y="253" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">He2-Merge 3</text>
+  <text x="420" y="253" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">AttnGate Merge 3</text>
   <text x="420" y="270" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#3a7a3a">64 ch · 64×64</text>
 
   <line x1="350" y1="262" x2="328" y2="262" stroke="#666" stroke-width="1.5"/>
   <polygon points="328,258 320,262 328,266" fill="#666"/>
 
   <rect x="180" y="235" width="140" height="55" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
-  <text x="250" y="253" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">He2-Merge 2</text>
+  <text x="250" y="253" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">AttnGate Merge 2</text>
   <text x="250" y="270" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#3a7a3a">32 ch · 128×128</text>
 
   <line x1="180" y1="262" x2="158" y2="262" stroke="#666" stroke-width="1.5"/>
   <polygon points="158,258 150,262 158,266" fill="#666"/>
 
   <rect x="10"  y="235" width="140" height="55" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
-  <text x="80"  y="253" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">He2-Merge 1</text>
+  <text x="80"  y="253" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">AttnGate Merge 1</text>
   <text x="80"  y="270" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#3a7a3a">16 ch · 256×256</text>
 
   <!-- D1 → Output -->

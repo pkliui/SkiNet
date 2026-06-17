@@ -108,10 +108,10 @@ Configured via `merge_residual_mode` in `MODEL_CONFIG`:
 | `"he2"` (default) | Pre-activation with two refinement convs + identity shortcut (He et al. ECCV 2016) |
 | `"attention_gate"` | Additive attention gate (Oktay et al. MIDL 2018) gates the skip connection before merge; post-merge he2 refinement |
 
-Example YAML:
+Example YAML (the production configuration):
 ```yaml
 MODEL_CONFIG:
-  encoder_residual_mode: "he2"
+  encoder_residual_mode: "classical"
   merge_residual_mode: "attention_gate"
 ```
 
