@@ -77,10 +77,10 @@ primary metric — **plateau Dice 0.8300 vs 0.8275** (Δ +0.0025, Wilcoxon p = 0
 `attention_gate` merge.** [Notebook ›](analysis_results/E2-isic2017-unet2d-model-tiebreak-10seed.ipynb)
 
 <p align="center">
-  <img src="docs/assets/E2_slopegraph.png" width="760" alt="E2 per-seed paired slopegraph: attention gate vs HE2 on peak and plateau Dice">
+  <img src="docs/source/_static/model_selection/E2_fig1_paired_slopegraph.png" width="760" alt="E2 per-seed paired slopegraph: attention gate vs HE2 on peak and plateau Dice">
 </p>
 <p align="center">
-  <img src="docs/assets/E2_forest.png" width="620" alt="E2 forest plot of paired AG−HE2 differences with BCa 95% CIs">
+  <img src="docs/source/_static/model_selection/E2_fig2_forest_paired_diff.png" width="620" alt="E2 forest plot of paired AG−HE2 differences with BCa 95% CIs">
 </p>
 
 ### E4 — Decision threshold
@@ -111,6 +111,12 @@ the headline result above. No threshold or model choice is made on the test set.
 - **ONNX export** for mobile / runtime deployment
 - **Azure Blob Storage** via blobfuse2 and `AzureMachineLearningFileSystem`
 
+> **Expected input size.** The model is trained and deployed at **256×256**. ISIC 2017 is
+> resized to 256 (`ISIC2017DATA_256`) and the exported ONNX
+> graph has fixed 256×256 spatial dimensions — **inputs must be resized to 256×256 before
+> inference.** RGB, normalised with `NORM_MEAN = [0.699, 0.556, 0.5121]` and
+> `NORM_STD = [0.1576, 0.1562, 0.1706]`.
+
 ---
 
 ## Quick start
@@ -120,29 +126,97 @@ environment pinned to Python 3.11 — `azureml-fsspec` requires it). The image h
 `gpu` build targets; use `gpu` for CUDA-accelerated training. See
 [docs › development](docs/source/development.md) for the full Docker / Lightning Studio setup.
 
+
+### Get the data without Docker
+
+You don't need to build or run the container to download ISIC 2017 — the dataset is fetched
+on the **host**:
+
+```bash
+# Download manually with the kaggle CLI
+pip install kaggle                       # needs ~/.kaggle/kaggle.json credentials
+export ISIC_OUT_DIR=$HOME/data/isic2017  # any host dir you own
+mkdir -p "$ISIC_OUT_DIR"
+kaggle datasets download -d johnchfr/isic-2017 -p "$ISIC_OUT_DIR" --unzip
+```
+
+Data lands in `$ISIC_OUT_DIR` on the host and is later bind-mounted into the
+container or used directly.
+
+### Fastest path — Lightning Studio scripts (`on_start_gpu.sh` / `on_start_cpu.sh`)
+
+The startup scripts do everything for you — clone/update the repo, pull the prebuilt image
+(`pkliui/skinet:v9gpu` / `v9cpu`), download ISIC 2017 to `$ISIC_OUT_DIR` on first run, launch the
+container (data bind-mounted at `/mnt/data/`, MLflow on port 5000), and dispatch to the right
+entry point via `MODE`. On **Lightning Studio** the data dir defaults to Lightning Storage
+"/teamspace/lightning_storage/isic2017/ISIC2017DATA_256";
+**anywhere else, point it at your own host directory first** — the `export`s below apply to every
+command in the block:
+
+```bash
+# Choose where data lives — every command below inherits these. On Lightning Studio you can
+# skip them (they default to Lightning Storage). ISIC 2017 is auto-downloaded into ISIC_OUT_DIR
+# if empty; for PH2 you must place the data in PH2_DATA_DIR yourself.
+export ISIC_OUT_DIR=$HOME/data/isic2017   # ISIC 2017 host data dir (use a path you own; Studio default: /teamspace/lightning_storage/isic2017/ISIC2017DATA_256)
+export PH2_DATA_DIR=$HOME/data/ph2        # PH2 host data dir (only used when DATASET=ph2)
+
+# Single training run  (default dataset isic2017; add DATASET=ph2 for PH2)
+RUN_TRAINING=true MODE=train bash on_start_gpu.sh
+```
+
+> `RUN_TRAINING` defaults to **`false`** (a dry-run guard) — set `RUN_TRAINING=true` to launch a
+> real job (`interactive` ignores it and always opens a shell). The GPU is **kept** after a run
+> unless you pass `RELEASE_GPU=true`. Swap in `on_start_cpu.sh` for CPU-only work. Full reference
+> (every `MODE` and env var — `DATASET`, `ENCODER_MODES`, `MERGE_MODES`, `RELEASE_GPU`, …):
+> [docs › development](docs/source/development.md#lightning-studio).
+>
+> **Specify your own data path.** By default the scripts read/write data under Lightning
+> Storage, but the host data directory is overridable per dataset — set `ISIC_OUT_DIR`
+> (ISIC 2017) or `PH2_DATA_DIR` (PH2) to point anywhere, e.g.
+> `ISIC_OUT_DIR=$HOME/data/isic2017 RUN_TRAINING=true MODE=train bash on_start_gpu.sh`, or
+> `DATASET=ph2 PH2_DATA_DIR=$HOME/data/ph2 RUN_TRAINING=true MODE=train bash on_start_gpu.sh` for PH2.
+> Pick a directory you own — pointing at a root-owned location like `/data` makes the Kaggle
+> download fail with `Permission denied`; if you must use one, `sudo chown -R "$(id -u):$(id -g)" /data/isic2017` first.
+
+
+### Interactive development (manual Docker)
+
+For hands-on debugging, or on any non-Studio machine, build the image and open a shell in the
+container yourself:
+
 ```bash
 git clone https://github.com/pkliui/SkiNet.git && cd SkiNet
 
 # Build the container (gpu target for CUDA; swap --target cpu for CPU-only dev)
 ENV_HASH=$(sha256sum environment.yaml | cut -c1-64)
-docker build --build-arg ENV_HASH=$ENV_HASH --target gpu -t skinet:gpu .
+docker build  --no-cache --build-arg ENV_HASH=$ENV_HASH --target gpu -t skinet:gpu .
 
-# Run it, bind-mounting the repo at /workplace/SkiNet
+# Download ISIC 2017 on the HOST first (see "Get the data without Docker" above), e.g.
+ISIC_OUT_DIR=$HOME/data/isic2017  # any host dir you own (Studio default: Lightning Storage)
+mkdir -p "$ISIC_OUT_DIR"
+kaggle datasets download -d johnchfr/isic-2017 -p "$ISIC_OUT_DIR" --unzip
+
+# Run it, bind-mounting the repo and the data dir (data then appears at /mnt/data).
+# Mounting $ISIC_OUT_DIR is essential: without it, anything written to /mnt/data lives only
+# in the container's ephemeral layer and is lost when the container is removed. On a
+# non-Studio machine, point ISIC_OUT_DIR at any writable host directory.
 docker run -it --gpus all \
+  -p 5000:5000 \
   --mount type=bind,src="$(pwd)",dst=/workplace/SkiNet \
+  --mount type=bind,src="$ISIC_OUT_DIR",dst=/mnt/data \
   skinet:gpu bash
 ```
 
-Inside the container the `skinet` env is already active. Get data and train:
+Inside the container the `skinet` env is already active. The data is already at `/mnt/data`
+via the mount above — build the metadata CSV and train:
 
 ```bash
-# Download ISIC 2017 + build metadata
-kaggle datasets download -d johnchfr/isic-2017 -p /mnt/data --unzip
+# Build metadata CSV from the mounted data
 python -m SkiNet.ML.datasets.preprocessing.metadata_csv_factory \
   --dataset-key-str ISIC2017 --local-data-root /mnt/data
 
 # Train (in main_config.yaml set azure_data: False, local_data_root: "/mnt/data/")
-./start_mlflow.sh
+bash start_mlflow.sh
 python main_run.py --config main_config.yaml      # MLflow UI at http://localhost:5000
 
 # Sweep / multi-seed / export
@@ -150,10 +224,6 @@ python optuna_sweep.py --config main_config.yaml
 python run_seeds.py    --config main_config.yaml --seeds 42 100 200
 python export_onnx.py  --run <mlflow_run_dir>
 ```
-
-> On **Lightning Studio**, `on_start_gpu.sh` / `on_start_cpu.sh` clone the repo, pull the
-> prebuilt image (`pkliui/skinet:v9gpu` / `v9cpu`), and launch the container with Lightning
-> Storage bind-mounted at `/mnt/data/`.
 
 ---
 
@@ -164,7 +234,7 @@ SkiNet/
 ├── SkiNet/
 │   ├── Azure/            Azure Blob Storage integration
 │   ├── ML/
-│   │   ├── configs/      Pydantic configs (ExperimentConfig, TrainConfig, …)
+│   │   ├── configs/      Pydantic configs (ExperimentConfig, TrainConfig, ...)
 │   │   ├── datasets/     SegmentationDataset, CSV builders, preprocessing
 │   │   ├── dataloaders/  RepeatDataLoader, create_dataloaders
 │   │   ├── model/        UNet2D architecture and blocks

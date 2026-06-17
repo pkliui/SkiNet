@@ -34,6 +34,7 @@ dependencies:
       - azureml-fsspec==1.3.1
       - azure-ai-ml
       - flake8
+      - kaggle
       - mltable
       - mypy
       - pre-commit

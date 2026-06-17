@@ -124,7 +124,12 @@ def build_objective(main_config: ExperimentConfig, monitor: str, search_space: S
             mlflow.log_param("batch_size", batch_size)
             mlflow.log_param("num_workers", num_workers)
             mlflow.log_param("prefetch_factor", prefetch_factor)
-            mlflow.log_param("scheduler_type", scheduler_type)
+            # Suffixed to avoid colliding with the model's own "scheduler_type" hparam
+            # (logged by Lightning into this same run via save_hyperparameters), exactly
+            # like lr_optuna_sampled above. The sampled value can be "none", which the
+            # model never sets on train_cfg.scheduler_type — logging both under one key
+            # raises MLflow's INVALID_PARAMETER_VALUE (params are immutable per run).
+            mlflow.log_param("scheduler_type_sampled", scheduler_type)
 
             # Get the fit-time validation metrics
             metrics = train_and_evaluate(cfg, visualize=False)

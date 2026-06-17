@@ -71,7 +71,7 @@ TRAIN_CONFIG:
   num_workers: 2 # t4 x2 GPU
   pin_memory: true
   prefetch_factor: 4
-  cache_in_ram: true  # set false for datasets too large to fit in RAM
+  cache_in_ram: false  # set false for datasets too large to fit in RAM
   loss_name: "bce_dice"
   optimizer_name: "adam"
   lr: 3e-4 # as per effective batch size

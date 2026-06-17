@@ -88,6 +88,8 @@ kaggle datasets download -d johnchfr/isic-2017 -p $ISIC_OUT_DIR --unzip
 The ISIC directory is then bind-mounted inside the Docker container at `CONTAINER_MOUNT_PATH="${CONTAINER_MOUNT_PATH:-/mnt/data}"`. When running inside the Docker container via
 startup scripts, set `local_data_root: "/mnt/data/"`.
 
+**WARNING:** Download the data on the **host** (into Lightning Storage), then bind-mount that directory at `/mnt/data` — this is what the startup scripts do. If you instead launch a container manually and run `kaggle datasets download -p /mnt/data` *inside* it without mounting `/mnt/data`, the data goes to the container's ephemeral layer and is lost when the container is removed. See [development.md](development.md#lightning-studio) for the explicit `--mount …,dst=/mnt/data` flag.
+
 ### Generate metadata CSV
 
 Run once after download. Writes `isic2017_metadata.csv` into `<local_data_root>`:
