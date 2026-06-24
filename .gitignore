@@ -11,6 +11,7 @@ envs/*
 *__pycache__
 *.log
 .DS_Store
+*.bak
 *.ckpt
 *.db
 *.tar.gz
@@ -34,7 +35,13 @@ envs/*
 /docs/searchindex.js
 /docs/objects.inv
 /docs/*.rst
-
+/docs/source/*.pickle
+/docs/source/api
+/docs/source/*.doctree
+/docs/source/*.inv
+/docs/source/__intersphinx_cache__
+/docs/source/nbsphinx
+/docs/_downloads/*
 
 # scripts
 on_start_kaggle.sh
@@ -43,3 +50,7 @@ workflow_guide.md
 pytest.ini
 SkiNet/ML/configs/data_configs/isic2017dataset_config/__init__.py
 .bash_history
+
+# coding assistants
+.claude/*
+
