@@ -307,7 +307,7 @@ The 1-seed pilot was underpowered and missed this effect.
 
 ### Figure 3 — Paired slope graph (cosine vs ReduceLROnPlateau, 10 seeds)
 
-:::{figure} _static/model_selection/E3_fig1_paired_slopegraph.png
+:::{figure} /docs/source/_static/model_selection/E3_fig1_paired_slopegraph.png
 :alt: Paired slope graph comparing cosine annealing and ReduceLROnPlateau val Dice across 10 seeds
 :width: 680px
 :align: center
@@ -317,7 +317,7 @@ Lines are nearly flat — both schedules track each other within seed noise.</sm
 
 ### Figure 4 — Forest plot of paired differences (cosine − plateau)
 
-:::{figure} _static/model_selection/E3_fig2_forest_paired_diff.png
+:::{figure} /docs/source/_static/model_selection/E3_fig2_forest_paired_diff.png
 :alt: Forest plot of per-seed plateau-Dice differences (cosine − ReduceLROnPlateau)
 :width: 680px
 :align: center
@@ -327,7 +327,7 @@ Lines are nearly flat — both schedules track each other within seed noise.</sm
 
 ### Figure 5 — Cosine annealing vs flat LR (unpaired, post-hoc)
 
-:::{figure} _static/model_selection/E3_fig5_cosine_vs_flat_strip.png
+:::{figure} /docs/source/_static/model_selection/E3_fig5_cosine_vs_flat_strip.png
 :alt: Strip plot comparing plateau Dice of cosine annealing (E3) and flat LR (E4) across 10 seeds each
 :width: 500px
 :align: center
@@ -337,7 +337,7 @@ Horizontal bars are group means. Note: unpaired — seeds ran in separate experi
 
 ### Figure 6 — Mean difference with BCa 95 % CI (cosine − flat LR)
 
-:::{figure} _static/model_selection/E3_fig6_cosine_vs_flat_forest.png
+:::{figure} /docs/source/_static/model_selection/E3_fig6_cosine_vs_flat_forest.png
 :alt: Forest plot of mean plateau-Dice difference between cosine annealing and flat LR
 :width: 500px
 :align: center
