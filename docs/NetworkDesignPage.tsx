@@ -367,10 +367,15 @@ output  = conv2 + merged          # identity shortcut`}</pre>
               <td>
                 Cosine annealing (T_max=300, η_min=1×10⁻⁶)<br />
                 <span className="design-note">
-                  Scheduler sweep (cosine annealing vs ReduceLROnPlateau, single seed): cosine
-                  annealing 0.8635 val Dice at epoch 142; ReduceLROnPlateau 0.8625 at epoch 102.
-                  Margin 0.001 is below the 0.01 practical-significance threshold.
-                  Flat-LR baseline pending re-run; sweep ongoing.
+                  E3 10-seed paired tiebreak (cosine vs ReduceLROnPlateau, seeds 100–109):
+                  statistically indistinguishable on all quality and cost axes (plateau Dice
+                  Δ=+0.0015, BCa CI [−0.0006, +0.0038], p=0.32; all other metrics also tie).
+                  Cosine chosen on determinism — its LR trajectory is fully specified by epoch
+                  count, unlike plateau which depends on the validation-metric trajectory.
+                  Post-hoc unpaired comparison (E3 cosine vs E4 flat LR, 10 seeds each) suggests
+                  cosine is better than flat LR on plateau Dice (Δ=+0.0042, BCa CI [+0.0015,
+                  +0.0069]); the 1-seed pilot that motivated dropping the scheduler was
+                  underpowered. A dedicated paired flat-vs-cosine experiment has not been run.
                 </span>
               </td></tr>
           <tr><td>Precision</td>

@@ -243,7 +243,7 @@ Plateau Dice tilts to attention-gate (8/10 seeds); peak Dice is an even split.</
 | Setting | Value |
 |---------|-------|
 | Dataset | ISIC 2017 — 2 000 train / 150 val / 600 test dermoscopic images |
-| Input resolution | 256×256 px (the expected input size), resized offline; normalised with dataset-computed mean & std. The network is fully convolutional and accepts any H×W divisible by 16 (the 4 stride-2 downsampling stages), but 256×256 is what the model is trained and deployed at and what the exported ONNX graph fixes. |
+| Input resolution | 256×256 px, resized offline; normalised with dataset-computed mean & std |
 | Batch size | 8 per GPU × 2 GPUs = 16 effective (DDP, ddp_spawn) |
 | Max epochs | 200 |
 | Loss | BCE-Dice: 0.5 × BCEWithLogitsLoss + 0.5 × Dice loss |
@@ -262,7 +262,7 @@ Key design decisions and their supporting experiments:
 | Batch size | E0 batch size sweep | [E0-batch-size-sweep-analysis-unet2d-isic2017.ipynb](E0-batch-size-sweep-analysis-unet2d-isic2017.ipynb) |
 | Learning rate | E1 LR sweep (lr in [1e-3, 6e-4, 3e-4, 1e-4]) | [E1-isic2017-unet2d-modelsw-summary-all-lr.ipynb](E1-isic2017-unet2d-modelsw-summary-all-lr.ipynb) |
 | Architecture (encoder/merge modes) | E2 10-seed tiebreak | [E2-isic2017-unet2d-model-tiebreak-10seed.ipynb](E2-isic2017-unet2d-model-tiebreak-10seed.ipynb) |
-| LR scheduler | E3 cosine annealing vs ReduceOnPlateau | [E3-isic2017-unet2d-lr-decay-study.ipynb](../../analysis_results/E3-isic2017-unet2d-lr-decay-study.ipynb) |
+| LR scheduler | E3 10-seed scheduler tiebreak (cosine annealing vs ReduceLROnPlateau) | [E3-isic2017-unet2d-scheduler-tiebreak-10seed.ipynb](E3-isic2017-unet2d-scheduler-tiebreak-10seed.ipynb) |
 | Threshold | E4 threshold sweep | [E4-isic2017-unet2d-threshold-selection.ipynb](E4-isic2017-unet2d-threshold-selection.ipynb) |
 | Production model | EF model selection | [EF_isic2017_unet2d_E4_production_model_selection.ipynb](EF_isic2017_unet2d_E4_production_model_selection.ipynb) |
 
@@ -271,21 +271,79 @@ plateau (≥81% of peak throughput in both augmented and non-augmented condition
 point before the time-per-step inflection. Augmentations add negligible cost at this size.
 Peak GPU memory: 0.43 GB/GPU.
 
-**Learning rate rationale.** Joint architecture × LR sweep (E1): the 3×3 encoder × merge grid
-trained at four LRs, ranked on tail-mean (last-10-epoch) val Dice. lr=3×10⁻⁴ was best for the
-`classical` encoder and the modal winner overall (top LR for 6 of 9 architectures). It also gave the
-most LR-robust result for the leading architectures, so no LR schedule was needed at this point.
+**Learning rate rationale.** 5-point log-spaced sweep [1e-4 ... 3e-3], AdamW, 2×T4, 100 epochs.
+lr=3×10⁻⁴ achieved the highest mean val Dice (0.806), lowest epoch variance (σ=0.018), and
+cleanest convergence. Consistent with two prior Adam sweeps. lr=3×10⁻³ caused clear degradation
+(mean Dice −0.018, convergence to 0.80 delayed by 35 epochs).
 
-**Architecture rationale.** E1 eliminated all but the `classical` encoder and two merge finalists,
-`he2` and `attention_gate`, separated by noise. E2 broke the tie with a paired 10-seed test (shared
-init, both at lr=3×10⁻⁴): on the pre-registered plateau-Dice metric `attention_gate` wins (Δ +0.0025,
-p = 0.037, 8/10 seeds); peak accuracy is a tie and `he2`'s only edge is ~13 % faster training. CIs
-are an optimistic bound, since all seeds reuse one fixed split. **Locked: `classical` encoder +
-`attention_gate` merge at lr=3×10⁻⁴.**
+**LR schedule rationale.** Cosine annealing (T_max=300, η_min=1×10⁻⁶). E3 settled this with a
+10-seed paired tiebreak (cosine vs ReduceLROnPlateau, seeds 100–109, `classical+attention_gate`
+at lr=3e-4). The two schedules are **statistically indistinguishable on every quality and cost
+axis**. Across all five metrics the paired Wilcoxon p-values are 0.32 (plateau Dice), 0.43 (peak
+Dice), 0.43 (peak IoU), 0.70 (gen-gap) and 0.85 (throughput) — none below 0.05 — and every BCa
+95% CI includes zero (e.g. plateau Dice Δ=+0.0015, CI [−0.0006, +0.0038]; peak Dice Δ=−0.0007,
+CI [−0.0024, +0.0006]).
 
-**LR schedule rationale.** Scheduler sweep (cosine annealing vs ReduceLROnPlateau, single seed):
-cosine annealing 0.8635 val Dice at epoch 142; ReduceLROnPlateau 0.8625 at epoch 102.
-Margin 0.001 is below the 0.01 practical-significance threshold. Flat-LR baseline pending re-run.
+With quality a tie, cosine can be chosen on the standard grounds of **determinism and reproducibility**: its LR trajectory is
+fully specified by epoch count, whereas plateau's depends on the validation-metric trajectory,
+adding a moving part and a source of run-to-run variance.
+
+Secondary, and consistent with this: cosine reaches its best checkpoint earlier (mean epoch 125 vs 161, ≈22% earlier,
+8/10 seeds, Wilcoxon p=0.020) — but at the current fixed `max_epochs` this yields **no wall-clock
+saving** (full-run duration is equal, ~46 min) and would only convert to a compute saving if early
+stopping were added. See [E3](E3-isic2017-unet2d-scheduler-tiebreak-10seed.ipynb).
+
+**Decay-vs-no-decay (post-hoc).** A 1-seed pilot showed no quality difference between cosine and
+flat LR, so the scheduler was dropped before E4. A post-hoc comparison of E3 cosine (10 seeds)
+against E4 flat LR (10 seeds, same architecture and lr) on plateau Dice suggests cosine is better:
+Δ=+0.0042, BCa 95% CI [+0.0015, +0.0069] — entirely above zero (p=0.017, unpaired rank test).
+The 1-seed pilot was underpowered and missed this effect.
+
+> ⚠ **The E4 decision to drop the scheduler was made on insufficient evidence.** This comparison is
+> unpaired — E3 and E4 were separate experiments with different purposes, not a controlled
+> flat-vs-cosine study — so the finding is indicative rather than conclusive. A dedicated paired
+> 10-seed flat-vs-cosine experiment would be needed to confirm. Until then, **E4 onward uses flat LR**
+> (`use_lr_scheduler: false`) as a pragmatic choice that is retrospectively questionable on plateau Dice.
+
+### Figure 3 — Paired slope graph (cosine vs ReduceLROnPlateau, 10 seeds)
+
+:::{figure} _static/model_selection/E3_fig1_paired_slopegraph.png
+:alt: Paired slope graph comparing cosine annealing and ReduceLROnPlateau val Dice across 10 seeds
+:width: 680px
+:align: center
+<small>Fig 3. Per-seed val Dice for cosine annealing vs ReduceLROnPlateau across the 10-seed tie-break.
+Lines are nearly flat — both schedules track each other within seed noise.</small>
+:::
+
+### Figure 4 — Forest plot of paired differences (cosine − plateau)
+
+:::{figure} _static/model_selection/E3_fig2_forest_paired_diff.png
+:alt: Forest plot of per-seed plateau-Dice differences (cosine − ReduceLROnPlateau)
+:width: 680px
+:align: center
+<small>Fig 4. Paired plateau-Dice differences (cosine − plateau) across 10 seeds; pooled mean
++0.0015 (BCa 95 % CI [−0.0006, +0.0038], spans zero — schedules are indistinguishable).</small>
+:::
+
+### Figure 5 — Cosine annealing vs flat LR (unpaired, post-hoc)
+
+:::{figure} _static/model_selection/E3_fig5_cosine_vs_flat_strip.png
+:alt: Strip plot comparing plateau Dice of cosine annealing (E3) and flat LR (E4) across 10 seeds each
+:width: 500px
+:align: center
+<small>Fig 5. Plateau Dice distribution for cosine annealing (E3, 10 seeds) vs flat LR (E4, 10 seeds).
+Horizontal bars are group means. Note: unpaired — seeds ran in separate experiments.</small>
+:::
+
+### Figure 6 — Mean difference with BCa 95 % CI (cosine − flat LR)
+
+:::{figure} _static/model_selection/E3_fig6_cosine_vs_flat_forest.png
+:alt: Forest plot of mean plateau-Dice difference between cosine annealing and flat LR
+:width: 500px
+:align: center
+<small>Fig 6. Post-hoc mean plateau-Dice difference (cosine − flat LR); Δ=+0.0042,
+BCa 95 % CI [+0.0015, +0.0069] — entirely above zero (unpaired, n=10 each).</small>
+:::
 
 ## Augmentation pipeline (training only)
 

@@ -82,7 +82,13 @@ def _display_paired_table(
     display(pd.DataFrame(data, index=index))
 
 
-def show_comparison_table(results: pd.DataFrame) -> None:
+def show_comparison_table(
+    results: pd.DataFrame,
+    *,
+    label_a: str = "AG",
+    label_b: str = "HE2",
+    delta_label: str | None = None,
+) -> None:
     """Display a compact paired-comparison table from :func:`build_comparison_table` output.
 
     Formats Δ and BCa CI as signed strings; collapses the two CI columns into
@@ -94,7 +100,14 @@ def show_comparison_table(results: pd.DataFrame) -> None:
         DataFrame produced by :func:`build_comparison_table` (generic column
         names: ``a_mean``, ``b_mean``, ``delta_a_minus_b``, ``boot_lo``,
         ``boot_hi``, ``wilcoxon_p``, ``bonferroni_sig``, ``cohen_dz``).
+    label_a, label_b:
+        Column headers for the two arms (arch_a / arch_b). Default to the E2
+        tie-break labels ``"AG"`` / ``"HE2"``.
+    delta_label:
+        Header for the Δ column. Defaults to ``"Δ ({label_a}−{label_b})"``.
     """
+    if delta_label is None:
+        delta_label = f"Δ ({label_a}−{label_b})"
     rows = [
         {
             "a_mean": r["a_mean"],
@@ -110,8 +123,8 @@ def show_comparison_table(results: pd.DataFrame) -> None:
     ]
     _display_paired_table(
         rows, list(results.index),
-        label_a="AG", label_b="HE2",
-        delta_label="Δ (AG−HE2)",
+        label_a=label_a, label_b=label_b,
+        delta_label=delta_label,
     )
 
 

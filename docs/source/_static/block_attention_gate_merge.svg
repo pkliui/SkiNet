@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 220" aria-label="Attention-gate merge block data-flow diagram">
+
+  <!-- skip input -->
+  <text x="5" y="39" font-size="12" font-family="system-ui,sans-serif" fill="#444" font-weight="600">skip</text>
+  <line x1="38" y1="35" x2="48" y2="35" stroke="#666" stroke-width="1.5"/>
+  <polygon points="48,31 56,35 48,39" fill="#666"/>
+
+  <!-- AG box (attention gate black box) -->
+  <rect x="56" y="17" width="96" height="36" rx="4" fill="#f0e8ff" stroke="#6655bb" stroke-width="1.5"/>
+  <text x="104" y="31" text-anchor="middle" font-size="10" font-family="system-ui,sans-serif" fill="#2a2070" font-weight="600">AttentionGate</text>
+  <text x="104" y="45" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#6655bb">(see AG diagram)</text>
+
+  <!-- dec tap into AG (dashed, bottom of AG box) -->
+  <line x1="104" y1="53" x2="104" y2="172" stroke="#888" stroke-width="1.2" stroke-dasharray="4,2"/>
+  <polygon points="100,164 108,164 104,172" fill="#888"/>
+
+  <!-- dec input -->
+  <text x="5" y="176" font-size="12" font-family="system-ui,sans-serif" fill="#444" font-weight="600">dec</text>
+  <line x1="38" y1="172" x2="48" y2="172" stroke="#666" stroke-width="1.5"/>
+  <polygon points="48,168 56,172 48,176" fill="#666"/>
+
+  <!-- AG → conv_skip -->
+  <line x1="152" y1="35" x2="162" y2="35" stroke="#666" stroke-width="1.5"/>
+  <polygon points="162,31 170,35 162,39" fill="#666"/>
+  <rect x="170" y="17" width="85" height="36" rx="4" fill="#e8e0f8" stroke="#6655bb" stroke-width="1.3"/>
+  <text x="212" y="31" text-anchor="middle" font-size="10" font-family="system-ui,sans-serif" fill="#2a2070" font-weight="600">conv_skip</text>
+  <text x="212" y="45" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#6655bb">3×3</text>
+
+  <!-- dec → conv_x -->
+  <line x1="38" y1="172" x2="170" y2="172" stroke="#666" stroke-width="1.5"/>
+  <polygon points="170,168 178,172 170,176" fill="#666"/>
+  <rect x="178" y="154" width="85" height="36" rx="4" fill="#e8e0f8" stroke="#6655bb" stroke-width="1.3"/>
+  <text x="220" y="168" text-anchor="middle" font-size="10" font-family="system-ui,sans-serif" fill="#2a2070" font-weight="600">conv_x</text>
+  <text x="220" y="182" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#6655bb">3×3</text>
+
+  <!-- conv_skip → ⊕ (top) -->
+  <line x1="255" y1="35"  x2="290" y2="35"  stroke="#666" stroke-width="1.5"/>
+  <line x1="290" y1="35"  x2="290" y2="79"  stroke="#666" stroke-width="1.5"/>
+  <polygon points="286,79 294,79 290,87" fill="#666"/>
+
+  <!-- conv_x → ⊕ (bottom) -->
+  <line x1="263" y1="172" x2="290" y2="172" stroke="#666" stroke-width="1.5"/>
+  <line x1="290" y1="172" x2="290" y2="121" stroke="#666" stroke-width="1.5"/>
+  <polygon points="286,121 294,121 290,113" fill="#666"/>
+
+  <!-- ⊕ -->
+  <circle cx="290" cy="100" r="13" fill="#fffacc" stroke="#aa8800" stroke-width="1.5"/>
+  <text x="290" y="105" text-anchor="middle" font-size="15" font-family="system-ui,sans-serif" fill="#5a4000">⊕</text>
+  <text x="290" y="127" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#999" font-style="italic">merged</text>
+
+  <!-- ⊕ → BN → ReLU → Conv (conv1) -->
+  <line x1="303" y1="100" x2="313" y2="100" stroke="#666" stroke-width="1.5"/>
+  <polygon points="313,96 321,100 313,104" fill="#666"/>
+
+  <rect x="321" y="82" width="36" height="36" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
+  <text x="339" y="105" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">BN</text>
+  <line x1="357" y1="100" x2="367" y2="100" stroke="#666" stroke-width="1.5"/>
+  <polygon points="367,96 375,100 367,104" fill="#666"/>
+
+  <rect x="375" y="82" width="48" height="36" rx="4" fill="#fde8cc" stroke="#cc7a00" stroke-width="1.3"/>
+  <text x="399" y="105" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#7a3a00" font-weight="600">ReLU</text>
+  <line x1="423" y1="100" x2="433" y2="100" stroke="#666" stroke-width="1.5"/>
+  <polygon points="433,96 441,100 433,104" fill="#666"/>
+
+  <rect x="441" y="82" width="68" height="36" rx="4" fill="#dce8f8" stroke="#4a7cc7" stroke-width="1.3"/>
+  <text x="475" y="97"  text-anchor="middle" font-size="10" font-family="system-ui,sans-serif" fill="#1a3a6b" font-weight="600">Conv 3×3</text>
+  <text x="475" y="111" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#4a7cc7">stride 1</text>
+  <line x1="509" y1="100" x2="519" y2="100" stroke="#666" stroke-width="1.5"/>
+  <polygon points="519,96 527,100 519,104" fill="#666"/>
+
+  <!-- BN2 → ReLU2 → Conv2 (conv2) -->
+  <rect x="527" y="82" width="36" height="36" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
+  <text x="545" y="105" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">BN</text>
+  <line x1="563" y1="100" x2="573" y2="100" stroke="#666" stroke-width="1.5"/>
+  <polygon points="573,96 581,100 573,104" fill="#666"/>
+
+  <rect x="581" y="82" width="48" height="36" rx="4" fill="#fde8cc" stroke="#cc7a00" stroke-width="1.3"/>
+  <text x="605" y="105" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#7a3a00" font-weight="600">ReLU</text>
+  <line x1="629" y1="100" x2="639" y2="100" stroke="#666" stroke-width="1.5"/>
+  <polygon points="639,96 647,100 639,104" fill="#666"/>
+
+  <rect x="647" y="82" width="68" height="36" rx="4" fill="#dce8f8" stroke="#4a7cc7" stroke-width="1.3"/>
+  <text x="681" y="97"  text-anchor="middle" font-size="10" font-family="system-ui,sans-serif" fill="#1a3a6b" font-weight="600">Conv 3×3</text>
+  <text x="681" y="111" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#4a7cc7">stride 1</text>
+  <line x1="715" y1="100" x2="725" y2="100" stroke="#666" stroke-width="1.5"/>
+  <polygon points="725,96 733,100 725,104" fill="#666"/>
+
+  <!-- ⊕_out (identity shortcut) -->
+  <circle cx="746" cy="100" r="13" fill="#fffacc" stroke="#aa8800" stroke-width="1.5"/>
+  <text x="746" y="105" text-anchor="middle" font-size="15" font-family="system-ui,sans-serif" fill="#5a4000">⊕</text>
+  <line x1="759" y1="100" x2="771" y2="100" stroke="#666" stroke-width="1.5"/>
+  <polygon points="771,96 779,100 771,104" fill="#666"/>
+  <text x="781" y="104" font-size="13" font-family="system-ui,sans-serif" fill="#444">out</text>
+
+  <!-- identity shortcut arc: merged → ⊕_out -->
+  <path d="M 290,113 C 290,202 746,202 746,121" fill="none" stroke="#999" stroke-width="1.3" stroke-dasharray="5,3"/>
+  <polygon points="742,121 750,121 746,113" fill="#999"/>
+  <text x="518" y="212" text-anchor="middle" font-size="9" font-family="system-ui,sans-serif" fill="#999" font-style="italic">identity shortcut (merged)</text>
+
+</svg>
