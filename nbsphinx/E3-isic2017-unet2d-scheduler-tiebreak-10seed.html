@@ -1,0 +1,1238 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>E3 — ISIC 2017 UNet2D LR-Schedule Tie-Break (10 seeds) - SkiNet 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=13237357" />
+    <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css?v=2aa19091" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../_static/collapse_nbinput.css" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">SkiNet 1.0.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <span class="sidebar-brand-text">SkiNet 1.0.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Software development process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../azure_setup.html">Azure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config.html">Configuration guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datasets.html">Datasets and dataloaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dataloaders.html">Note about modification to PyTorch’s default dataloader</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model and training</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network_design.html">Network Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../export_onnx.html">Exporting to ONNX</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Performance and debugging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotting.html">Plotting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation.html">Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Experiments</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../experiments.html">Experiments</a><input aria-label="Toggle navigation of Experiments" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../E0-batch-size-sweep-analysis-unet2d-isic2017.html">E0 — Batch Size Sweep Analysis — UNet2D on ISIC 2017</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../E1-isic2017-unet2d-modelsw-summary-all-lr.html">E1 — ISIC 2017 UNet2D Architecture Sweep Summary (all Learning Rates)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../E2-isic2017-unet2d-model-tiebreak-10seed.html">E2 — ISIC 2017 UNet2D Architecture Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../E3-isic2017-unet2d-scheduler-tiebreak-10seed.html">E3 — ISIC 2017 UNet2D LR-Schedule Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../E4-isic2017-unet2d-threshold-selection.html">E4 — ISIC 2017 UNet2D Decision-Threshold Selection (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../EF_isic2017_unet2d_E4_production_model_selection.html">EF — ISIC 2017 UNet2D: held-out test score for the selected E4 checkpoint</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api_config.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../api/experiment_config.html">Experiment Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/lightning_model.html">Lightning Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/model_configs.html">Model Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/train_configs.html">Training Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/training_utils.html">Training Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/transform_configs.html">Transform Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/data_configs.html">Data Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/api_datasets.html">Datasets API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/logging_callbacks.html">Logging and Callbacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/experiment_keys.html">Experiment Keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../api/optuna_utils.html">Optuna Utilities</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/nbsphinx/E3-isic2017-unet2d-scheduler-tiebreak-10seed.ipynb.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="E3-—-ISIC-2017-UNet2D-LR-Schedule-Tie-Break-(10-seeds)">
+<h1>E3 — ISIC 2017 UNet2D LR-Schedule Tie-Break (10 seeds)<a class="headerlink" href="#E3-—-ISIC-2017-UNet2D-LR-Schedule-Tie-Break-(10-seeds)" title="Link to this heading">¶</a></h1>
+<p><strong>Question.</strong> With the architecture and learning rate already fixed (<code class="docutils literal notranslate"><span class="pre">classical</span> <span class="pre">+</span> <span class="pre">attention_gate</span></code>, <code class="docutils literal notranslate"><span class="pre">lr</span> <span class="pre">=</span> <span class="pre">3e-4</span></code>), does the <strong>LR decay schedule</strong> change the model? We compare cosine annealing against ReduceLROnPlateau head-to-head.</p>
+<p><strong>Design.</strong> 10 shared seeds (100–109). Within each seed both schedulers share weight initialisation and data ordering, so the <em>only</em> difference inside a seed pair is the schedule. We analyse the <strong>paired</strong> differences Δᵢ = cosineᵢ − plateauᵢ on the ISIC 2017 validation set.</p>
+<p><strong>Source.</strong> <code class="docutils literal notranslate"><span class="pre">E3-isic2017-unet2d-cosanneal-10seeds.db</span></code> + <code class="docutils literal notranslate"><span class="pre">E3-isic2017-unet2d-reduceonplateauON-10seeds.db</span></code> — 20 runs (2 schedules × 10 seeds), all <code class="docutils literal notranslate"><span class="pre">FINISHED</span></code>.</p>
+<blockquote>
+<div><p><strong>Scope.</strong> This compares two <em>decay</em> schedules against each other. A 1-seed pilot found no quality difference between cosine and flat LR, so the scheduler was dropped before E4. A post-hoc unpaired comparison (E3 cosine vs E4 flat LR, 10 seeds each) on plateau Dice suggests cosine is better (Δ=+0.0042, BCa 95% CI [+0.0015, +0.0069]); the 1-seed pilot was underpowered. See Decision for caveats.</p>
+</div></blockquote>
+<section id="Executive-summary">
+<h2>Executive summary<a class="headerlink" href="#Executive-summary" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>Paired across 10 shared seeds, Δ = cosine − plateau</p></li>
+<li><p>Primary test = Wilcoxon signed-rank</p></li>
+<li><p>CI = BCa bootstrap 95 % (10 000 resamples, <code class="docutils literal notranslate"><span class="pre">rng=42</span></code>)</p></li>
+<li><p>d_z = Cohen’s paired effect size.</p></li>
+</ul>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Metric</p></th>
+<th class="head"><p>Cosine</p></th>
+<th class="head"><p>Plateau</p></th>
+<th class="head"><p>Δ (cos−plat)</p></th>
+<th class="head"><p>95 % BCa CI</p></th>
+<th class="head"><p>Wilcoxon p</p></th>
+<th class="head"><p>d_z</p></th>
+<th class="head"><p>Verdict</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Plateau Dice</strong> — <em>primary</em> [1]</p></td>
+<td><p>0.8346</p></td>
+<td><p>0.8331</p></td>
+<td><p>+0.0015</p></td>
+<td><p>[−0.0006, +0.0038]</p></td>
+<td><p>0.32</p></td>
+<td><p>+0.38</p></td>
+<td><p>tie</p></td>
+</tr>
+<tr class="row-odd"><td><p>Peak Dice</p></td>
+<td><p>0.8451</p></td>
+<td><p>0.8459</p></td>
+<td><p>−0.0007</p></td>
+<td><p>[−0.0024, +0.0006]</p></td>
+<td><p>0.43</p></td>
+<td><p>−0.29</p></td>
+<td><p>tie</p></td>
+</tr>
+<tr class="row-even"><td><p>Peak IoU</p></td>
+<td><p>0.7382</p></td>
+<td><p>0.7392</p></td>
+<td><p>−0.0010</p></td>
+<td><p>[−0.0033, +0.0008]</p></td>
+<td><p>0.43</p></td>
+<td><p>−0.29</p></td>
+<td><p>tie</p></td>
+</tr>
+<tr class="row-odd"><td><p>Generalisation gap <em>(lower = better)</em></p></td>
+<td><p>0.0957</p></td>
+<td><p>0.0971</p></td>
+<td><p>−0.0014</p></td>
+<td><p>[−0.0054, +0.0039]</p></td>
+<td><p>0.70</p></td>
+<td><p>−0.18</p></td>
+<td><p>tie</p></td>
+</tr>
+<tr class="row-even"><td><p>Throughput</p></td>
+<td><p>119.4 sps</p></td>
+<td><p>118.9 sps</p></td>
+<td><p>+0.5 (+0.4 %)</p></td>
+<td><p>[−1.7, +4.8]</p></td>
+<td><p>0.85</p></td>
+<td><p>+0.09</p></td>
+<td><p>tie</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>[1] Plateau Dice (last-10-epoch mean) is the primary quality metric; tested standalone (k = 1, α = 0.05). Secondary quality metrics (Peak Dice, Peak IoU, gen-gap) form a Holm family (k = 3).</p>
+<p><strong>Finding.</strong></p>
+<ul class="simple">
+<li><p><strong>No metric reaches significance.</strong> Every Wilcoxon p ≥ 0.32, every BCa CI straddles 0, every |d_z| ≤ 0.38 (negligible–small). The two schedules are statistically indistinguishable on all quality and cost axes.</p></li>
+<li><p>The only consistent difference is <strong>convergence timing, not quality</strong>: cosine reaches its best checkpoint at epoch 125 on average vs 161 for plateau (≈ 36 epochs / ~22 % earlier), at equal throughput.</p></li>
+</ul>
+<p><strong>Decision: between the two decay schedules, prefer ``cosine_annealing``</strong> — not on Dice (a tie) but on earlier, deterministic convergence. The decay-vs-no-decay question stays open pending the flat-LR baseline.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># ── Path bootstrap (must run before any SkiNet import) ───────────────────────</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="c1"># Resolve the repo root regardless of kernel working directory.</span>
+<span class="c1"># VS Code injects __vsc_ipynb_file__; nbconvert sets CWD = notebook directory.</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">_nb_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">__vsc_ipynb_file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span>  <span class="c1"># VS Code interactive</span>
+<span class="k">except</span> <span class="ne">NameError</span><span class="p">:</span>
+    <span class="n">_nb_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>                            <span class="c1"># nbconvert / CLI</span>
+
+<span class="n">PROJECT_ROOT</span> <span class="o">=</span> <span class="n">_nb_dir</span><span class="o">.</span><span class="n">parents</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">PROJECT_ROOT</span><span class="p">))</span>
+
+<span class="c1"># ── Imports ───────────────────────────────────────────────────────────────────</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">SkiNet.Utils.analysis.aggregation</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_runs</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">SkiNet.Utils.analysis.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_comparison_table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">SkiNet.Utils.analysis.reporting</span><span class="w"> </span><span class="kn">import</span> <span class="n">show_run_table</span><span class="p">,</span> <span class="n">show_comparison_table</span><span class="p">,</span> <span class="n">show_family_verdicts</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">SkiNet.Utils.analysis.plotting</span><span class="w"> </span><span class="kn">import</span> <span class="n">set_paper_style</span><span class="p">,</span> <span class="n">plot_paired_slopegraph</span><span class="p">,</span> <span class="n">plot_paired_forest</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">SkiNet.Utils.analysis.schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">VAL_DICE_MAX</span><span class="p">,</span> <span class="n">VAL_DICE_TAIL_MEAN</span><span class="p">,</span> <span class="n">VAL_IOU_MAX</span><span class="p">,</span> <span class="n">GENERALIZATION_GAP_FINAL</span><span class="p">,</span> <span class="n">SAMPLES_PER_SEC</span>
+
+<span class="c1"># ── Configuration — every tunable argument lives in this cell ────────────────</span>
+<span class="n">FIG_DIR</span>  <span class="o">=</span> <span class="n">_nb_dir</span> <span class="o">/</span> <span class="s1">&#39;_static/model_selection&#39;</span>
+<span class="c1"># Each scheduler arm was logged to its own MLflow DB (both use experiment_id=1</span>
+<span class="c1"># internally), so we load and label them separately, then concatenate.</span>
+<span class="n">DB_DIR</span>   <span class="o">=</span> <span class="n">PROJECT_ROOT</span> <span class="o">/</span> <span class="s1">&#39;mlruns&#39;</span>
+<span class="n">COS_DB</span>   <span class="o">=</span> <span class="n">DB_DIR</span> <span class="o">/</span> <span class="s1">&#39;E3-isic2017-unet2d-cosanneal-10seeds.db&#39;</span>             <span class="c1"># seeds 100–109</span>
+<span class="n">PLAT_DB</span>  <span class="o">=</span> <span class="n">DB_DIR</span> <span class="o">/</span> <span class="s1">&#39;E3-isic2017-unet2d-reduceonplateauON-10seeds.db&#39;</span>     <span class="c1"># seeds 100–109</span>
+
+<span class="n">COSINE</span><span class="p">,</span> <span class="n">PLATEAU</span> <span class="o">=</span> <span class="s1">&#39;cosine_annealing&#39;</span><span class="p">,</span> <span class="s1">&#39;reduce_on_plateau&#39;</span>
+<span class="n">PALETTE</span> <span class="o">=</span> <span class="p">{</span><span class="n">COSINE</span><span class="p">:</span> <span class="s1">&#39;#d1495b&#39;</span><span class="p">,</span> <span class="n">PLATEAU</span><span class="p">:</span> <span class="s1">&#39;#30638e&#39;</span><span class="p">}</span>  <span class="c1"># color palette for the two schedules</span>
+
+<span class="n">ALPHA</span>   <span class="o">=</span> <span class="mf">0.05</span>      <span class="c1"># significance level for confidence intervals and hypothesis tests</span>
+<span class="n">N_BOOT</span>  <span class="o">=</span> <span class="mi">10_000</span>    <span class="c1"># bootstrap samples for confidence intervals and p-values</span>
+<span class="n">RNG</span>     <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>  <span class="c1"># random number generator for reproducibility</span>
+
+<span class="c1"># Metric column names are imported from SkiNet.Utils.analysis.schema; the spec</span>
+<span class="c1"># lists below stay here because the choice of metrics, family sizes and display</span>
+<span class="c1"># names is specific to this E3 paired comparison.</span>
+<span class="n">PRIMARY_METRIC</span>    <span class="o">=</span> <span class="n">VAL_DICE_TAIL_MEAN</span>
+<span class="n">SECONDARY_METRICS</span> <span class="o">=</span> <span class="p">[</span><span class="n">VAL_DICE_MAX</span><span class="p">,</span> <span class="n">VAL_IOU_MAX</span><span class="p">,</span> <span class="n">GENERALIZATION_GAP_FINAL</span><span class="p">]</span>
+<span class="c1"># (metric, higher_is_better, family_size_k)</span>
+<span class="n">METRICS_SPEC</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">VAL_DICE_MAX</span><span class="p">,</span>             <span class="kc">True</span><span class="p">,</span>  <span class="nb">len</span><span class="p">(</span><span class="n">SECONDARY_METRICS</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">VAL_IOU_MAX</span><span class="p">,</span>              <span class="kc">True</span><span class="p">,</span>  <span class="nb">len</span><span class="p">(</span><span class="n">SECONDARY_METRICS</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">VAL_DICE_TAIL_MEAN</span><span class="p">,</span>       <span class="kc">True</span><span class="p">,</span>  <span class="mi">1</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">GENERALIZATION_GAP_FINAL</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">SECONDARY_METRICS</span><span class="p">)),</span>
+    <span class="p">(</span><span class="n">SAMPLES_PER_SEC</span><span class="p">,</span>          <span class="kc">True</span><span class="p">,</span>  <span class="mi">1</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">SLOPE_METRICS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="n">VAL_DICE_MAX</span><span class="p">,</span>       <span class="s1">&#39;Peak Dice (best checkpoint)&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="n">VAL_DICE_TAIL_MEAN</span><span class="p">,</span> <span class="s1">&#39;Plateau Dice (last-10-epoch mean)&#39;</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="c1"># (display_name, metric, higher_is_better)</span>
+<span class="n">FOREST_SPECS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s1">&#39;Peak Dice&#39;</span><span class="p">,</span>         <span class="n">VAL_DICE_MAX</span><span class="p">,</span>             <span class="kc">False</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;Peak IoU&#39;</span><span class="p">,</span>          <span class="n">VAL_IOU_MAX</span><span class="p">,</span>              <span class="kc">False</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;Plateau Dice&#39;</span><span class="p">,</span>      <span class="n">VAL_DICE_TAIL_MEAN</span><span class="p">,</span>       <span class="kc">False</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;Gen-gap reduction&#39;</span><span class="p">,</span> <span class="n">GENERALIZATION_GAP_FINAL</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="c1"># ── Presentation ─────────────────────────────────────────────────────────────</span>
+<span class="n">set_paper_style</span><span class="p">(</span><span class="n">context</span><span class="o">=</span><span class="s1">&#39;notebook&#39;</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.width&#39;</span><span class="p">,</span> <span class="mi">220</span><span class="p">)</span>
+<span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s1">&#39;display.float_format&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">{:.4f}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># ── Load: 20 runs = 2 schedules × 10 seeds ───────────────────────────────────</span>
+<span class="c1"># Both DBs use experiment_id=1, so each is loaded with its own one-entry exp_map</span>
+<span class="c1"># and the labelled frames are concatenated into the paired (seed × schedule) table.</span>
+<span class="n">runs</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+    <span class="n">load_runs</span><span class="p">(</span><span class="n">COS_DB</span><span class="p">,</span>  <span class="n">exp_map</span><span class="o">=</span><span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="n">COSINE</span><span class="p">},</span>  <span class="n">monitor</span><span class="o">=</span><span class="s1">&#39;val_dice&#39;</span><span class="p">),</span>
+    <span class="n">load_runs</span><span class="p">(</span><span class="n">PLAT_DB</span><span class="p">,</span> <span class="n">exp_map</span><span class="o">=</span><span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="n">PLATEAU</span><span class="p">},</span> <span class="n">monitor</span><span class="o">=</span><span class="s1">&#39;val_dice&#39;</span><span class="p">),</span>
+<span class="p">],</span> <span class="n">ignore_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">SEEDS</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">runs</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()),</span> <span class="n">runs</span><span class="p">[</span><span class="s1">&#39;seed&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Loaded 10 runs: {&#39;cosine_annealing&#39;: 10} | seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109]
+Loaded 10 runs: {&#39;reduce_on_plateau&#39;: 10} | seeds: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109]
+</pre></div></div>
+</div>
+</section>
+<section id="1.-Data">
+<h2>1. Data<a class="headerlink" href="#1.-Data" title="Link to this heading">¶</a></h2>
+<p>One row per (seed, schedule). Columns:</p>
+<ul class="simple">
+<li><p><strong>``val_dice_max``</strong> — peak Dice of the best-saved checkpoint (the model that would actually be deployed).</p></li>
+<li><p><strong>``val_dice_tail_mean`` / ``…_std``</strong> — mean and SD of Dice over the last 10 epochs: the convergent <em>plateau</em> level and its noise.</p></li>
+<li><p><strong>``val_dice_max_epoch``</strong> — epoch at which the best checkpoint was reached (convergence-speed signal).</p></li>
+<li><p><strong>``val_iou_max``</strong> — peak IoU of the best checkpoint.</p></li>
+<li><p><strong>``generalization_gap_final``</strong> — final <code class="docutils literal notranslate"><span class="pre">train_dice</span> <span class="pre">−</span> <span class="pre">val_dice</span></code> (overfitting signal; lower is better).</p></li>
+<li><p><strong>``samples_per_sec`` / ``duration_min``</strong> — training throughput and wall-clock cost.</p></li>
+</ul>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">show_run_table</span><span class="p">(</span><span class="n">runs</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>arch</th>
+      <th>seed</th>
+      <th>val_dice_max</th>
+      <th>val_dice_tail_mean</th>
+      <th>val_dice_tail_std</th>
+      <th>val_iou_max</th>
+      <th>generalization_gap_final</th>
+      <th>samples_per_sec</th>
+      <th>duration_min</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>cosine_annealing</td>
+      <td>100</td>
+      <td>0.8444</td>
+      <td>0.8384</td>
+      <td>0.0020</td>
+      <td>0.7374</td>
+      <td>0.0944</td>
+      <td>119.8566</td>
+      <td>47.3305</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>cosine_annealing</td>
+      <td>101</td>
+      <td>0.8475</td>
+      <td>0.8385</td>
+      <td>0.0011</td>
+      <td>0.7410</td>
+      <td>0.0902</td>
+      <td>115.3991</td>
+      <td>45.7549</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>cosine_annealing</td>
+      <td>102</td>
+      <td>0.8443</td>
+      <td>0.8366</td>
+      <td>0.0020</td>
+      <td>0.7372</td>
+      <td>0.0943</td>
+      <td>115.9677</td>
+      <td>45.7975</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>cosine_annealing</td>
+      <td>103</td>
+      <td>0.8474</td>
+      <td>0.8389</td>
+      <td>0.0020</td>
+      <td>0.7409</td>
+      <td>0.0887</td>
+      <td>116.6589</td>
+      <td>45.6267</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>cosine_annealing</td>
+      <td>104</td>
+      <td>0.8476</td>
+      <td>0.8323</td>
+      <td>0.0008</td>
+      <td>0.7413</td>
+      <td>0.1000</td>
+      <td>118.5947</td>
+      <td>45.8264</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>cosine_annealing</td>
+      <td>105</td>
+      <td>0.8473</td>
+      <td>0.8322</td>
+      <td>0.0021</td>
+      <td>0.7409</td>
+      <td>0.0923</td>
+      <td>119.3180</td>
+      <td>45.6379</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>cosine_annealing</td>
+      <td>106</td>
+      <td>0.8413</td>
+      <td>0.8292</td>
+      <td>0.0013</td>
+      <td>0.7335</td>
+      <td>0.1028</td>
+      <td>121.5028</td>
+      <td>45.7030</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>cosine_annealing</td>
+      <td>107</td>
+      <td>0.8438</td>
+      <td>0.8326</td>
+      <td>0.0012</td>
+      <td>0.7379</td>
+      <td>0.0971</td>
+      <td>118.5776</td>
+      <td>45.7078</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>cosine_annealing</td>
+      <td>108</td>
+      <td>0.8431</td>
+      <td>0.8352</td>
+      <td>0.0018</td>
+      <td>0.7342</td>
+      <td>0.0977</td>
+      <td>129.1880</td>
+      <td>45.7106</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>cosine_annealing</td>
+      <td>109</td>
+      <td>0.8447</td>
+      <td>0.8317</td>
+      <td>0.0016</td>
+      <td>0.7377</td>
+      <td>0.0994</td>
+      <td>118.5783</td>
+      <td>45.7795</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>reduce_on_plateau</td>
+      <td>100</td>
+      <td>0.8467</td>
+      <td>0.8347</td>
+      <td>0.0056</td>
+      <td>0.7406</td>
+      <td>0.0942</td>
+      <td>116.5515</td>
+      <td>47.6221</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>reduce_on_plateau</td>
+      <td>101</td>
+      <td>0.8439</td>
+      <td>0.8319</td>
+      <td>0.0044</td>
+      <td>0.7366</td>
+      <td>0.0942</td>
+      <td>116.0661</td>
+      <td>45.8422</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>reduce_on_plateau</td>
+      <td>102</td>
+      <td>0.8449</td>
+      <td>0.8294</td>
+      <td>0.0073</td>
+      <td>0.7382</td>
+      <td>0.0982</td>
+      <td>119.6104</td>
+      <td>46.0099</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>reduce_on_plateau</td>
+      <td>103</td>
+      <td>0.8489</td>
+      <td>0.8358</td>
+      <td>0.0092</td>
+      <td>0.7427</td>
+      <td>0.0985</td>
+      <td>121.3753</td>
+      <td>45.8837</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>reduce_on_plateau</td>
+      <td>104</td>
+      <td>0.8458</td>
+      <td>0.8331</td>
+      <td>0.0062</td>
+      <td>0.7393</td>
+      <td>0.1072</td>
+      <td>119.0549</td>
+      <td>45.8842</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>reduce_on_plateau</td>
+      <td>105</td>
+      <td>0.8466</td>
+      <td>0.8354</td>
+      <td>0.0092</td>
+      <td>0.7401</td>
+      <td>0.0843</td>
+      <td>118.1467</td>
+      <td>46.3332</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>reduce_on_plateau</td>
+      <td>106</td>
+      <td>0.8473</td>
+      <td>0.8317</td>
+      <td>0.0051</td>
+      <td>0.7418</td>
+      <td>0.0981</td>
+      <td>120.2713</td>
+      <td>46.3837</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>reduce_on_plateau</td>
+      <td>107</td>
+      <td>0.8448</td>
+      <td>0.8350</td>
+      <td>0.0056</td>
+      <td>0.7373</td>
+      <td>0.0840</td>
+      <td>122.5502</td>
+      <td>46.2808</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>reduce_on_plateau</td>
+      <td>108</td>
+      <td>0.8437</td>
+      <td>0.8321</td>
+      <td>0.0074</td>
+      <td>0.7368</td>
+      <td>0.1091</td>
+      <td>116.2731</td>
+      <td>46.0836</td>
+    </tr>
+    <tr>
+      <th>19</th>
+      <td>reduce_on_plateau</td>
+      <td>109</td>
+      <td>0.8461</td>
+      <td>0.8317</td>
+      <td>0.0050</td>
+      <td>0.7384</td>
+      <td>0.1031</td>
+      <td>119.2312</td>
+      <td>46.0698</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="2.-Statistical-methods">
+<h2>2. Statistical methods<a class="headerlink" href="#2.-Statistical-methods" title="Link to this heading">¶</a></h2>
+<section id="2.1-Paired-design">
+<h3>2.1 Paired design<a class="headerlink" href="#2.1-Paired-design" title="Link to this heading">¶</a></h3>
+<p>Within each seed, cosine and plateau share weight initialisation and data ordering, so everything that varies run-to-run <strong>except the schedule</strong> is held constant. Subtracting within the pair, Δᵢ = cosineᵢ − plateauᵢ, removes seed-to-seed noise and we analyse 10 paired differences.</p>
+<blockquote>
+<div><p><strong>Scope caveat.</strong> All seeds reuse a single fixed ISIC-2017 train/validation split; only initialisation varies — this is <em>not</em> k-fold cross-validation. Per Rainio et al. (2024), fixed-split p-values can understate variance, so treat every interval and p-value below as an <strong>optimistic lower bound</strong> on the true uncertainty. (For a null result this cuts the safe way: even the optimistic intervals fail to separate the schedules.)</p>
+</div></blockquote>
+</section>
+<section id="2.2-Hypothesis-families">
+<h3>2.2 Hypothesis families<a class="headerlink" href="#2.2-Hypothesis-families" title="Link to this heading">¶</a></h3>
+<p>Each family controls its own family-wise error rate at α = 0.05.</p>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Family</p></th>
+<th class="head"><p>Metric(s)</p></th>
+<th class="head"><p>k</p></th>
+<th class="head"><p>Per-metric threshold</p></th>
+<th class="head"><p>Correction</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Primary</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">val_dice_tail_mean</span></code></p></td>
+<td><p>1</p></td>
+<td><p><strong>0.05</strong></p></td>
+<td><p>none</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Secondary quality</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">val_dice_max</span></code>, <code class="docutils literal notranslate"><span class="pre">val_iou_max</span></code>, gen-gap</p></td>
+<td><p>3</p></td>
+<td><p>≤ <strong>0.0167</strong></p></td>
+<td><p>Holm step-down</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>Training cost</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">samples_per_sec</span></code></p></td>
+<td><p>1</p></td>
+<td><p><strong>0.05</strong></p></td>
+<td><p>none</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><em>Why plateau Dice is primary:</em> it measures the <strong>stable, convergent</strong> Dice level (mean of the last 10 epochs) — the quantity a schedule is supposed to improve — rather than a lucky single-epoch peak.</p>
+</section>
+<section id="2.3-Inference-criteria">
+<h3>2.3 Inference criteria<a class="headerlink" href="#2.3-Inference-criteria" title="Link to this heading">¶</a></h3>
+<p>Three complementary statistics on the same 10 paired differences — identical to the E2 tie-break (Wilcoxon signed-rank, BCa bootstrap 95 % CI, Cohen’s d_z); see E2 §2.3 for the full derivation. At n = 10 the smallest achievable two-tailed Wilcoxon p is 2 / 2¹⁰ = <strong>0.00195</strong>, so the test has room to reject if a real effect existed.</p>
+</section>
+</section>
+<section id="3.-Results">
+<h2>3. Results<a class="headerlink" href="#3.-Results" title="Link to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="n">build_comparison_table</span><span class="p">(</span>
+    <span class="n">runs</span><span class="p">,</span> <span class="n">METRICS_SPEC</span><span class="p">,</span>
+    <span class="n">arch_a</span><span class="o">=</span><span class="n">COSINE</span><span class="p">,</span> <span class="n">arch_b</span><span class="o">=</span><span class="n">PLATEAU</span><span class="p">,</span> <span class="n">seeds</span><span class="o">=</span><span class="n">SEEDS</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="o">=</span><span class="n">ALPHA</span><span class="p">,</span> <span class="n">n_resamples</span><span class="o">=</span><span class="n">N_BOOT</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="n">RNG</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">show_comparison_table</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">label_a</span><span class="o">=</span><span class="s1">&#39;cosine&#39;</span><span class="p">,</span> <span class="n">label_b</span><span class="o">=</span><span class="s1">&#39;plateau&#39;</span><span class="p">)</span>
+<span class="n">show_family_verdicts</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">PRIMARY_METRIC</span><span class="p">,</span> <span class="n">SECONDARY_METRICS</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="n">ALPHA</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>cosine</th>
+      <th>plateau</th>
+      <th>Δ (cosine−plateau)</th>
+      <th>95% BCa CI</th>
+      <th>wilcoxon_p</th>
+      <th>sig</th>
+      <th>d_z</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>val_dice_max</th>
+      <td>0.8451</td>
+      <td>0.8459</td>
+      <td>-0.0007</td>
+      <td>[-0.0024, +0.0006]</td>
+      <td>0.4316</td>
+      <td></td>
+      <td>-0.2900</td>
+    </tr>
+    <tr>
+      <th>val_iou_max</th>
+      <td>0.7382</td>
+      <td>0.7392</td>
+      <td>-0.0010</td>
+      <td>[-0.0033, +0.0008]</td>
+      <td>0.4316</td>
+      <td></td>
+      <td>-0.2900</td>
+    </tr>
+    <tr>
+      <th>val_dice_tail_mean</th>
+      <td>0.8346</td>
+      <td>0.8331</td>
+      <td>+0.0015</td>
+      <td>[-0.0006, +0.0038]</td>
+      <td>0.3223</td>
+      <td></td>
+      <td>0.3800</td>
+    </tr>
+    <tr>
+      <th>generalization_gap_final</th>
+      <td>0.0957</td>
+      <td>0.0971</td>
+      <td>-0.0014</td>
+      <td>[-0.0054, +0.0039]</td>
+      <td>0.6953</td>
+      <td></td>
+      <td>-0.1800</td>
+    </tr>
+    <tr>
+      <th>samples_per_sec</th>
+      <td>119.3642</td>
+      <td>118.9131</td>
+      <td>+0.4511</td>
+      <td>[-1.6984, +4.7605]</td>
+      <td>0.8457</td>
+      <td></td>
+      <td>0.0900</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Primary  val_dice_tail_mean  (k=1, α=0.05):
+  p=0.3223  →  retain H0
+
+Holm step-down  secondary family  (k=3, α_adj=0.0167):
+                              p  threshold  reject
+test
+val_dice_max             0.4316     0.0167   False
+val_iou_max              0.4316     0.0250   False
+generalization_gap_final 0.6953     0.0500   False
+
+Throughput  samples_per_sec  (k=1, α=0.05):
+  p=0.8457  →  retain H0
+</pre></div></div>
+</div>
+</section>
+<section id="4.-Figures">
+<h2>4. Figures<a class="headerlink" href="#4.-Figures" title="Link to this heading">¶</a></h2>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_paired_slopegraph</span><span class="p">(</span>
+    <span class="n">runs</span><span class="p">,</span> <span class="n">SLOPE_METRICS</span><span class="p">,</span>
+    <span class="n">arch_a</span><span class="o">=</span><span class="n">COSINE</span><span class="p">,</span> <span class="n">arch_b</span><span class="o">=</span><span class="n">PLATEAU</span><span class="p">,</span> <span class="n">seeds</span><span class="o">=</span><span class="n">SEEDS</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="n">PALETTE</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Fig 1 — Per-seed paired comparison (n=</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="o">=</span><span class="n">FIG_DIR</span> <span class="o">/</span> <span class="s1">&#39;E3_fig1_paired_slopegraph.png&#39;</span><span class="p">,</span>
+<span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/nbsphinx_E3-isic2017-unet2d-scheduler-tiebreak-10seed_10_0.png" src="../_images/nbsphinx_E3-isic2017-unet2d-scheduler-tiebreak-10seed_10_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plot_paired_forest</span><span class="p">(</span>
+    <span class="n">results</span><span class="p">,</span> <span class="n">FOREST_SPECS</span><span class="p">,</span>
+    <span class="n">arch_a</span><span class="o">=</span><span class="n">COSINE</span><span class="p">,</span> <span class="n">arch_b</span><span class="o">=</span><span class="n">PLATEAU</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="n">PALETTE</span><span class="p">,</span>
+    <span class="n">title</span><span class="o">=</span><span class="sa">f</span><span class="s1">&#39;Fig 2 — Paired cosine−plateau differences, BCa 95% CI (n=</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="o">=</span><span class="n">FIG_DIR</span> <span class="o">/</span> <span class="s1">&#39;E3_fig2_forest_paired_diff.png&#39;</span><span class="p">,</span>
+<span class="p">);</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/nbsphinx_E3-isic2017-unet2d-scheduler-tiebreak-10seed_11_0.png" src="../_images/nbsphinx_E3-isic2017-unet2d-scheduler-tiebreak-10seed_11_0.png" />
+</div>
+</div>
+</section>
+<section id="4b.-Post-hoc:-cosine-annealing-vs-flat-LR-(unpaired)">
+<h2>4b. Post-hoc: cosine annealing vs flat LR (unpaired)<a class="headerlink" href="#4b.-Post-hoc:-cosine-annealing-vs-flat-LR-(unpaired)" title="Link to this heading">¶</a></h2>
+<p>E4 used flat LR (<code class="docutils literal notranslate"><span class="pre">use_lr_scheduler:</span> <span class="pre">false</span></code>) based on a 1-seed pilot. This is an unpaired comparison of E3 cosine (10 seeds) against E4 flat LR (10 seeds, same architecture and lr=3e-4, different experiment). Seeds are the same numbers (100–109) but runs were independent, so differences are unpaired. The strip plot shows the two distributions; the forest plot shows the mean difference with BCa 95 % CI.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span><span class="o">,</span><span class="w"> </span><span class="nn">re</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_re</span>
+
+<span class="c1"># ── load E4 flat-LR plateau Dice ─────────────────────────────────────────────</span>
+<span class="n">E4_DB_DIR</span> <span class="o">=</span> <span class="n">PROJECT_ROOT</span> <span class="o">/</span> <span class="s1">&#39;mlruns&#39;</span>
+<span class="n">e4_plateau</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">for</span> <span class="n">_db</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">E4_DB_DIR</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;E4-isic2017-unet2d-thres-sweep*.db&#39;</span><span class="p">)):</span>
+    <span class="n">_con</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">_db</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_uuid</span><span class="p">,</span> <span class="n">_name</span> <span class="ow">in</span> <span class="n">_con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT run_uuid, name FROM runs WHERE status=&#39;FINISHED&#39;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">fetchall</span><span class="p">():</span>
+        <span class="n">_m</span> <span class="o">=</span> <span class="n">_re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;seed(\d+)&#39;</span><span class="p">,</span> <span class="n">_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_m</span><span class="p">:</span> <span class="k">continue</span>
+        <span class="n">_vals</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">_con</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span>
+            <span class="s2">&quot;SELECT value FROM metrics WHERE run_uuid=? AND key=&#39;val_dice&#39; ORDER BY step&quot;</span><span class="p">,</span>
+            <span class="p">(</span><span class="n">_uuid</span><span class="p">,))</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()]</span>
+        <span class="n">e4_plateau</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">_m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">_vals</span><span class="p">[</span><span class="o">-</span><span class="mi">10</span><span class="p">:]))</span>
+
+<span class="n">flat_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">e4_plateau</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">SEEDS</span><span class="p">])</span>
+<span class="n">cos_vals</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">runs</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">runs</span><span class="p">[</span><span class="s1">&#39;arch&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">COSINE</span><span class="p">,</span> <span class="s1">&#39;val_dice_tail_mean&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">sort_values</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">SEEDS</span><span class="p">)])</span>
+<span class="c1"># pull cosine tail means in seed order</span>
+<span class="n">cos_df</span> <span class="o">=</span> <span class="n">runs</span><span class="p">[</span><span class="n">runs</span><span class="p">[</span><span class="s1">&#39;arch&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">COSINE</span><span class="p">]</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">)[</span><span class="s1">&#39;val_dice_tail_mean&#39;</span><span class="p">]</span>
+<span class="n">cos_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">cos_df</span><span class="p">[</span><span class="n">s</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">SEEDS</span><span class="p">])</span>
+
+<span class="n">FLAT_COL</span> <span class="o">=</span> <span class="s1">&#39;#edae49&#39;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">_plt</span>
+<span class="n">_rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">_jitter</span> <span class="o">=</span> <span class="mf">0.06</span>
+<span class="n">fig5</span><span class="p">,</span> <span class="n">ax5</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">))</span>  <span class="o">+</span> <span class="n">_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">_jitter</span><span class="p">,</span> <span class="n">_jitter</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">)),</span>
+            <span class="n">cos_vals</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PALETTE</span><span class="p">[</span><span class="n">COSINE</span><span class="p">],</span> <span class="n">s</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;cosine annealing (E3)&#39;</span><span class="p">)</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">))</span>  <span class="o">+</span> <span class="n">_rng</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="o">-</span><span class="n">_jitter</span><span class="p">,</span> <span class="n">_jitter</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">)),</span>
+            <span class="n">flat_vals</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">FLAT_COL</span><span class="p">,</span> <span class="n">s</span><span class="o">=</span><span class="mi">60</span><span class="p">,</span> <span class="n">zorder</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;flat LR (E4)&#39;</span><span class="p">)</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">hlines</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">),</span>  <span class="o">-</span><span class="mf">0.25</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">PALETTE</span><span class="p">[</span><span class="n">COSINE</span><span class="p">],</span> <span class="n">linewidths</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">hlines</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">),</span>  <span class="mf">0.75</span><span class="p">,</span> <span class="mf">1.25</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="n">FLAT_COL</span><span class="p">,</span>        <span class="n">linewidths</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">([</span><span class="s1">&#39;Cosine annealing</span><span class="se">\n</span><span class="s1">(E3)&#39;</span><span class="p">,</span> <span class="s1">&#39;Flat LR</span><span class="se">\n</span><span class="s1">(E4)&#39;</span><span class="p">])</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Plateau Dice (last-10-epoch mean)&#39;</span><span class="p">)</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Fig 5 — Cosine vs flat LR (unpaired, n=</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s1">)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">)</span><span class="o">+</span><span class="mf">0.0008</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">)</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PALETTE</span><span class="p">[</span><span class="n">COSINE</span><span class="p">])</span>
+<span class="n">ax5</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">)</span><span class="o">+</span><span class="mf">0.0008</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">)</span><span class="si">:</span><span class="s1">.4f</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">FLAT_COL</span><span class="p">)</span>
+<span class="n">fig5</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">fig5</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">FIG_DIR</span> <span class="o">/</span> <span class="s1">&#39;E3_fig5_cosine_vs_flat_strip.png&#39;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">_plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/nbsphinx_E3-isic2017-unet2d-scheduler-tiebreak-10seed_13_0.png" src="../_images/nbsphinx_E3-isic2017-unet2d-scheduler-tiebreak-10seed_13_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># BCa bootstrap CI on unpaired mean difference (cosine - flat)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.stats</span><span class="w"> </span><span class="kn">import</span> <span class="n">norm</span> <span class="k">as</span> <span class="n">_norm</span>
+<span class="n">_obs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">)</span>
+<span class="n">_rng2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">42</span><span class="p">)</span>
+<span class="n">_boots</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">_rng2</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span> <span class="o">-</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">_rng2</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">),</span> <span class="n">replace</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">N_BOOT</span><span class="p">)</span>
+<span class="p">])</span>
+<span class="n">_z0</span> <span class="o">=</span> <span class="n">_norm</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">_boots</span> <span class="o">&lt;</span> <span class="n">_obs</span><span class="p">))</span>
+<span class="n">_jk_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">))])</span>
+<span class="n">_jk_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">))])</span>
+<span class="n">_jk</span>   <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">_jk_a</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">cos_vals</span><span class="p">),</span> <span class="n">_jk_b</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">flat_vals</span><span class="p">)])</span>
+<span class="n">_acc</span>  <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">((</span><span class="o">-</span><span class="n">_jk</span><span class="p">)</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">6</span><span class="o">*</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">_jk</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span><span class="o">**</span><span class="mf">1.5</span><span class="p">)</span>
+<span class="n">_a1</span>   <span class="o">=</span> <span class="n">_norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">_z0</span> <span class="o">+</span> <span class="p">(</span><span class="n">_z0</span> <span class="o">+</span> <span class="n">_norm</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="mf">0.025</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">_acc</span><span class="o">*</span><span class="p">(</span><span class="n">_z0</span> <span class="o">+</span> <span class="n">_norm</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="mf">0.025</span><span class="p">))))</span>
+<span class="n">_a2</span>   <span class="o">=</span> <span class="n">_norm</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">_z0</span> <span class="o">+</span> <span class="p">(</span><span class="n">_z0</span> <span class="o">+</span> <span class="n">_norm</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="mf">0.975</span><span class="p">))</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">_acc</span><span class="o">*</span><span class="p">(</span><span class="n">_z0</span> <span class="o">+</span> <span class="n">_norm</span><span class="o">.</span><span class="n">ppf</span><span class="p">(</span><span class="mf">0.975</span><span class="p">))))</span>
+<span class="n">_ci_lo</span><span class="p">,</span> <span class="n">_ci_hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">_boots</span><span class="p">,</span> <span class="mi">100</span><span class="o">*</span><span class="n">_a1</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">percentile</span><span class="p">(</span><span class="n">_boots</span><span class="p">,</span> <span class="mi">100</span><span class="o">*</span><span class="n">_a2</span><span class="p">)</span>
+
+<span class="n">fig6</span><span class="p">,</span> <span class="n">ax6</span> <span class="o">=</span> <span class="n">_plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mf">2.2</span><span class="p">))</span>
+<span class="n">ax6</span><span class="o">.</span><span class="n">errorbar</span><span class="p">(</span><span class="n">_obs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">xerr</span><span class="o">=</span><span class="p">[[</span><span class="n">_obs</span> <span class="o">-</span> <span class="n">_ci_lo</span><span class="p">],</span> <span class="p">[</span><span class="n">_ci_hi</span> <span class="o">-</span> <span class="n">_obs</span><span class="p">]],</span>
+             <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">PALETTE</span><span class="p">[</span><span class="n">COSINE</span><span class="p">],</span> <span class="n">capsize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">ax6</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;#888888&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;--&#39;</span><span class="p">)</span>
+<span class="n">ax6</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span>
+<span class="n">ax6</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Δ plateau Dice (cosine − flat LR)&#39;</span><span class="p">)</span>
+<span class="n">ax6</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Fig 6 — Mean difference BCa 95% CI (unpaired, n=</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s1"> each)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">ax6</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">_obs</span><span class="p">,</span> <span class="mf">0.35</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;Δ=</span><span class="si">{</span><span class="n">_obs</span><span class="si">:</span><span class="s1">+.4f</span><span class="si">}</span><span class="se">\n</span><span class="s1">[</span><span class="si">{</span><span class="n">_ci_lo</span><span class="si">:</span><span class="s1">+.4f</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">_ci_hi</span><span class="si">:</span><span class="s1">+.4f</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">,</span>
+         <span class="n">ha</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">,</span> <span class="n">va</span><span class="o">=</span><span class="s1">&#39;bottom&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">ax6</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="o">-</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">)</span>
+<span class="n">fig6</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+<span class="n">fig6</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">FIG_DIR</span> <span class="o">/</span> <span class="s1">&#39;E3_fig6_cosine_vs_flat_forest.png&#39;</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">_plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Δ=</span><span class="si">{</span><span class="n">_obs</span><span class="si">:</span><span class="s1">+.4f</span><span class="si">}</span><span class="s1">, BCa 95% CI [</span><span class="si">{</span><span class="n">_ci_lo</span><span class="si">:</span><span class="s1">+.4f</span><span class="si">}</span><span class="s1">, </span><span class="si">{</span><span class="n">_ci_hi</span><span class="si">:</span><span class="s1">+.4f</span><span class="si">}</span><span class="s1">]&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/nbsphinx_E3-isic2017-unet2d-scheduler-tiebreak-10seed_14_0.png" src="../_images/nbsphinx_E3-isic2017-unet2d-scheduler-tiebreak-10seed_14_0.png" />
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Δ=+0.0042, BCa 95% CI [+0.0015, +0.0069]
+</pre></div></div>
+</div>
+</section>
+<section id="5.-Decision">
+<h2>5. Decision<a class="headerlink" href="#5.-Decision" title="Link to this heading">¶</a></h2>
+<blockquote>
+<div><p><strong>Between the two decay schedules, use ``cosine_annealing`` (T_max = 300, η_min = 1×10⁻⁶) at ``lr = 3e-4``.</strong></p>
+</div></blockquote>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Priority</p></th>
+<th class="head"><p>Criterion</p></th>
+<th class="head"><p>Cosine</p></th>
+<th class="head"><p>Plateau</p></th>
+<th class="head"><p>Status (n = 10)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p><strong>Plateau Dice — primary</strong></p></td>
+<td><p>0.8346</p></td>
+<td><p>0.8331</p></td>
+<td><p>tie — Δ = +0.0015, p = 0.32, CI [−0.0006, +0.0038] spans 0</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>Peak Dice / IoU</p></td>
+<td><p>0.8451</p></td>
+<td><p><strong>0.8459</strong></p></td>
+<td><p>tie — Δ ≈ −0.0007 / −0.0010, p = 0.43, CI spans 0</p></td>
+</tr>
+<tr class="row-even"><td><p>3</p></td>
+<td><p>Generalisation gap</p></td>
+<td><p>0.096</p></td>
+<td><p>0.097</p></td>
+<td><p>tie — p = 0.70, CI spans 0</p></td>
+</tr>
+<tr class="row-odd"><td><p>4</p></td>
+<td><p>Training throughput</p></td>
+<td><p>119.4 sps</p></td>
+<td><p>118.9 sps</p></td>
+<td><p>tie — Δ = +0.5 sps (+0.4 %), p = 0.85</p></td>
+</tr>
+<tr class="row-even"><td><p>—</p></td>
+<td><p>Convergence epoch <em>(tie-breaker)</em></p></td>
+<td><p><strong>125.5</strong></p></td>
+<td><p>161.0</p></td>
+<td><p>cosine reaches best checkpoint ≈ 36 epochs earlier</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Rationale.</strong> On every quality and cost axis the two schedules are statistically indistinguishable (no metric survives its family threshold; all CIs straddle 0; all |d_z| ≤ 0.38). With quality tied, the deciding factor is operational: cosine is a <strong>deterministic, validation-independent</strong> schedule whose LR trajectory is fully specified by epoch count, and it reaches its best checkpoint ~22 % earlier.</p>
+<p><strong>Decay-vs-no-decay (post-hoc).</strong> A 1-seed pilot showed no quality difference between cosine and flat LR, so the scheduler was dropped before E4. Post-hoc unpaired comparison of E3 cosine (10 seeds) against E4 flat LR (10 seeds, same architecture and lr, different experiment purpose) on plateau Dice: Δ=+0.0042, BCa 95% CI [+0.0015, +0.0069] — entirely above zero (p=0.017, unpaired rank test). The 1-seed pilot was underpowered and missed this effect.</p>
+<blockquote>
+<div><p>⚠ <strong>The E4 decision to drop the scheduler was made on insufficient evidence.</strong> This comparison is unpaired — E3 and E4 were separate experiments with different purposes — so the finding is indicative rather than conclusive. A dedicated paired 10-seed flat-vs-cosine experiment would confirm it. Until then, E4 onward uses flat LR (<code class="docutils literal notranslate"><span class="pre">use_lr_scheduler:</span> <span class="pre">false</span></code>) as a pragmatic choice that is retrospectively questionable on plateau Dice.</p>
+</div></blockquote>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024, Pavel Kliuiev
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">E3 — ISIC 2017 UNet2D LR-Schedule Tie-Break (10 seeds)</a><ul>
+<li><a class="reference internal" href="#Executive-summary">Executive summary</a></li>
+<li><a class="reference internal" href="#1.-Data">1. Data</a></li>
+<li><a class="reference internal" href="#2.-Statistical-methods">2. Statistical methods</a><ul>
+<li><a class="reference internal" href="#2.1-Paired-design">2.1 Paired design</a></li>
+<li><a class="reference internal" href="#2.2-Hypothesis-families">2.2 Hypothesis families</a></li>
+<li><a class="reference internal" href="#2.3-Inference-criteria">2.3 Inference criteria</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#3.-Results">3. Results</a></li>
+<li><a class="reference internal" href="#4.-Figures">4. Figures</a></li>
+<li><a class="reference internal" href="#4b.-Post-hoc:-cosine-annealing-vs-flat-LR-(unpaired)">4b. Post-hoc: cosine annealing vs flat LR (unpaired)</a></li>
+<li><a class="reference internal" href="#5.-Decision">5. Decision</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=4a39c7ea"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="../_static/collapse_nbinput.js"></script>
+    </body>
+</html>

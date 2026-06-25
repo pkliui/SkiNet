@@ -1,0 +1,1032 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="#"><link rel="search" title="Search" href="search.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 --><title>Index - SkiNet 1.0.0 documentation</title>
+<link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=13237357" />
+    <link rel="stylesheet" type="text/css" href="_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="_static/collapse_nbinput.css" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">SkiNet 1.0.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">SkiNet 1.0.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Software development process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="azure_setup.html">Azure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets and dataloaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataloaders.html">Note about modification to PyTorch’s default dataloader</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model and training</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="network_design.html">Network Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="export_onnx.html">Exporting to ONNX</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Performance and debugging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plotting.html">Plotting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="documentation.html">Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Experiments</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="experiments.html">Experiments</a><input aria-label="Toggle navigation of Experiments" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="E0-batch-size-sweep-analysis-unet2d-isic2017.html">E0 — Batch Size Sweep Analysis — UNet2D on ISIC 2017</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E1-isic2017-unet2d-modelsw-summary-all-lr.html">E1 — ISIC 2017 UNet2D Architecture Sweep Summary (all Learning Rates)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E2-isic2017-unet2d-model-tiebreak-10seed.html">E2 — ISIC 2017 UNet2D Architecture Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E3-isic2017-unet2d-scheduler-tiebreak-10seed.html">E3 — ISIC 2017 UNet2D LR-Schedule Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E4-isic2017-unet2d-threshold-selection.html">E4 — ISIC 2017 UNet2D Decision-Threshold Selection (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="EF_isic2017_unet2d_E4_production_model_selection.html">EF — ISIC 2017 UNet2D: held-out test score for the selected E4 checkpoint</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api_config.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/experiment_config.html">Experiment Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/lightning_model.html">Lightning Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/model_configs.html">Model Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/train_configs.html">Training Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/training_utils.html">Training Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/transform_configs.html">Transform Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/data_configs.html">Data Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/api_datasets.html">Datasets API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/logging_callbacks.html">Logging and Callbacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/experiment_keys.html">Experiment Keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/optuna_utils.html">Optuna Utilities</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          
+<section class="genindex-section">
+  <h1 id="index">Index</h1>
+  <div class="genindex-jumpbox"><a href="#A"><strong>A</strong></a> | <a href="#B"><strong>B</strong></a> | <a href="#C"><strong>C</strong></a> | <a href="#D"><strong>D</strong></a> | <a href="#E"><strong>E</strong></a> | <a href="#F"><strong>F</strong></a> | <a href="#G"><strong>G</strong></a> | <a href="#H"><strong>H</strong></a> | <a href="#I"><strong>I</strong></a> | <a href="#K"><strong>K</strong></a> | <a href="#L"><strong>L</strong></a> | <a href="#M"><strong>M</strong></a> | <a href="#N"><strong>N</strong></a> | <a href="#O"><strong>O</strong></a> | <a href="#P"><strong>P</strong></a> | <a href="#R"><strong>R</strong></a> | <a href="#S"><strong>S</strong></a> | <a href="#T"><strong>T</strong></a> | <a href="#U"><strong>U</strong></a> | <a href="#V"><strong>V</strong></a> | <a href="#W"><strong>W</strong></a></div>
+</section>
+<section id="A" class="genindex-section">
+  <h2>A</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.accelerator">accelerator (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.affine_apply">affine_apply (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.affine_rotate">affine_rotate (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.affine_scale">affine_scale (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.affine_shear">affine_shear (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.affine_translate_percent">affine_translate_percent (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MergeResidualMode.ATTENTION_GATE">ATTENTION_GATE (SkiNet.Utils.experiment_keys.MergeResidualMode attribute)</a>
+</li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig.azure_blob_mount_point">azure_blob_mount_point (SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig attribute)</a>
+</li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig.azure_data">azure_data (SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="B" class="genindex-section">
+  <h2>B</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.segmentation_dataset.BaseDataset">BaseDataset (class in SkiNet.ML.datasets.segmentation_dataset)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig.batch_size">batch_size (SkiNet.ML.configs.train_configs.sweep_config.SweepConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.batch_size">(SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.HyperparamKey.BATCH_SIZE">BATCH_SIZE (SkiNet.Utils.experiment_keys.HyperparamKey attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.LossFunctionKey.BCE">BCE (SkiNet.Utils.experiment_keys.LossFunctionKey attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.LossFunctionKey.BCE_DICE">BCE_DICE (SkiNet.Utils.experiment_keys.LossFunctionKey attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="C" class="genindex-section">
+  <h2>C</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.cache_in_ram">cache_in_ram (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.logging_callbacks_setup.TrainerComponents.callbacks">callbacks (SkiNet.Utils.logging.logging_callbacks_setup.TrainerComponents attribute)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig.cfg_path">cfg_path (SkiNet.ML.configs.experiment_config.ExperimentConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig.check_finite">check_finite (SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.check_val_every_n_epoch">check_val_every_n_epoch (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.checkpoint_config">checkpoint_config (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.EncoderResidualMode.CLASSICAL">CLASSICAL (SkiNet.Utils.experiment_keys.EncoderResidualMode attribute)</a>
+
+        <ul>
+          <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MergeResidualMode.CLASSICAL">(SkiNet.Utils.experiment_keys.MergeResidualMode attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.color_jitter_apply">color_jitter_apply (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.color_jitter_brightness">color_jitter_brightness (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.color_jitter_contrast">color_jitter_contrast (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.color_jitter_hue">color_jitter_hue (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.color_jitter_p">color_jitter_p (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.color_jitter_saturation">color_jitter_saturation (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.config_factory.ConfigFactory">ConfigFactory (class in SkiNet.ML.configs.config_factory)</a>
+</li>
+        <li><a href="api/lightning_model.html#SkiNet.ML.model.lightning_model.LightningModel.configure_optimizers">configure_optimizers() (SkiNet.ML.model.lightning_model.LightningModel method)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.cosine_annealing_config">cosine_annealing_config (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.dataset_factory.DatasetFactory.create_datasets">create_datasets() (SkiNet.ML.datasets.dataset_factory.DatasetFactory method)</a>
+
+        <ul>
+          <li><a href="api/api_datasets.html#SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory.create_datasets">(SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory method)</a>
+</li>
+        </ul></li>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.dataset_factory.create_segmentation_datasets_from_config">create_segmentation_datasets_from_config() (in module SkiNet.ML.datasets.dataset_factory)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.transform_config.TransformConfig.crop">crop (SkiNet.ML.configs.transform_configs.transform_config.TransformConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.crop_config.CropConfig.crop_apply">crop_apply (SkiNet.ML.configs.transform_configs.crop_config.CropConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.crop_config.CropConfig.crop_type">crop_type (SkiNet.ML.configs.transform_configs.crop_config.CropConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="D" class="genindex-section">
+  <h2>D</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.data_root">data_root (SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset attribute)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig.dataconfig">dataconfig (SkiNet.ML.configs.experiment_config.ExperimentConfig attribute)</a>
+</li>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.dataframe">dataframe (SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset attribute)</a>
+</li>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.dataset_factory.DatasetFactory">DatasetFactory (class in SkiNet.ML.datasets.dataset_factory)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.DatasetKey">DatasetKey (class in SkiNet.Utils.experiment_keys)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.debug_forward">debug_forward (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MetricsKey.default_monitor">default_monitor() (SkiNet.Utils.experiment_keys.MetricsKey class method)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig.description">description (SkiNet.ML.configs.experiment_config.ExperimentConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.deterministic">deterministic (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.devices">devices (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.LossFunctionKey.DICE">DICE (SkiNet.Utils.experiment_keys.LossFunctionKey attribute)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.dilation">dilation (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig.direction">direction (SkiNet.ML.configs.train_configs.sweep_config.SweepConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig.divergence_threshold">divergence_threshold (SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="E" class="genindex-section">
+  <h2>E</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.early_stopping_config">early_stopping_config (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.elastic_alpha">elastic_alpha (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.elastic_apply">elastic_apply (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.elastic_p">elastic_p (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.elastic_sigma">elastic_sigma (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.encoder_residual_mode">encoder_residual_mode (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.EncoderResidualMode">EncoderResidualMode (class in SkiNet.Utils.experiment_keys)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.CosineAnnealingConfig.eta_min">eta_min (SkiNet.ML.configs.train_configs.train_config.CosineAnnealingConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig.experiment_name">experiment_name (SkiNet.ML.configs.experiment_config.ExperimentConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig.experiment_name">(SkiNet.ML.configs.train_configs.sweep_config.SweepConfig attribute)</a>
+</li>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.experiment_name">(SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig.experiment_type">experiment_type (SkiNet.ML.configs.experiment_config.ExperimentConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="F" class="genindex-section">
+  <h2>F</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.ReduceOnPlateauConfig.factor">factor (SkiNet.ML.configs.train_configs.train_config.ReduceOnPlateauConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.MLflowConfig.fallback_to_local_mlflow">fallback_to_local_mlflow (SkiNet.ML.configs.train_configs.train_config.MLflowConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.CheckpointConfig.filename">filename (SkiNet.ML.configs.train_configs.train_config.CheckpointConfig attribute)</a>
+</li>
+        <li><a href="api/training_utils.html#SkiNet.ML.training.training_utils.find_best_threshold">find_best_threshold() (in module SkiNet.ML.training.training_utils)</a>
+</li>
+        <li><a href="api/lightning_model.html#SkiNet.ML.model.lightning_model.LightningModel.forward">forward() (SkiNet.ML.model.lightning_model.LightningModel method)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="G" class="genindex-section">
+  <h2>G</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.gaussian_blur_apply">gaussian_blur_apply (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.gaussian_blur_p">gaussian_blur_p (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.gaussian_blur_sigma_limit">gaussian_blur_sigma_limit (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.gaussian_noise_apply">gaussian_noise_apply (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.gaussian_noise_p">gaussian_noise_p (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig.gaussian_noise_std_range">gaussian_noise_std_range (SkiNet.ML.configs.transform_configs.augment_config.PhotoAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.config_factory.ConfigFactory.get_config_creator">get_config_creator() (SkiNet.ML.configs.config_factory.ConfigFactory method)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.config_factory.get_config_factory">get_config_factory() (in module SkiNet.ML.configs.config_factory)</a>
+</li>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.get_raw_sample">get_raw_sample() (SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset method)</a>
+</li>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.get_sample_item">get_sample_item() (SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset method)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="H" class="genindex-section">
+  <h2>H</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MergeResidualMode.HE1">HE1 (SkiNet.Utils.experiment_keys.MergeResidualMode attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.EncoderResidualMode.HE2">HE2 (SkiNet.Utils.experiment_keys.EncoderResidualMode attribute)</a>
+
+        <ul>
+          <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MergeResidualMode.HE2">(SkiNet.Utils.experiment_keys.MergeResidualMode attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.HyperparamKey">HyperparamKey (class in SkiNet.Utils.experiment_keys)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="I" class="genindex-section">
+  <h2>I</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.in_channels">in_channels (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.DatasetKey.ISIC2017">ISIC2017 (SkiNet.Utils.experiment_keys.DatasetKey attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="K" class="genindex-section">
+  <h2>K</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.kernel">kernel (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.isic2017dataset_config.isic2017dataset_config.ISIC2017DatasetConfig.kind">kind (SkiNet.ML.configs.data_configs.isic2017dataset_config.isic2017dataset_config.ISIC2017DatasetConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config.PH2DatasetConfig.kind">(SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config.PH2DatasetConfig attribute)</a>
+</li>
+          <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.kind">(SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="L" class="genindex-section">
+  <h2>L</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/lightning_model.html#SkiNet.ML.model.lightning_model.LightningModel">LightningModel (class in SkiNet.ML.model.lightning_model)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.litlogger_config">litlogger_config (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.load_config_from_yaml.load_config_from_yaml">load_config_from_yaml() (in module SkiNet.ML.configs.load_config_from_yaml)</a>
+</li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig.local_data_root">local_data_root (SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.EncoderResidualMode.LOCAL_REFINEMENT">LOCAL_REFINEMENT (SkiNet.Utils.experiment_keys.EncoderResidualMode attribute)</a>
+
+        <ul>
+          <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MergeResidualMode.LOCAL_REFINEMENT">(SkiNet.Utils.experiment_keys.MergeResidualMode attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.log_dir">log_dir (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.log_every_n_steps">log_every_n_steps (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.MLflowConfig.log_model">log_model (SkiNet.ML.configs.train_configs.train_config.MLflowConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.MLflowConfig.log_model_summary">log_model_summary (SkiNet.ML.configs.train_configs.train_config.MLflowConfig attribute)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.logging_callbacks_setup.TrainerComponents.loggers">loggers (SkiNet.Utils.logging.logging_callbacks_setup.TrainerComponents attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.loss_name">loss_name (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.LossFunctionKey">LossFunctionKey (class in SkiNet.Utils.experiment_keys)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig.lr">lr (SkiNet.ML.configs.train_configs.sweep_config.SweepConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.lr">(SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.HyperparamKey.LR">LR (SkiNet.Utils.experiment_keys.HyperparamKey attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.lr_scheduler_config">lr_scheduler_config (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="M" class="genindex-section">
+  <h2>M</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.max_epochs">max_epochs (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.merge_residual_mode">merge_residual_mode (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MergeResidualMode">MergeResidualMode (class in SkiNet.Utils.experiment_keys)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MetricsKey">MetricsKey (class in SkiNet.Utils.experiment_keys)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig.min_delta">min_delta (SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.mlflow_config">mlflow_config (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.logging_callbacks_setup.TrainerComponents.mlflow_logger">mlflow_logger (SkiNet.Utils.logging.logging_callbacks_setup.TrainerComponents attribute)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback">MLflowTrainingArtifactsCallback (class in SkiNet.Utils.mlops.mlflow_callbacks)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.CheckpointConfig.mode">mode (SkiNet.ML.configs.train_configs.train_config.CheckpointConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig.mode">(SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig attribute)</a>
+</li>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.ReduceOnPlateauConfig.mode">(SkiNet.ML.configs.train_configs.train_config.ReduceOnPlateauConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.model_name">model_name (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig.modelconfig">modelconfig (SkiNet.ML.configs.experiment_config.ExperimentConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig.monitor">monitor (SkiNet.ML.configs.train_configs.sweep_config.SweepConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.CheckpointConfig.monitor">(SkiNet.ML.configs.train_configs.train_config.CheckpointConfig attribute)</a>
+</li>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig.monitor">(SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig attribute)</a>
+</li>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.ReduceOnPlateauConfig.monitor">(SkiNet.ML.configs.train_configs.train_config.ReduceOnPlateauConfig attribute)</a>
+</li>
+        </ul></li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="N" class="genindex-section">
+  <h2>N</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.transform_config.TransformConfig.normalization_mean">normalization_mean (SkiNet.ML.configs.transform_configs.transform_config.TransformConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.transform_config.TransformConfig.normalization_mode">normalization_mode (SkiNet.ML.configs.transform_configs.transform_config.TransformConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.transform_config.TransformConfig.normalization_std">normalization_std (SkiNet.ML.configs.transform_configs.transform_config.TransformConfig attribute)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.num_output_classes">num_output_classes (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.num_sanity_val_steps">num_sanity_val_steps (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig.num_workers">num_workers (SkiNet.ML.configs.train_configs.sweep_config.SweepConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.num_workers">(SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.HyperparamKey.NUM_WORKERS">NUM_WORKERS (SkiNet.Utils.experiment_keys.HyperparamKey attribute)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.number_of_layers">number_of_layers (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="O" class="genindex-section">
+  <h2>O</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/lightning_model.html#SkiNet.ML.model.lightning_model.LightningModel.on_before_optimizer_step">on_before_optimizer_step() (SkiNet.ML.model.lightning_model.LightningModel method)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback.on_exception">on_exception() (SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback method)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback.on_fit_end">on_fit_end() (SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback method)</a>
+
+        <ul>
+          <li><a href="api/logging_callbacks.html#SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback.on_fit_end">(SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback method)</a>
+</li>
+        </ul></li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback.on_fit_start">on_fit_start() (SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback method)</a>
+
+        <ul>
+          <li><a href="api/logging_callbacks.html#SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback.on_fit_start">(SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback method)</a>
+</li>
+        </ul></li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback.on_train_batch_end">on_train_batch_end() (SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback method)</a>
+
+        <ul>
+          <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.throughput.ThroughputCallback.on_train_batch_end">(SkiNet.Utils.logging.throughput.ThroughputCallback method)</a>
+</li>
+        </ul></li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.throughput.ThroughputCallback.on_train_batch_start">on_train_batch_start() (SkiNet.Utils.logging.throughput.ThroughputCallback method)</a>
+</li>
+        <li><a href="api/lightning_model.html#SkiNet.ML.model.lightning_model.LightningModel.on_validation_epoch_end">on_validation_epoch_end() (SkiNet.ML.model.lightning_model.LightningModel method)</a>
+
+        <ul>
+          <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback.on_validation_epoch_end">(SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback method)</a>
+</li>
+        </ul></li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.optimal_threshold">optimal_threshold (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.optimizer_name">optimizer_name (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.out_channels_layer1">out_channels_layer1 (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="P" class="genindex-section">
+  <h2>P</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig.patience">patience (SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.ReduceOnPlateauConfig.patience">(SkiNet.ML.configs.train_configs.train_config.ReduceOnPlateauConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.perspective_apply">perspective_apply (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.perspective_p">perspective_p (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.perspective_scale">perspective_scale (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.DatasetKey.PH2">PH2 (SkiNet.Utils.experiment_keys.DatasetKey attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.transform_config.TransformConfig.photometric_augmentation">photometric_augmentation (SkiNet.ML.configs.transform_configs.transform_config.TransformConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.pin_memory">pin_memory (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.precision">precision (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig.predefined_split_column">predefined_split_column (SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.isic2017dataset_config.isic2017dataset_config.ISIC2017DatasetConfig.predefined_split_column">(SkiNet.ML.configs.data_configs.isic2017dataset_config.isic2017dataset_config.ISIC2017DatasetConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig.prefetch_factor">prefetch_factor (SkiNet.ML.configs.train_configs.sweep_config.SweepConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.prefetch_factor">(SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.HyperparamKey.PREFETCH_FACTOR">PREFETCH_FACTOR (SkiNet.Utils.experiment_keys.HyperparamKey attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="R" class="genindex-section">
+  <h2>R</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.require_tracking_uri_if_enabled">require_tracking_uri_if_enabled() (SkiNet.ML.configs.train_configs.train_config.TrainConfig method)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.logging_callbacks_setup.TrainerComponents.run_name">run_name (SkiNet.Utils.logging.logging_callbacks_setup.TrainerComponents attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.run_test_after_fit">run_test_after_fit (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="S" class="genindex-section">
+  <h2>S</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.sample_ids">sample_ids (SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset attribute)</a>
+</li>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.sample_specs">sample_specs (SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.CheckpointConfig.save_last">save_last (SkiNet.ML.configs.train_configs.train_config.CheckpointConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.CheckpointConfig.save_top_k">save_top_k (SkiNet.ML.configs.train_configs.train_config.CheckpointConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.crop_config.CropConfig.scale">scale (SkiNet.ML.configs.transform_configs.crop_config.CropConfig attribute)</a>
+</li>
+        <li><a href="api/optuna_utils.html#SkiNet.Utils.mlops.optuna_utils.scale_lr">scale_lr() (in module SkiNet.Utils.mlops.optuna_utils)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig.scheduler_type">scheduler_type (SkiNet.ML.configs.train_configs.sweep_config.SweepConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.scheduler_type">(SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.HyperparamKey.SCHEDULER_TYPE">SCHEDULER_TYPE (SkiNet.Utils.experiment_keys.HyperparamKey attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.EncoderResidualMode.SE">SE (SkiNet.Utils.experiment_keys.EncoderResidualMode attribute)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.se_reduction">se_reduction (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.seed">seed (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset">SegmentationDataset (class in SkiNet.ML.datasets.segmentation_dataset)</a>
+</li>
+        <li><a href="api/api_datasets.html#SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory">SegmentationDatasetFactory (class in SkiNet.ML.datasets.dataset_factory)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.set_num_workers_auto">set_num_workers_auto() (SkiNet.ML.configs.train_configs.train_config.TrainConfig method)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.set_pin_memory_from_accelerator">set_pin_memory_from_accelerator() (SkiNet.ML.configs.train_configs.train_config.TrainConfig method)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.set_precision_from_accelerator">set_precision_from_accelerator() (SkiNet.ML.configs.train_configs.train_config.TrainConfig method)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.logging_callbacks_setup.setup_logging_and_callbacks">setup_logging_and_callbacks() (in module SkiNet.Utils.logging.logging_callbacks_setup)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.crop_config.CropConfig.size">size (SkiNet.ML.configs.transform_configs.crop_config.CropConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.transform_config.TransformConfig.spatial_augmentation">spatial_augmentation (SkiNet.ML.configs.transform_configs.transform_config.TransformConfig attribute)</a>
+</li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig.split_random_seed">split_random_seed (SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig attribute)</a>
+</li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig.split_stratify_column">split_stratify_column (SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.isic2017dataset_config.isic2017dataset_config.ISIC2017DatasetConfig.split_stratify_column">(SkiNet.ML.configs.data_configs.isic2017dataset_config.isic2017dataset_config.ISIC2017DatasetConfig attribute)</a>
+</li>
+          <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config.PH2DatasetConfig.split_stratify_column">(SkiNet.ML.configs.data_configs.ph2dataset_config.ph2dataset_config.PH2DatasetConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig.split_test_size">split_test_size (SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig attribute)</a>
+</li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig.split_train_size">split_train_size (SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig attribute)</a>
+</li>
+        <li><a href="api/data_configs.html#SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig.split_val_size">split_val_size (SkiNet.ML.configs.data_configs.base_data_config.BaseDataConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.square_symmetry_apply">square_symmetry_apply (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/transform_configs.html#SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig.square_symmetry_p">square_symmetry_p (SkiNet.ML.configs.transform_configs.augment_config.SpatialAugmentConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig.stopping_threshold">stopping_threshold (SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.strategy">strategy (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig.strict">strict (SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig attribute)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.stride">stride (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig.sweepconfig">sweepconfig (SkiNet.ML.configs.experiment_config.ExperimentConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.system_metrics_interval_sec">system_metrics_interval_sec (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback">SystemMetricsThreadCallback (class in SkiNet.Utils.logging.system_metrics)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="T" class="genindex-section">
+  <h2>T</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.CosineAnnealingConfig.T_max">T_max (SkiNet.ML.configs.train_configs.train_config.CosineAnnealingConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.test_on_val_split">test_on_val_split (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/lightning_model.html#SkiNet.ML.model.lightning_model.LightningModel.test_step">test_step() (SkiNet.ML.model.lightning_model.LightningModel method)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.throughput.ThroughputCallback">ThroughputCallback (class in SkiNet.Utils.logging.throughput)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.torch_compile_backend">torch_compile_backend (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.MLflowConfig.tracking_uri">tracking_uri (SkiNet.ML.configs.train_configs.train_config.MLflowConfig attribute)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig.trainconfig">trainconfig (SkiNet.ML.configs.experiment_config.ExperimentConfig attribute)</a>
+</li>
+        <li><a href="api/logging_callbacks.html#SkiNet.Utils.logging.logging_callbacks_setup.TrainerComponents">TrainerComponents (class in SkiNet.Utils.logging.logging_callbacks_setup)</a>
+</li>
+        <li><a href="api/lightning_model.html#SkiNet.ML.model.lightning_model.LightningModel.training_step">training_step() (SkiNet.ML.model.lightning_model.LightningModel method)</a>
+</li>
+        <li><a href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig.transformconfig">transformconfig (SkiNet.ML.configs.experiment_config.ExperimentConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="U" class="genindex-section">
+  <h2>U</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.use_checkpoint">use_checkpoint (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.use_early_stopping">use_early_stopping (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.use_litlogger_logger">use_litlogger_logger (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.use_lr_scheduler">use_lr_scheduler (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.use_mlflow_logger">use_mlflow_logger (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.use_torch_compile">use_torch_compile (SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="V" class="genindex-section">
+  <h2>V</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MetricsKey.VAL_BEST_DICE_AT_THRESHOLD">VAL_BEST_DICE_AT_THRESHOLD (SkiNet.Utils.experiment_keys.MetricsKey attribute)</a>
+</li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.MetricsKey.VAL_MEAN_DICE_PER_IMAGE">VAL_MEAN_DICE_PER_IMAGE (SkiNet.Utils.experiment_keys.MetricsKey attribute)</a>
+</li>
+        <li><a href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig.validate_forward">validate_forward (SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig attribute)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.validate_prefetch_factor">validate_prefetch_factor() (SkiNet.ML.configs.train_configs.train_config.TrainConfig method)</a>
+</li>
+        <li><a href="api/optuna_utils.html#SkiNet.Utils.mlops.optuna_utils.validate_search_space">validate_search_space() (in module SkiNet.Utils.mlops.optuna_utils)</a>
+</li>
+        <li><a href="api/lightning_model.html#SkiNet.ML.model.lightning_model.LightningModel.validation_step">validation_step() (SkiNet.ML.model.lightning_model.LightningModel method)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+<section id="W" class="genindex-section">
+  <h2>W</h2>
+  <table style="width: 100%" class="indextable genindextable"><tr>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.warn_if_testing_on_val">warn_if_testing_on_val() (SkiNet.ML.configs.train_configs.train_config.TrainConfig method)</a>
+</li>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig.warn_monitor_is_default">warn_monitor_is_default() (SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig method)</a>
+</li>
+    </ul></td>
+    <td style="width: 33%; vertical-align: top;"><ul>
+        <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig.weight_decay">weight_decay (SkiNet.ML.configs.train_configs.sweep_config.SweepConfig attribute)</a>
+
+        <ul>
+          <li><a href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig.weight_decay">(SkiNet.ML.configs.train_configs.train_config.TrainConfig attribute)</a>
+</li>
+        </ul></li>
+        <li><a href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.HyperparamKey.WEIGHT_DECAY">WEIGHT_DECAY (SkiNet.Utils.experiment_keys.HyperparamKey attribute)</a>
+</li>
+    </ul></td>
+  </tr></table>
+</section>
+
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          
+          
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024, Pavel Kliuiev
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer no-toc">
+      
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=4a39c7ea"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/collapse_nbinput.js"></script>
+    </body>
+</html>

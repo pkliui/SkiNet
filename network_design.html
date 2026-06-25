@@ -1,0 +1,841 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Training" href="training.html"><link rel="prev" title="Note about modification to PyTorch’s default dataloader" href="dataloaders.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Network Design - SkiNet 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=13237357" />
+    <link rel="stylesheet" type="text/css" href="_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="_static/collapse_nbinput.css" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">SkiNet 1.0.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">SkiNet 1.0.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Software development process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="azure_setup.html">Azure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets and dataloaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataloaders.html">Note about modification to PyTorch’s default dataloader</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model and training</span></p>
+<ul class="current">
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Network Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="export_onnx.html">Exporting to ONNX</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Performance and debugging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plotting.html">Plotting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="documentation.html">Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Experiments</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="experiments.html">Experiments</a><input aria-label="Toggle navigation of Experiments" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="E0-batch-size-sweep-analysis-unet2d-isic2017.html">E0 — Batch Size Sweep Analysis — UNet2D on ISIC 2017</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E1-isic2017-unet2d-modelsw-summary-all-lr.html">E1 — ISIC 2017 UNet2D Architecture Sweep Summary (all Learning Rates)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E2-isic2017-unet2d-model-tiebreak-10seed.html">E2 — ISIC 2017 UNet2D Architecture Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E3-isic2017-unet2d-scheduler-tiebreak-10seed.html">E3 — ISIC 2017 UNet2D LR-Schedule Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E4-isic2017-unet2d-threshold-selection.html">E4 — ISIC 2017 UNet2D Decision-Threshold Selection (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="EF_isic2017_unet2d_E4_production_model_selection.html">EF — ISIC 2017 UNet2D: held-out test score for the selected E4 checkpoint</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api_config.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/experiment_config.html">Experiment Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/lightning_model.html">Lightning Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/model_configs.html">Model Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/train_configs.html">Training Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/training_utils.html">Training Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/transform_configs.html">Transform Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/data_configs.html">Data Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/api_datasets.html">Datasets API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/logging_callbacks.html">Logging and Callbacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/experiment_keys.html">Experiment Keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/optuna_utils.html">Optuna Utilities</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/network_design.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="network-design">
+<h1>Network Design<a class="headerlink" href="#network-design" title="Link to this heading">¶</a></h1>
+<section id="architecture-u-net-2d-custom-from-scratch">
+<h2>Architecture — U-Net 2D (custom, from scratch)<a class="headerlink" href="#architecture-u-net-2d-custom-from-scratch" title="Link to this heading">¶</a></h2>
+<p>SkiNet is a symmetric encoder–decoder network built entirely from scratch in PyTorch,
+without pre-trained backbones. The encoder path progressively compresses spatial
+resolution while doubling channel depth at each stage. The decoder path mirrors it,
+restoring resolution via transposed convolutions. Skip connections at every resolution
+level carry high-frequency spatial detail from encoder to decoder, preventing
+boundary information from being lost during downsampling.</p>
+</section>
+<section id="architecture-diagram">
+<h2>Architecture diagram<a class="headerlink" href="#architecture-diagram" title="Link to this heading">¶</a></h2>
+<figure class="align-default" id="id1">
+<a class="reference internal image-reference" href="_images/arch_overview.svg"><img alt="U-Net 2D architecture overview" src="_images/arch_overview.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Skip connections (not shown) run from each encoder layer to its mirror decoder merge block.
+Each upsampling step uses a transposed convolution (stride 2), restoring the spatial dimensions
+halved by the corresponding encoder stage.</small></span><a class="headerlink" href="#id1" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="block-design">
+<h2>Block design<a class="headerlink" href="#block-design" title="Link to this heading">¶</a></h2>
+<section id="encoder-block-classical-selected-ronneberger-et-al-miccai-2015">
+<h3>Encoder block — Classical (selected) (Ronneberger et al., MICCAI 2015)<a class="headerlink" href="#encoder-block-classical-selected-ronneberger-et-al-miccai-2015" title="Link to this heading">¶</a></h3>
+<p>Below is the encoder used in the final SkiNet (<code class="docutils literal notranslate"><span class="pre">ClassicalEncoder</span></code>). It consists of two sequential
+Conv2d(3×3) → BatchNorm → ReLU layers per encoder stage: the first convolution
+downsamples (stride 2), the second refines at the reduced resolution (stride 1).
+The encoder block was selected in the architecture sweep (see Model selection below), wherethe <code class="docutils literal notranslate"><span class="pre">he2</span></code> and <code class="docutils literal notranslate"><span class="pre">se</span></code>
+encoders were also evaluated and appear under Candidate blocks.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>h = Conv-BN-Act(x)   # stride 2, downsamples spatial dims
+y = Conv-BN-Act(h)   # stride 1, refines at reduced resolution
+</pre></div>
+</div>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="_images/block_encoder.svg"><img alt="Classical encoder block data-flow diagram" src="_images/block_encoder.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Classical encoder block — Conv 3×3 (stride 2) → BN → ReLU → Conv 3×3 (stride 1) → BN → ReLU.</small></span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="decoder-block-transposed-convolution-upsampling">
+<h3>Decoder block — transposed convolution upsampling<a class="headerlink" href="#decoder-block-transposed-convolution-upsampling" title="Link to this heading">¶</a></h3>
+<p>Each decoder stage begins by doubling the spatial resolution with a single
+transposed convolution, followed by BatchNorm and ReLU. The kernel size is
+set to <code class="docutils literal notranslate"><span class="pre">encoder_kernel</span> <span class="pre">×</span> <span class="pre">encoder_stride</span> <span class="pre">=</span> <span class="pre">3</span> <span class="pre">×</span> <span class="pre">2</span> <span class="pre">=</span> <span class="pre">6</span></code> rather than
+the more common 2×2, which eliminates the uneven overlap pattern that
+produces checkerboard artefacts in the output mask (Odena et al., 2016).
+The stride of 2 exactly inverts the downsampling applied by the corresponding
+encoder stage. The output of this block is passed to the attention-gated merge
+block below alongside the skip connection.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>y = Act(BN(ConvTranspose2d(x)))   # kernel 6×6, stride 2: spatial ×2, channels ÷2
+</pre></div>
+</div>
+<figure class="align-default" id="id3">
+<a class="reference internal image-reference" href="_images/block_decoder.svg"><img alt="Decoder upsampling block data-flow diagram" src="_images/block_decoder.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Decoder upsampling block — ConvTranspose2d 6×6 (stride 2, spatial ×2, channels ÷2) → BN → ReLU.</small></span><a class="headerlink" href="#id3" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="merge-block-attention-gated-selected-oktay-et-al-midl-2018">
+<h3>Merge block — Attention-gated (selected) (Oktay et al., MIDL 2018)<a class="headerlink" href="#merge-block-attention-gated-selected-oktay-et-al-midl-2018" title="Link to this heading">¶</a></h3>
+<p>This is the merge used in the final SkiNet (<code class="docutils literal notranslate"><span class="pre">AttentionGateMerge</span></code>). Before merging, the skip connection is
+gated by an additive attention gate: the upsampled decoder tensor acts as the gating signal <code class="docutils literal notranslate"><span class="pre">g</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">g</span></code> and the skip features <code class="docutils literal notranslate"><span class="pre">x</span></code> are each projected to an intermediate space, summed, then passed
+through ReLU → 1×1 conv → BN → Sigmoid to produce a spatial attention map α ∈ [0, 1]. α multiplies
+the raw skip features, selectively suppressing irrelevant background activations at the skip
+connection.</p>
+<figure class="align-default" id="id4">
+<a class="reference internal image-reference" href="_images/block_attention_gate.svg"><img alt="Additive attention gate data-flow diagram" src="_images/block_attention_gate.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Additive attention gate — the decoder gating signal g and skip x are each projected (1×1 conv → BN),
+summed, then ReLU → 1×1 conv → BN → Sigmoid yields the spatial map α ∈ [0, 1]. α multiplies the raw
+(unprojected) skip x to produce the gated skip features fed into the merge.</small></span><a class="headerlink" href="#id4" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+<p>The gated skip and the decoder tensor are then each projected through separate 3×3 convolutions and
+<em>summed</em> (rather than concatenated). This operation is algebraically equivalent to concatenation and convolution, but
+avoids the doubled-channel tensor in memory. The resulting merged sum is followed by two BN→ReLU→Conv refinement convolutions
+with an identity shortcut over the merged sum (the two-conv pre-activation “He2” pattern, just with attention gate; He et al., ECCV 2016).</p>
+<p>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>attended_skip = AttentionGate(dec, skip)          # α-gated skip features
+merged        = conv_x(dec) + conv_skip(attended_skip)
+conv1         = Conv(Act(BN(merged)))
+conv2         = Conv(Act(BN(conv1)))
+output        = conv2 + merged                    # identity shortcut
+</pre></div>
+</div>
+<figure class="align-default" id="id5">
+<a class="reference internal image-reference" href="_images/block_attention_gate_merge.svg"><img alt="Attention-gate merge block data-flow diagram" src="_images/block_attention_gate_merge.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Attention-gate merge — skip is gated by α (W_x/W_g projections → ⊕ → ReLU → ψ → Sigmoid), then
+attended_skip and dec are each projected (3×3) and summed into merged; two pre-activation Conv
+blocks (BN→ReLU→Conv) refine, with an identity shortcut over merged.</small></span><a class="headerlink" href="#id5" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+<section id="candidate-blocks-considered-not-selected">
+<h2>Candidate blocks (considered, not selected)<a class="headerlink" href="#candidate-blocks-considered-not-selected" title="Link to this heading">¶</a></h2>
+<p>The architecture sweep also evaluated the encoder and merge blocks below. <strong>None was selected for
+the final SkiNet</strong> — they are documented here for completeness; the selection rationale is in
+Model selection (next section). (<code class="docutils literal notranslate"><span class="pre">LocalRefinementEncoder</span></code> and the <code class="docutils literal notranslate"><span class="pre">he1</span></code> / <code class="docutils literal notranslate"><span class="pre">local_refinement</span></code> merge
+modes exist in the block registry but were not part of the sweep, so they are omitted here.)</p>
+<section id="he2-encoder-he2encoder-he-et-al-eccv-2016">
+<h3>He2 encoder (<code class="docutils literal notranslate"><span class="pre">He2Encoder</span></code>; He et al., ECCV 2016)<a class="headerlink" href="#he2-encoder-he2encoder-he-et-al-eccv-2016" title="Link to this heading">¶</a></h3>
+<p>Pre-activation residual encoder — BN→ReLU precede each convolution, and a 1×1 stride-2 projection
+shortcut <code class="docutils literal notranslate"><span class="pre">P</span></code> (matching the downsampled spatial size and channel count) is added back.
+(<code class="docutils literal notranslate"><span class="pre">use_residual=False</span></code> is rejected for this block.)</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>h = Conv(BN-Act(x))         # downsamples (stride 2)
+y = Conv(BN-Act(h)) + P(x)  # P is a 1×1 projection shortcut
+</pre></div>
+</div>
+<figure class="align-default" id="id6">
+<a class="reference internal image-reference" href="_images/block_he2_encoder.svg"><img alt="He2 pre-activation residual encoder block data-flow diagram" src="_images/block_he2_encoder.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>He2 encoder — pre-activation BN→ReLU→Conv twice, with a 1×1 stride-2 projection shortcut P(x) added
+to the refined output.</small></span><a class="headerlink" href="#id6" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="se-encoder-seencoder-he-et-al-eccv-2016-hu-et-al-cvpr-2018">
+<h3>SE encoder (<code class="docutils literal notranslate"><span class="pre">SEEncoder</span></code>; He et al., ECCV 2016 + Hu et al., CVPR 2018)<a class="headerlink" href="#se-encoder-seencoder-he-et-al-eccv-2016-hu-et-al-cvpr-2018" title="Link to this heading">¶</a></h3>
+<p>The same pre-activation skeleton as He2, with a Squeeze-and-Excitation block recalibrating the
+convolution path (channel-wise attention) before the projection shortcut is added:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>h     = Conv(BN-Act(x))      # downsamples (stride 2)
+conv2 = Conv(BN-Act(h))      # refines (stride 1)
+y     = SE(conv2) + P(x)     # SE-recalibrated output + 1×1 projection shortcut
+</pre></div>
+</div>
+<figure class="align-default" id="id7">
+<a class="reference internal image-reference" href="_images/block_se_encoder.svg"><img alt="Squeeze-and-Excitation pre-activation residual encoder block data-flow diagram" src="_images/block_se_encoder.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>SE encoder — He2 skeleton with a Squeeze-and-Excitation channel-attention block on the conv path
+(squeeze ratio <code class="docutils literal notranslate"><span class="pre">se_reduction=16</span></code>), summed with the 1×1 stride-2 projection shortcut P(x).</small></span><a class="headerlink" href="#id7" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="classical-merge-classicalmerge-ronneberger-et-al-miccai-2015">
+<h3>Classical merge (<code class="docutils literal notranslate"><span class="pre">ClassicalMerge</span></code>; Ronneberger et al., MICCAI 2015)<a class="headerlink" href="#classical-merge-classicalmerge-ronneberger-et-al-miccai-2015" title="Link to this heading">¶</a></h3>
+<p>The original UNet merge, and the only mode that <strong>concatenates</strong> rather than projects-and-sums:
+decoder and skip features are concatenated along the channel dimension, then passed through two
+Conv-BN-Act blocks with no residual shortcut.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>merged = concat([decoder_out, skip], dim=1)
+h      = Conv-BN-Act(merged)
+y      = Conv-BN-Act(h)
+</pre></div>
+</div>
+<figure class="align-default" id="id8">
+<a class="reference internal image-reference" href="_images/block_classical_merge.svg"><img alt="Classical concatenation merge block data-flow diagram" src="_images/block_classical_merge.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Classical merge — concatenate decoder and skip along channels, then Conv 3×3 → BN → ReLU twice, no
+residual shortcut.</small></span><a class="headerlink" href="#id8" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="he2-merge-he2merge-he-et-al-eccv-2016">
+<h3>He2 merge (<code class="docutils literal notranslate"><span class="pre">He2Merge</span></code>; He et al., ECCV 2016)<a class="headerlink" href="#he2-merge-he2merge-he-et-al-eccv-2016" title="Link to this heading">¶</a></h3>
+<p>Projection-and-sum merge followed by two-conv pre-activation refinement with an identity shortcut,
+<strong>without</strong> an attention gate. This is exactly the refinement reused inside the selected
+attention-gated merge — the only difference there is the attention gate applied to the skip first.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">merged</span> <span class="o">=</span> <span class="n">conv_skip</span><span class="p">(</span><span class="n">skip</span><span class="p">)</span> <span class="o">+</span> <span class="n">conv_dec</span><span class="p">(</span><span class="n">decoder_out</span><span class="p">)</span>
+<span class="n">conv1</span>  <span class="o">=</span> <span class="n">Conv</span><span class="p">(</span> <span class="n">ReLU</span><span class="p">(</span><span class="n">BN</span><span class="p">(</span><span class="n">merged</span><span class="p">))</span> <span class="p">)</span>
+<span class="n">conv2</span>  <span class="o">=</span> <span class="n">Conv</span><span class="p">(</span> <span class="n">ReLU</span><span class="p">(</span><span class="n">BN</span><span class="p">(</span><span class="n">conv1</span><span class="p">))</span>  <span class="p">)</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">conv2</span> <span class="o">+</span> <span class="n">merged</span>                             <span class="c1"># identity shortcut</span>
+</pre></div>
+</div>
+<figure class="align-default" id="id9">
+<a class="reference internal image-reference" href="_images/block_he2merge.svg"><img alt="He2 merge block data-flow diagram" src="_images/block_he2merge.svg" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>He2 merge — the skip and decoder inputs are projected separately, summed, refined by two
+pre-activation Conv blocks (BN→ReLU→Conv), then added back via an identity shortcut over the merged
+sum.</small></span><a class="headerlink" href="#id9" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+<section id="model-selection">
+<h2>Model selection<a class="headerlink" href="#model-selection" title="Link to this heading">¶</a></h2>
+<p><strong>Final architecture: classical encoder + attention-gate merge</strong>, chosen via the two-stage
+architecture sweep below.</p>
+<section id="architecture-sweep-conducted">
+<h3>Architecture sweep (conducted)<a class="headerlink" href="#architecture-sweep-conducted" title="Link to this heading">¶</a></h3>
+<p>The encoder and merge blocks were selected in two stages.</p>
+<p><strong>E1 — single-seed screen.</strong> A 3×3 grid (classical · SE · He2 encoder × classical · He2 ·
+attention-gate merge) was swept at four learning rates (1e-4, 3e-4, 6e-4, 1e-3), 36 single-seed
+runs, ranked on tail-mean (last-10-epoch) val Dice. <code class="docutils literal notranslate"><span class="pre">classical</span></code> was the strongest encoder at
+every LR (+0.010–0.016 over <code class="docutils literal notranslate"><span class="pre">se</span></code>) and <code class="docutils literal notranslate"><span class="pre">lr</span> <span class="pre">=</span> <span class="pre">3e-4</span></code> was the best LR for the leading architectures.
+The <code class="docutils literal notranslate"><span class="pre">he2</span></code> and <code class="docutils literal notranslate"><span class="pre">attention_gate</span></code> merges tied within single-seed noise (Δ ≈ 0.0006 tail-mean Dice),
+so the screen could not separate them and deferred the tie-break to a paired multi-seed run.</p>
+<p><strong>E2 — 10-seed tie-break (decisive).</strong> <code class="docutils literal notranslate"><span class="pre">classical</span> <span class="pre">+</span> <span class="pre">attention_gate</span></code> (AG) and <code class="docutils literal notranslate"><span class="pre">classical</span> <span class="pre">+</span> <span class="pre">he2</span></code>
+(HE2) were trained on 10 shared seeds (100–109) at lr = 3e-4, analysing the paired differences
+Δ = AG − HE2. On the pre-registered primary metric — plateau Dice (mean of the last 10 epochs) —
+<strong>AG wins: 0.8300 vs 0.8275 (Δ +0.0025, Wilcoxon p = 0.037, BCa 95 % CI [+0.0006, +0.0048],
+d_z = +0.70, 8/10 seeds)</strong>. Peak Dice and IoU are statistical ties (|Δ| &lt; 0.001, p &gt; 0.7).
+HE2’s only confirmed advantage is throughput (135.3 vs 119.7 samples/s, +13 %, p = 0.002).
+The winning combination is <strong>classical encoder + attention_gate merge</strong>.</p>
+</section>
+<section id="model-selection-figures">
+<h3>Model-selection figures<a class="headerlink" href="#model-selection-figures" title="Link to this heading">¶</a></h3>
+<p>The figures below summarise the 10-seed tie-break between the two finalist
+configurations (classical/attention-gate vs classical/He2).</p>
+</section>
+<section id="figure-1-paired-slope-graph">
+<h3>Figure 1 — Paired slope graph<a class="headerlink" href="#figure-1-paired-slope-graph" title="Link to this heading">¶</a></h3>
+<p>Each line connects one seed’s val Dice under both configurations. The slope
+direction shows which performed better for that seed.</p>
+<figure class="align-center" id="id10">
+<a class="reference internal image-reference" href="_images/E2_fig1_paired_slopegraph.png"><img alt="Paired slope graph comparing classical/attention-gate and classical/He2 val Dice across 10 seeds" src="_images/E2_fig1_paired_slopegraph.png" style="width: 680px;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Fig 1. Per-seed val Dice for the two finalist configurations across the 10-seed tie-break.
+Plateau Dice tilts to attention-gate (8/10 seeds); peak Dice is an even split.</small></span><a class="headerlink" href="#id10" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="figure-2-forest-plot-of-paired-differences">
+<h3>Figure 2 — Forest plot of paired differences<a class="headerlink" href="#figure-2-forest-plot-of-paired-differences" title="Link to this heading">¶</a></h3>
+<figure class="align-center" id="id11">
+<a class="reference internal image-reference" href="_images/E2_fig2_forest_paired_diff.png"><img alt="Forest plot of per-seed plateau-Dice differences (attention-gate − He2)" src="_images/E2_fig2_forest_paired_diff.png" style="width: 680px;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Fig 2. Forest plot of paired plateau-Dice differences (AG − He2) across 10 seeds; pooled mean
++0.0025 (BCa 95 % CI [+0.0006, +0.0048], excludes zero).</small></span><a class="headerlink" href="#id11" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+<section id="training-setup">
+<h2>Training setup<a class="headerlink" href="#training-setup" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Dataset</p></td>
+<td><p>ISIC 2017 — 2 000 train / 150 val / 600 test dermoscopic images</p></td>
+</tr>
+<tr class="row-odd"><td><p>Input resolution</p></td>
+<td><p>256×256 px, resized offline; normalised with dataset-computed mean &amp; std</p></td>
+</tr>
+<tr class="row-even"><td><p>Batch size</p></td>
+<td><p>8 per GPU × 2 GPUs = 16 effective (DDP, ddp_spawn)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Max epochs</p></td>
+<td><p>200</p></td>
+</tr>
+<tr class="row-even"><td><p>Loss</p></td>
+<td><p>BCE-Dice: 0.5 × BCEWithLogitsLoss + 0.5 × Dice loss</p></td>
+</tr>
+<tr class="row-odd"><td><p>Optimiser</p></td>
+<td><p>Adam (β₁=0.9, β₂=0.999, ε=1e-8, weight decay=0)</p></td>
+</tr>
+<tr class="row-even"><td><p>Learning rate</p></td>
+<td><p>3×10⁻⁴</p></td>
+</tr>
+<tr class="row-odd"><td><p>LR schedule</p></td>
+<td><p>None in the final training setup</p></td>
+</tr>
+<tr class="row-even"><td><p>Precision</p></td>
+<td><p>16-bit mixed (AMP, auto-set from accelerator)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Hardware</p></td>
+<td><p>2 × NVIDIA T4 (Kaggle), PyTorch Lightning</p></td>
+</tr>
+<tr class="row-even"><td><p>Weight init</p></td>
+<td><p>Kaiming normal (fan_in, ReLU) for all Conv2d/ConvTranspose2d; BN weights ~ N(1, 0.01)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Checkpoint</p></td>
+<td><p>Best val Dice saved; optimal sigmoid threshold stored in checkpoint buffer</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Key design decisions and their supporting experiments:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Decision</p></th>
+<th class="head"><p>Experiment</p></th>
+<th class="head"><p>Notebook</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Batch size</p></td>
+<td><p>E0 batch size sweep</p></td>
+<td><p><a class="reference internal" href="E0-batch-size-sweep-analysis-unet2d-isic2017.html"><span class="std std-doc">E0-batch-size-sweep-analysis-unet2d-isic2017.ipynb</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Learning rate</p></td>
+<td><p>E1 LR sweep (lr in [1e-3, 6e-4, 3e-4, 1e-4])</p></td>
+<td><p><a class="reference internal" href="E1-isic2017-unet2d-modelsw-summary-all-lr.html"><span class="std std-doc">E1-isic2017-unet2d-modelsw-summary-all-lr.ipynb</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Architecture (encoder/merge modes)</p></td>
+<td><p>E2 10-seed tiebreak</p></td>
+<td><p><a class="reference internal" href="E2-isic2017-unet2d-model-tiebreak-10seed.html"><span class="std std-doc">E2-isic2017-unet2d-model-tiebreak-10seed.ipynb</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>LR scheduler</p></td>
+<td><p>E3 10-seed scheduler tiebreak (cosine annealing vs ReduceLROnPlateau)</p></td>
+<td><p><a class="reference internal" href="E3-isic2017-unet2d-scheduler-tiebreak-10seed.html"><span class="std std-doc">E3-isic2017-unet2d-scheduler-tiebreak-10seed.ipynb</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Threshold</p></td>
+<td><p>E4 threshold sweep</p></td>
+<td><p><a class="reference internal" href="E4-isic2017-unet2d-threshold-selection.html"><span class="std std-doc">E4-isic2017-unet2d-threshold-selection.ipynb</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Production model</p></td>
+<td><p>EF model selection</p></td>
+<td><p><a class="reference internal" href="EF_isic2017_unet2d_E4_production_model_selection.html"><span class="std std-doc">EF_isic2017_unet2d_E4_production_model_selection.ipynb</span></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><strong>Batch size rationale.</strong> Throughput sweep (bs 2→64, 2×T4): bs=8 is the smallest batch on the
+plateau (≥81% of peak throughput in both augmented and non-augmented conditions) and the last
+point before the time-per-step inflection. Augmentations add negligible cost at this size.
+Peak GPU memory: 0.43 GB/GPU.</p>
+<p><strong>Learning rate rationale.</strong> 5-point log-spaced sweep [1e-4 … 3e-3], AdamW, 2×T4, 100 epochs.
+lr=3×10⁻⁴ achieved the highest mean val Dice (0.806), lowest epoch variance (σ=0.018), and
+cleanest convergence. Consistent with two prior Adam sweeps. lr=3×10⁻³ caused clear degradation
+(mean Dice −0.018, convergence to 0.80 delayed by 35 epochs).</p>
+<p><strong>LR schedule rationale.</strong> Cosine annealing (T_max=300, η_min=1×10⁻⁶). E3 settled this with a
+10-seed paired tiebreak (cosine vs ReduceLROnPlateau, seeds 100–109, <code class="docutils literal notranslate"><span class="pre">classical+attention_gate</span></code>
+at lr=3e-4). The two schedules are <strong>statistically indistinguishable on every quality and cost
+axis</strong>. Across all five metrics the paired Wilcoxon p-values are 0.32 (plateau Dice), 0.43 (peak
+Dice), 0.43 (peak IoU), 0.70 (gen-gap) and 0.85 (throughput) — none below 0.05 — and every BCa
+95% CI includes zero (e.g. plateau Dice Δ=+0.0015, CI [−0.0006, +0.0038]; peak Dice Δ=−0.0007,
+CI [−0.0024, +0.0006]).</p>
+<p>With quality a tie, cosine can be chosen on the standard grounds of <strong>determinism and reproducibility</strong>: its LR trajectory is
+fully specified by epoch count, whereas plateau’s depends on the validation-metric trajectory,
+adding a moving part and a source of run-to-run variance.</p>
+<p>Secondary, and consistent with this: cosine reaches its best checkpoint earlier (mean epoch 125 vs 161, ≈22% earlier,
+8/10 seeds, Wilcoxon p=0.020) — but at the current fixed <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> this yields <strong>no wall-clock
+saving</strong> (full-run duration is equal, ~46 min) and would only convert to a compute saving if early
+stopping were added. See <a class="reference internal" href="E3-isic2017-unet2d-scheduler-tiebreak-10seed.html"><span class="std std-doc">E3</span></a>.</p>
+<p><strong>Decay-vs-no-decay (post-hoc).</strong> A 1-seed pilot showed no quality difference between cosine and
+flat LR, so the scheduler was dropped before E4. A post-hoc comparison of E3 cosine (10 seeds)
+against E4 flat LR (10 seeds, same architecture and lr) on plateau Dice suggests cosine is better:
+Δ=+0.0042, BCa 95% CI [+0.0015, +0.0069] — entirely above zero (p=0.017, unpaired rank test).
+The 1-seed pilot was underpowered and missed this effect.</p>
+<blockquote>
+<div><p>⚠ <strong>The E4 decision to drop the scheduler was made on insufficient evidence.</strong> This comparison is
+unpaired — E3 and E4 were separate experiments with different purposes, not a controlled
+flat-vs-cosine study — so the finding is indicative rather than conclusive. A dedicated paired
+10-seed flat-vs-cosine experiment would be needed to confirm. Until then, <strong>E4 onward uses flat LR</strong>
+(<code class="docutils literal notranslate"><span class="pre">use_lr_scheduler:</span> <span class="pre">false</span></code>) as a pragmatic choice that is retrospectively questionable on plateau Dice.</p>
+</div></blockquote>
+<section id="figure-3-paired-slope-graph-cosine-vs-reducelronplateau-10-seeds">
+<h3>Figure 3 — Paired slope graph (cosine vs ReduceLROnPlateau, 10 seeds)<a class="headerlink" href="#figure-3-paired-slope-graph-cosine-vs-reducelronplateau-10-seeds" title="Link to this heading">¶</a></h3>
+<figure class="align-center" id="id12">
+<a class="reference internal image-reference" href="_images/E3_fig1_paired_slopegraph.png"><img alt="Paired slope graph comparing cosine annealing and ReduceLROnPlateau val Dice across 10 seeds" src="_images/E3_fig1_paired_slopegraph.png" style="width: 680px;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Fig 3. Per-seed val Dice for cosine annealing vs ReduceLROnPlateau across the 10-seed tie-break.
+Lines are nearly flat — both schedules track each other within seed noise.</small></span><a class="headerlink" href="#id12" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="figure-4-forest-plot-of-paired-differences-cosine-plateau">
+<h3>Figure 4 — Forest plot of paired differences (cosine − plateau)<a class="headerlink" href="#figure-4-forest-plot-of-paired-differences-cosine-plateau" title="Link to this heading">¶</a></h3>
+<figure class="align-center" id="id13">
+<a class="reference internal image-reference" href="_images/E3_fig2_forest_paired_diff.png"><img alt="Forest plot of per-seed plateau-Dice differences (cosine − ReduceLROnPlateau)" src="_images/E3_fig2_forest_paired_diff.png" style="width: 680px;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Fig 4. Paired plateau-Dice differences (cosine − plateau) across 10 seeds; pooled mean
++0.0015 (BCa 95 % CI [−0.0006, +0.0038], spans zero — schedules are indistinguishable).</small></span><a class="headerlink" href="#id13" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="figure-5-cosine-annealing-vs-flat-lr-unpaired-post-hoc">
+<h3>Figure 5 — Cosine annealing vs flat LR (unpaired, post-hoc)<a class="headerlink" href="#figure-5-cosine-annealing-vs-flat-lr-unpaired-post-hoc" title="Link to this heading">¶</a></h3>
+<figure class="align-center" id="id14">
+<a class="reference internal image-reference" href="_images/E3_fig5_cosine_vs_flat_strip.png"><img alt="Strip plot comparing plateau Dice of cosine annealing (E3) and flat LR (E4) across 10 seeds each" src="_images/E3_fig5_cosine_vs_flat_strip.png" style="width: 500px;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Fig 5. Plateau Dice distribution for cosine annealing (E3, 10 seeds) vs flat LR (E4, 10 seeds).
+Horizontal bars are group means. Note: unpaired — seeds ran in separate experiments.</small></span><a class="headerlink" href="#id14" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+<section id="figure-6-mean-difference-with-bca-95-ci-cosine-flat-lr">
+<h3>Figure 6 — Mean difference with BCa 95 % CI (cosine − flat LR)<a class="headerlink" href="#figure-6-mean-difference-with-bca-95-ci-cosine-flat-lr" title="Link to this heading">¶</a></h3>
+<figure class="align-center" id="id15">
+<a class="reference internal image-reference" href="_images/E3_fig6_cosine_vs_flat_forest.png"><img alt="Forest plot of mean plateau-Dice difference between cosine annealing and flat LR" src="_images/E3_fig6_cosine_vs_flat_forest.png" style="width: 500px;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><small>Fig 6. Post-hoc mean plateau-Dice difference (cosine − flat LR); Δ=+0.0042,
+BCa 95 % CI [+0.0015, +0.0069] — entirely above zero (unpaired, n=10 each).</small></span><a class="headerlink" href="#id15" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
+</section>
+</section>
+<section id="augmentation-pipeline-training-only">
+<h2>Augmentation pipeline (training only)<a class="headerlink" href="#augmentation-pipeline-training-only" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Transforms</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Spatial</p></td>
+<td><p>Square symmetry (D₄ group flips/rotations), affine (scale · translate · rotate ±20°), perspective, elastic deformation</p></td>
+</tr>
+<tr class="row-odd"><td><p>Photometric</p></td>
+<td><p>Colour jitter (brightness, contrast, saturation, hue), Gaussian blur, Gaussian noise</p></td>
+</tr>
+<tr class="row-even"><td><p>Normalisation</p></td>
+<td><p>Per-channel standardisation: μ = [0.699, 0.556, 0.5121], σ = [0.1576, 0.1562, 0.1706].</p></td>
+</tr>
+<tr class="row-odd"><td><p>Stats are computed on the raw uint8 images (before any augmentation) from the training split only.</p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="inference-pipeline">
+<h2>Inference pipeline<a class="headerlink" href="#inference-pipeline" title="Link to this heading">¶</a></h2>
+<ol class="arabic simple">
+<li><p>Image resized to 256×256 and normalised with the training-set statistics above.</p></li>
+<li><p>Forward pass through U-Net; raw logits passed through sigmoid → probabilities ∈ [0, 1].</p></li>
+<li><p>Threshold of 0.5 is applied to produce the binary mask. E4 experiment <a class="reference internal" href="E4-isic2017-unet2d-threshold-selection.html"><span class="std std-doc">E4-isic2017-unet2d-threshold-selection.ipynb</span></a>
+evaluated whether replacing the default τ = 0.5 with a validation-tuned threshold τ* would have yielded an improvement.</p></li>
+<li><p>Mask returned to the caller at 256×256; the web app overlays it on the original image.</p></li>
+</ol>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="training.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Training</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="dataloaders.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Note about modification to PyTorch’s default dataloader</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024, Pavel Kliuiev
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Network Design</a><ul>
+<li><a class="reference internal" href="#architecture-u-net-2d-custom-from-scratch">Architecture — U-Net 2D (custom, from scratch)</a></li>
+<li><a class="reference internal" href="#architecture-diagram">Architecture diagram</a></li>
+<li><a class="reference internal" href="#block-design">Block design</a><ul>
+<li><a class="reference internal" href="#encoder-block-classical-selected-ronneberger-et-al-miccai-2015">Encoder block — Classical (selected) (Ronneberger et al., MICCAI 2015)</a></li>
+<li><a class="reference internal" href="#decoder-block-transposed-convolution-upsampling">Decoder block — transposed convolution upsampling</a></li>
+<li><a class="reference internal" href="#merge-block-attention-gated-selected-oktay-et-al-midl-2018">Merge block — Attention-gated (selected) (Oktay et al., MIDL 2018)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#candidate-blocks-considered-not-selected">Candidate blocks (considered, not selected)</a><ul>
+<li><a class="reference internal" href="#he2-encoder-he2encoder-he-et-al-eccv-2016">He2 encoder (<code class="docutils literal notranslate"><span class="pre">He2Encoder</span></code>; He et al., ECCV 2016)</a></li>
+<li><a class="reference internal" href="#se-encoder-seencoder-he-et-al-eccv-2016-hu-et-al-cvpr-2018">SE encoder (<code class="docutils literal notranslate"><span class="pre">SEEncoder</span></code>; He et al., ECCV 2016 + Hu et al., CVPR 2018)</a></li>
+<li><a class="reference internal" href="#classical-merge-classicalmerge-ronneberger-et-al-miccai-2015">Classical merge (<code class="docutils literal notranslate"><span class="pre">ClassicalMerge</span></code>; Ronneberger et al., MICCAI 2015)</a></li>
+<li><a class="reference internal" href="#he2-merge-he2merge-he-et-al-eccv-2016">He2 merge (<code class="docutils literal notranslate"><span class="pre">He2Merge</span></code>; He et al., ECCV 2016)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#model-selection">Model selection</a><ul>
+<li><a class="reference internal" href="#architecture-sweep-conducted">Architecture sweep (conducted)</a></li>
+<li><a class="reference internal" href="#model-selection-figures">Model-selection figures</a></li>
+<li><a class="reference internal" href="#figure-1-paired-slope-graph">Figure 1 — Paired slope graph</a></li>
+<li><a class="reference internal" href="#figure-2-forest-plot-of-paired-differences">Figure 2 — Forest plot of paired differences</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#training-setup">Training setup</a><ul>
+<li><a class="reference internal" href="#figure-3-paired-slope-graph-cosine-vs-reducelronplateau-10-seeds">Figure 3 — Paired slope graph (cosine vs ReduceLROnPlateau, 10 seeds)</a></li>
+<li><a class="reference internal" href="#figure-4-forest-plot-of-paired-differences-cosine-plateau">Figure 4 — Forest plot of paired differences (cosine − plateau)</a></li>
+<li><a class="reference internal" href="#figure-5-cosine-annealing-vs-flat-lr-unpaired-post-hoc">Figure 5 — Cosine annealing vs flat LR (unpaired, post-hoc)</a></li>
+<li><a class="reference internal" href="#figure-6-mean-difference-with-bca-95-ci-cosine-flat-lr">Figure 6 — Mean difference with BCa 95 % CI (cosine − flat LR)</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#augmentation-pipeline-training-only">Augmentation pipeline (training only)</a></li>
+<li><a class="reference internal" href="#inference-pipeline">Inference pipeline</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=4a39c7ea"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/collapse_nbinput.js"></script>
+    </body>
+</html>

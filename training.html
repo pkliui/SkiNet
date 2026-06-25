@@ -1,0 +1,949 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="./">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Exporting to ONNX" href="export_onnx.html"><link rel="prev" title="Network Design" href="network_design.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Training - SkiNet 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css?v=13237357" />
+    <link rel="stylesheet" type="text/css" href="_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="_static/collapse_nbinput.css" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="index.html"><div class="brand">SkiNet 1.0.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="index.html">
+  
+  <span class="sidebar-brand-text">SkiNet 1.0.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="development.html">Software development process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="azure_setup.html">Azure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Datasets and dataloaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dataloaders.html">Note about modification to PyTorch’s default dataloader</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model and training</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="network_design.html">Network Design</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="export_onnx.html">Exporting to ONNX</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Performance and debugging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="plotting.html">Plotting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="documentation.html">Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Experiments</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="experiments.html">Experiments</a><input aria-label="Toggle navigation of Experiments" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="E0-batch-size-sweep-analysis-unet2d-isic2017.html">E0 — Batch Size Sweep Analysis — UNet2D on ISIC 2017</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E1-isic2017-unet2d-modelsw-summary-all-lr.html">E1 — ISIC 2017 UNet2D Architecture Sweep Summary (all Learning Rates)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E2-isic2017-unet2d-model-tiebreak-10seed.html">E2 — ISIC 2017 UNet2D Architecture Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E3-isic2017-unet2d-scheduler-tiebreak-10seed.html">E3 — ISIC 2017 UNet2D LR-Schedule Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="E4-isic2017-unet2d-threshold-selection.html">E4 — ISIC 2017 UNet2D Decision-Threshold Selection (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="EF_isic2017_unet2d_E4_production_model_selection.html">EF — ISIC 2017 UNet2D: held-out test score for the selected E4 checkpoint</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api_config.html">API Reference</a><input aria-label="Toggle navigation of API Reference" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/experiment_config.html">Experiment Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/lightning_model.html">Lightning Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/model_configs.html">Model Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/train_configs.html">Training Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/training_utils.html">Training Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/transform_configs.html">Transform Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/data_configs.html">Data Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/api_datasets.html">Datasets API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/logging_callbacks.html">Logging and Callbacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/experiment_keys.html">Experiment Keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/optuna_utils.html">Optuna Utilities</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="_sources/training.md.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="training">
+<h1>Training<a class="headerlink" href="#training" title="Link to this heading">¶</a></h1>
+<section id="set-up-training">
+<h2>Set up training<a class="headerlink" href="#set-up-training" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>All settings are expected to be specified in <code class="docutils literal notranslate"><span class="pre">main_config.yaml</span></code>.</p></li>
+<li><p>Training settings live under the <code class="docutils literal notranslate"><span class="pre">trainconfig</span></code> section. Defaults, validation, and auto-derived values are managed through
+<a class="reference internal" href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.TrainConfig" title="SkiNet.ML.configs.train_configs.train_config.TrainConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.ML.configs.train_configs.train_config.TrainConfig</span></code></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">precision</span></code> is auto-detected from <code class="docutils literal notranslate"><span class="pre">accelerator</span></code>: GPU/CUDA/MPS → <code class="docutils literal notranslate"><span class="pre">&quot;16-mixed&quot;</span></code>, CPU → <code class="docutils literal notranslate"><span class="pre">&quot;32-true&quot;</span></code>. Override explicitly if needed.</p></li>
+<li><p>For an Optuna sweep on GPU keep <code class="docutils literal notranslate"><span class="pre">precision:</span> <span class="pre">&quot;16-mixed&quot;</span></code>; for CPU sweeps either omit <code class="docutils literal notranslate"><span class="pre">precision</span></code> (auto-detected) or set a CPU-supported value.</p></li>
+</ul>
+<section id="key-trainconfig-fields">
+<h3>Key TrainConfig fields<a class="headerlink" href="#key-trainconfig-fields" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">batch_size</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">8</span></code></p></td>
+<td><p>Samples per training batch</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_workers</span></code></p></td>
+<td><p>auto (CPU count / DDP devices)</p></td>
+<td><p>DataLoader workers; auto-divided among DDP processes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pin_memory</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code> on GPU, <code class="docutils literal notranslate"><span class="pre">False</span></code> on CPU/MPS</p></td>
+<td><p>Auto-set from accelerator</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prefetch_factor</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p>Batches pre-loaded per worker; ignored when <code class="docutils literal notranslate"><span class="pre">num_workers=0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cache_in_ram</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>Cache dataset in RAM before training; set <code class="docutils literal notranslate"><span class="pre">False</span></code> for large datasets (e.g. ISIC full split)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">use_torch_compile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Wrap model with <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> for faster inference; first forward pass incurs JIT compilation overhead</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">loss_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BCE_DICE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BCE</span></code>, <code class="docutils literal notranslate"><span class="pre">DICE</span></code>, or <code class="docutils literal notranslate"><span class="pre">BCE_DICE</span></code> (equal 0.5/0.5 weight)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">optimizer_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;adamw&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;adam&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;adamw&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lr</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1e-4</span></code></p></td>
+<td><p>Base learning rate (linearly scaled by batch size in Optuna sweeps)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">weight_decay</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1e-4</span></code></p></td>
+<td><p>L2 regularisation strength</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">optimal_threshold</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> = sweep 51 thresholds each validation epoch; or a fixed float in [0, 1]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_epochs</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>Maximum training epochs</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">accelerator</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code></p></td>
+<td><p>Resolves to <code class="docutils literal notranslate"><span class="pre">gpu</span></code> / <code class="docutils literal notranslate"><span class="pre">mps</span></code> / <code class="docutils literal notranslate"><span class="pre">cpu</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">precision</span></code></p></td>
+<td><p>auto</p></td>
+<td><p>Derived from accelerator; override if needed</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">deterministic</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>See <a class="reference internal" href="#reproducibility"><span class="std std-ref">Reproducibility</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">seed</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">42</span></code></p></td>
+<td><p>Global RNG seed passed to <code class="docutils literal notranslate"><span class="pre">L.seed_everything</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">use_lr_scheduler</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>Enable/disable the LR scheduler</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scheduler_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;reduce_on_plateau&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;reduce_on_plateau&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;cosine_annealing&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cosine_annealing_config.T_max</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">None</span></code> (→ <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code>)</p></td>
+<td><p>Period of cosine annealing; auto-set to <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> when <code class="docutils literal notranslate"><span class="pre">None</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cosine_annealing_config.eta_min</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1e-6</span></code></p></td>
+<td><p>Minimum learning rate at the end of each cosine cycle</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="lightning-model">
+<h2>Lightning model<a class="headerlink" href="#lightning-model" title="Link to this heading">¶</a></h2>
+<p>The core training logic lives in <a class="reference internal" href="api/lightning_model.html#SkiNet.ML.model.lightning_model.LightningModel" title="SkiNet.ML.model.lightning_model.LightningModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.ML.model.lightning_model.LightningModel</span></code></a> (a <code class="docutils literal notranslate"><span class="pre">L.LightningModule</span></code> subclass).</p>
+<section id="metrics">
+<h3>Metrics<a class="headerlink" href="#metrics" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Metric logged</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">train_loss</span></code> / <code class="docutils literal notranslate"><span class="pre">val_loss</span></code> / <code class="docutils literal notranslate"><span class="pre">test_loss</span></code></p></td>
+<td><p>Epoch-mean loss for the configured <code class="docutils literal notranslate"><span class="pre">loss_name</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">train_dice</span></code> / <code class="docutils literal notranslate"><span class="pre">val_dice</span></code> / <code class="docutils literal notranslate"><span class="pre">test_dice</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BinaryF1Score</span></code> at the fixed or swept threshold</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">train_iou</span></code> / <code class="docutils literal notranslate"><span class="pre">val_iou</span></code> / <code class="docutils literal notranslate"><span class="pre">test_iou</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BinaryJaccardIndex</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">val_best_dice_at_threshold</span></code></p></td>
+<td><p>Best dataset-aggregated Dice found across the threshold sweep</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">val_mean_dice_per_image</span></code></p></td>
+<td><p>Mean of per-image Dice at the best threshold; <strong>schema default monitor</strong> (<code class="docutils literal notranslate"><span class="pre">MetricsKey.default_monitor()</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">val_optimal_threshold</span></code></p></td>
+<td><p>Threshold that achieved <code class="docutils literal notranslate"><span class="pre">val_best_dice_at_threshold</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">val_dice_threshold_gain</span></code></p></td>
+<td><p>Dice gain from using the optimal threshold vs. 0.5</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">val_threshold_used</span></code></p></td>
+<td><p>Threshold actually applied during validation</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="optimizer-and-scheduler">
+<h3>Optimizer and scheduler<a class="headerlink" href="#optimizer-and-scheduler" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><strong>Optimizer:</strong> Adam or AdamW (set via <code class="docutils literal notranslate"><span class="pre">optimizer_name</span></code>), with configurable <code class="docutils literal notranslate"><span class="pre">lr</span></code> and <code class="docutils literal notranslate"><span class="pre">weight_decay</span></code>.</p></li>
+<li><p><strong>Scheduler:</strong> controlled by <code class="docutils literal notranslate"><span class="pre">scheduler_type</span></code> (<code class="docutils literal notranslate"><span class="pre">&quot;reduce_on_plateau&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;cosine_annealing&quot;</span></code>); toggled via <code class="docutils literal notranslate"><span class="pre">use_lr_scheduler</span></code>.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;reduce_on_plateau&quot;</span></code> (schema default): <code class="docutils literal notranslate"><span class="pre">ReduceLROnPlateau</span></code>, mode <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code>, schema defaults patience <code class="docutils literal notranslate"><span class="pre">5</span></code> / factor <code class="docutils literal notranslate"><span class="pre">0.5</span></code> (the shipped <code class="docutils literal notranslate"><span class="pre">main_config.yaml</span></code> sets patience <code class="docutils literal notranslate"><span class="pre">3</span></code>). It monitors the propagated <code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG.monitor</span></code> (schema default <code class="docutils literal notranslate"><span class="pre">val_mean_dice_per_image</span></code>; <code class="docutils literal notranslate"><span class="pre">val_best_dice_at_threshold</span></code> in the shipped config) — do not set <code class="docutils literal notranslate"><span class="pre">monitor</span></code> under <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code>. Configured via <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;cosine_annealing&quot;</span></code>: <code class="docutils literal notranslate"><span class="pre">CosineAnnealingLR</span></code> with <code class="docutils literal notranslate"><span class="pre">T_max</span></code> (defaults to <code class="docutils literal notranslate"><span class="pre">max_epochs</span></code> when <code class="docutils literal notranslate"><span class="pre">None</span></code>) and <code class="docutils literal notranslate"><span class="pre">eta_min</span></code> (default <code class="docutils literal notranslate"><span class="pre">1e-6</span></code>). Configured via <code class="docutils literal notranslate"><span class="pre">cosine_annealing_config</span></code>.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="mixed-precision-and-gradient-scale-monitoring">
+<h3>Mixed precision and gradient scale monitoring<a class="headerlink" href="#mixed-precision-and-gradient-scale-monitoring" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">on_before_optimizer_step()</span></code> reads <code class="docutils literal notranslate"><span class="pre">trainer.precision_plugin.scaler</span></code> and logs <code class="docutils literal notranslate"><span class="pre">grad_scale</span></code> each step. A sudden drop or collapse in <code class="docutils literal notranslate"><span class="pre">grad_scale</span></code> is the first diagnostic signal for mixed-precision instability.</p>
+</section>
+<section id="non-finite-detection">
+<h3>Non-finite detection<a class="headerlink" href="#non-finite-detection" title="Link to this heading">¶</a></h3>
+<p>Every training, validation, and test step validates inputs, logits, masks, and loss for NaN/Inf. On detection a detailed <code class="docutils literal notranslate"><span class="pre">_tensor_debug_summary()</span></code> is raised with the batch index and per-tensor statistics.</p>
+</section>
+</section>
+<section id="model-architecture">
+<h2>Model architecture<a class="headerlink" href="#model-architecture" title="Link to this heading">¶</a></h2>
+<p>SkiNet uses a UNet2D architecture configured via <a class="reference internal" href="api/model_configs.html#SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig" title="SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.ML.configs.model_configs.unet2d_config.UNet2DModelConfig</span></code></a> (under <code class="docutils literal notranslate"><span class="pre">MODEL_CONFIG</span></code> in the YAML).</p>
+<section id="key-unet2dmodelconfig-fields">
+<h3>Key UNet2DModelConfig fields<a class="headerlink" href="#key-unet2dmodelconfig-fields" title="Link to this heading">¶</a></h3>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">in_channels</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">3</span></code></p></td>
+<td><p>Input image channels</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">out_channels_layer1</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">16</span></code></p></td>
+<td><p>Output channels of the first encoder layer</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">number_of_layers</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">5</span></code></p></td>
+<td><p>Total encoder layers (decoder has <code class="docutils literal notranslate"><span class="pre">number_of_layers</span> <span class="pre">-</span> <span class="pre">1</span></code> + one final conv)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">num_output_classes</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>Segmentation output classes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kernel</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">3</span></code></p></td>
+<td><p>Convolution kernel size</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">stride</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>Downsampling stride in encoder; upsampling factor in decoder</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">encoder_residual_mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;he2&quot;</span></code></p></td>
+<td><p>Residual block type for encoder layers</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">merge_residual_mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;he2&quot;</span></code></p></td>
+<td><p>Residual block type for decoder merge layers</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">se_reduction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">16</span></code></p></td>
+<td><p>Channel reduction ratio for SE blocks (only used when <code class="docutils literal notranslate"><span class="pre">encoder_residual_mode=&quot;se&quot;</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">validate_forward</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">True</span></code></p></td>
+<td><p>Structural validation (skip key count) during forward pass</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">debug_forward</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">False</span></code></p></td>
+<td><p>Log warnings for near-zero skip connections (GPU-expensive; keep off in production)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="encoder-residual-modes">
+<h3>Encoder residual modes<a class="headerlink" href="#encoder-residual-modes" title="Link to this heading">¶</a></h3>
+<p>Configured via <code class="docutils literal notranslate"><span class="pre">encoder_residual_mode</span></code> in <code class="docutils literal notranslate"><span class="pre">MODEL_CONFIG</span></code>:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;classical&quot;</span></code></p></td>
+<td><p>Standard UNet encoder: Conv-BN-Act without any residual connection</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;local_refinement&quot;</span></code></p></td>
+<td><p>Post-activation: downsample → refine with residual from downsampled intermediate (Oktay et al. 2020)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;he2&quot;</span></code> (default)</p></td>
+<td><p>Pre-activation with 1×1 projection shortcut: BN-Act-Conv → BN-Act-Conv + P(x) (He et al. ECCV 2016)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;se&quot;</span></code></p></td>
+<td><p>Pre-activation He2 with Squeeze-and-Excitation channel attention applied before the shortcut addition (Hu et al. CVPR 2018)</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="merge-decoder-residual-modes">
+<h3>Merge (decoder) residual modes<a class="headerlink" href="#merge-decoder-residual-modes" title="Link to this heading">¶</a></h3>
+<p>Configured via <code class="docutils literal notranslate"><span class="pre">merge_residual_mode</span></code> in <code class="docutils literal notranslate"><span class="pre">MODEL_CONFIG</span></code>:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;classical&quot;</span></code></p></td>
+<td><p>Standard UNet decoder: upsample → concatenate skip → Conv-BN-Act without any residual connection</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;local_refinement&quot;</span></code></p></td>
+<td><p>Post-activation: project-and-sum → BN-Act → Conv-BN-Act + residual (Oktay et al. 2020)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;he1&quot;</span></code></p></td>
+<td><p>Pre-activation with one refinement conv + identity shortcut (He et al. ECCV 2016)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;he2&quot;</span></code> (default)</p></td>
+<td><p>Pre-activation with two refinement convs + identity shortcut (He et al. ECCV 2016)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&quot;attention_gate&quot;</span></code></p></td>
+<td><p>Additive attention gate (Oktay et al. MIDL 2018) gates the skip connection before merge; post-merge he2 refinement</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Example YAML (the production configuration):</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">MODEL_CONFIG</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">encoder_residual_mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;classical&quot;</span>
+<span class="w">  </span><span class="nt">merge_residual_mode</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;attention_gate&quot;</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="best-threshold-selection">
+<h2>Best threshold selection<a class="headerlink" href="#best-threshold-selection" title="Link to this heading">¶</a></h2>
+<p>At the end of each validation epoch, <strong>when <code class="docutils literal notranslate"><span class="pre">optimal_threshold</span></code> is <code class="docutils literal notranslate"><span class="pre">null</span></code></strong>, <a class="reference internal" href="api/training_utils.html#SkiNet.ML.training.training_utils.find_best_threshold" title="SkiNet.ML.training.training_utils.find_best_threshold"><code class="xref py py-func docutils literal notranslate"><span class="pre">SkiNet.ML.training.training_utils.find_best_threshold()</span></code></a> sweeps 51 evenly-spaced candidate values from 1.0 down to 0.0 using <code class="docutils literal notranslate"><span class="pre">torch.linspace</span></code>. For every threshold it computes true positives, false positives, and false negatives in a single vectorised broadcast across the entire validation set, then derives Dice (F1) as <code class="docutils literal notranslate"><span class="pre">2·tp</span> <span class="pre">/</span> <span class="pre">(2·tp</span> <span class="pre">+</span> <span class="pre">fp</span> <span class="pre">+</span> <span class="pre">fn)</span></code>. The threshold with the highest Dice is selected; when multiple thresholds tie, the <strong>highest</strong> one wins because the sweep is descending and <code class="docutils literal notranslate"><span class="pre">argmax</span></code> returns the first occurrence.</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">optimal_threshold</span></code> is set to a fixed float (as in the shipped <code class="docutils literal notranslate"><span class="pre">main_config.yaml</span></code>, <code class="docutils literal notranslate"><span class="pre">0.5</span></code>), the sweep is <strong>skipped</strong>: <code class="docutils literal notranslate"><span class="pre">val_best_dice_at_threshold</span></code> and <code class="docutils literal notranslate"><span class="pre">val_mean_dice_per_image</span></code> are computed directly at that fixed threshold and <code class="docutils literal notranslate"><span class="pre">val_optimal_threshold</span></code> echoes it. In both cases <code class="docutils literal notranslate"><span class="pre">val_dice_threshold_gain</span></code> reports the Dice difference relative to a plain 0.5 cutoff. <code class="docutils literal notranslate"><span class="pre">val_best_dice_at_threshold</span></code> is the metric monitored by early stopping and Optuna.</p>
+</section>
+<section id="callbacks">
+<h2>Callbacks<a class="headerlink" href="#callbacks" title="Link to this heading">¶</a></h2>
+<p>All callbacks are opt-in via boolean flags in <code class="docutils literal notranslate"><span class="pre">TrainConfig</span></code>. They are wired together in
+<a class="reference internal" href="api/logging_callbacks.html#SkiNet.Utils.logging.logging_callbacks_setup.setup_logging_and_callbacks" title="SkiNet.Utils.logging.logging_callbacks_setup.setup_logging_and_callbacks"><code class="xref py py-func docutils literal notranslate"><span class="pre">SkiNet.Utils.logging.logging_callbacks_setup.setup_logging_and_callbacks()</span></code></a>.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callback</p></th>
+<th class="head"><p>Flag</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="api/logging_callbacks.html#SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback" title="SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.Utils.logging.system_metrics.SystemMetricsThreadCallback</span></code></a></p></td>
+<td><p>always on</p></td>
+<td><p>Background thread logs CPU%, RAM%, GPU memory (allocated/reserved), and GPU utilisation every <code class="docutils literal notranslate"><span class="pre">system_metrics_interval_sec</span></code> (default 5 s)</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/logging_callbacks.html#SkiNet.Utils.logging.throughput.ThroughputCallback" title="SkiNet.Utils.logging.throughput.ThroughputCallback"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.Utils.logging.throughput.ThroughputCallback</span></code></a></p></td>
+<td><p>always on</p></td>
+<td><p>Logs <code class="docutils literal notranslate"><span class="pre">perf/samples_per_sec</span></code> and <code class="docutils literal notranslate"><span class="pre">perf/time_per_step_ms</span></code> after every training batch; primary signal for GPU saturation and DataLoader bottleneck diagnosis</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EarlyStopping</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">use_early_stopping</span></code></p></td>
+<td><p>Monitors the propagated <code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG.monitor</span></code> (mode <code class="docutils literal notranslate"><span class="pre">&quot;max&quot;</span></code>); config via <a class="reference internal" href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig" title="SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.ML.configs.train_configs.train_config.EarlyStoppingConfig</span></code></a> (schema default patience 5; <code class="docutils literal notranslate"><span class="pre">main_config.yaml</span></code> uses 30)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ModelCheckpoint</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">use_checkpoint</span></code></p></td>
+<td><p>Saves the best checkpoint by the propagated <code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG.monitor</span></code>; config via <a class="reference internal" href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.CheckpointConfig" title="SkiNet.ML.configs.train_configs.train_config.CheckpointConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.ML.configs.train_configs.train_config.CheckpointConfig</span></code></a></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MLFlowLogger</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">use_mlflow_logger</span></code></p></td>
+<td><p>Logs params, metrics, model summary, and artifacts; supports nested Optuna child runs; config via <a class="reference internal" href="api/train_configs.html#SkiNet.ML.configs.train_configs.train_config.MLflowConfig" title="SkiNet.ML.configs.train_configs.train_config.MLflowConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.ML.configs.train_configs.train_config.MLflowConfig</span></code></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LearningRateMonitor</span></code></p></td>
+<td><p>any logger enabled</p></td>
+<td><p>Logs LR each epoch</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/logging_callbacks.html#SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback" title="SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.Utils.mlops.mlflow_callbacks.MLflowTrainingArtifactsCallback</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">use_mlflow_logger</span></code></p></td>
+<td><p>Logs model summary at fit start; logs early-stopping state and best checkpoint as artifacts at fit end</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LitLogger</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">use_litlogger_logger</span></code></p></td>
+<td><p>Lightning Studio native logger; config via <code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.ML.configs.train_configs.train_config.LitLoggerConfig</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="ways-to-start-training-inside-a-configured-environment-docker-container">
+<h2>Ways to start training inside a configured environment (Docker container)<a class="headerlink" href="#ways-to-start-training-inside-a-configured-environment-docker-container" title="Link to this heading">¶</a></h2>
+<p>The options below assume you are inside a configured environment (as per SkiNet’s Docker container)</p>
+<section id="optuna-hyperparameter-optimisation-hpo-sweep">
+<h3>Optuna hyperparameter optimisation (HPO) sweep<a class="headerlink" href="#optuna-hyperparameter-optimisation-hpo-sweep" title="Link to this heading">¶</a></h3>
+<p>When running <code class="docutils literal notranslate"><span class="pre">optuna_sweep.py</span></code>, a single MLflow parent run wraps the whole study. Each trial is a nested MLflow child run. The sampler is <code class="docutils literal notranslate"><span class="pre">GridSampler</span></code> (exhaustive grid, not random).</p>
+<ul>
+<li><p>The search space is declared in <a class="reference internal" href="api/train_configs.html#SkiNet.ML.configs.train_configs.sweep_config.SweepConfig" title="SkiNet.ML.configs.train_configs.sweep_config.SweepConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.ML.configs.train_configs.sweep_config.SweepConfig</span></code></a> and keyed by <a class="reference internal" href="api/experiment_keys.html#SkiNet.Utils.experiment_keys.HyperparamKey" title="SkiNet.Utils.experiment_keys.HyperparamKey"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.Utils.experiment_keys.HyperparamKey</span></code></a>.
+<code class="docutils literal notranslate"><span class="pre">HyperparamKey</span></code> is the single source of truth: adding a new member there automatically makes
+<a class="reference internal" href="api/optuna_utils.html#SkiNet.Utils.mlops.optuna_utils.validate_search_space" title="SkiNet.Utils.mlops.optuna_utils.validate_search_space"><code class="xref py py-func docutils literal notranslate"><span class="pre">SkiNet.Utils.mlops.optuna_utils.validate_search_space()</span></code></a> require it and allows <code class="docutils literal notranslate"><span class="pre">build_objective</span></code> to read it.</p>
+<p>Current members:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Member</p></th>
+<th class="head"><p>String key</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">HyperparamKey.LR</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;lr&quot;</span></code></p></td>
+<td><p>Learning rate (scaled linearly by batch size: <code class="docutils literal notranslate"><span class="pre">lr</span> <span class="pre">*</span> <span class="pre">batch_size</span> <span class="pre">/</span> <span class="pre">min_batch_size</span></code>). Fixed to a single value in <code class="docutils literal notranslate"><span class="pre">main_config.yaml</span></code> after E1 LR search; set multiple values in <code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG.lr</span></code> only when searching LR for a new architecture.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">HyperparamKey.WEIGHT_DECAY</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;weight_decay&quot;</span></code></p></td>
+<td><p>L2 regularisation strength</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">HyperparamKey.BATCH_SIZE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;batch_size&quot;</span></code></p></td>
+<td><p>Samples per training batch (also rescales LR — see below)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">HyperparamKey.NUM_WORKERS</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;num_workers&quot;</span></code></p></td>
+<td><p>DataLoader worker count</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">HyperparamKey.PREFETCH_FACTOR</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;prefetch_factor&quot;</span></code></p></td>
+<td><p>Batches pre-loaded per worker</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">HyperparamKey.SCHEDULER_TYPE</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;scheduler_type&quot;</span></code></p></td>
+<td><p>LR scheduler per trial: <code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code> (sets <code class="docutils literal notranslate"><span class="pre">use_lr_scheduler=False</span></code>), <code class="docutils literal notranslate"><span class="pre">&quot;cosine_annealing&quot;</span></code>, or <code class="docutils literal notranslate"><span class="pre">&quot;reduce_on_plateau&quot;</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Each field is a <strong>list of GridSampler candidates</strong> for one dimension; the effective search space is
+the Cartesian product of the lists, and <code class="docutils literal notranslate"><span class="pre">optuna_sweep.py</span></code> runs the full product
+(<code class="docutils literal notranslate"><span class="pre">n_combos</span> <span class="pre">=</span> <span class="pre">∏</span> <span class="pre">len(list)</span></code>) unless <code class="docutils literal notranslate"><span class="pre">--trials</span> <span class="pre">N</span></code> caps it. Single-element lists are held constant.</p>
+<p>Every <code class="docutils literal notranslate"><span class="pre">SweepConfig</span></code> field defaults to a <strong>single value, kept consistent with the <code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG</span></code>
+block in <code class="docutils literal notranslate"><span class="pre">main_config.yaml</span></code></strong> (<code class="docutils literal notranslate"><span class="pre">lr=[3e-4]</span></code>, <code class="docutils literal notranslate"><span class="pre">weight_decay=[0.0]</span></code>, <code class="docutils literal notranslate"><span class="pre">batch_size=[8]</span></code>, <code class="docutils literal notranslate"><span class="pre">num_workers=[2]</span></code>,
+<code class="docutils literal notranslate"><span class="pre">prefetch_factor=[4]</span></code>, <code class="docutils literal notranslate"><span class="pre">scheduler_type=[&quot;none&quot;]</span></code>), so the default grid is a <strong>1-combo no-op sweep</strong>.
+To search a dimension, widen its list in the YAML — in practice vary <strong>one</strong> at a time. Note
+<code class="docutils literal notranslate"><span class="pre">num_workers</span></code> and <code class="docutils literal notranslate"><span class="pre">prefetch_factor</span></code> are throughput knobs that do not affect model quality, and
+<code class="docutils literal notranslate"><span class="pre">batch_size</span></code> is usually swept to find the largest size that fits GPU memory rather than as a
+generalisation target. When <code class="docutils literal notranslate"><span class="pre">batch_size</span></code> is varied, <code class="docutils literal notranslate"><span class="pre">lr</span></code> is rescaled per trial by
+<code class="docutils literal notranslate"><span class="pre">scale_lr</span></code> (anchored to the smallest batch in the sweep), so a sampled <code class="docutils literal notranslate"><span class="pre">lr</span></code> always denotes the rate
+at the reference batch size.</p>
+</li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG.monitor</span></code> and <code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG.direction</span></code> in the YAML are the single source of truth</strong> for the
+optimisation objective. <a class="reference internal" href="api/experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig" title="SkiNet.ML.configs.experiment_config.ExperimentConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">SkiNet.ML.configs.experiment_config.ExperimentConfig</span></code></a> automatically propagates <code class="docutils literal notranslate"><span class="pre">monitor</span></code> into
+<code class="docutils literal notranslate"><span class="pre">early_stopping_config</span></code>, <code class="docutils literal notranslate"><span class="pre">checkpoint_config</span></code>, and <code class="docutils literal notranslate"><span class="pre">lr_scheduler_config</span></code> at config-load time —
+do <strong>not</strong> set <code class="docutils literal notranslate"><span class="pre">monitor</span></code> in those sub-sections. If they disagree, a <code class="docutils literal notranslate"><span class="pre">ValueError</span></code> is raised at
+startup so the mismatch is caught before any training runs. The schema default (when
+<code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG.monitor</span></code> is unset) is <code class="docutils literal notranslate"><span class="pre">val_mean_dice_per_image</span></code>; the shipped <code class="docutils literal notranslate"><span class="pre">main_config.yaml</span></code>
+overrides it to <code class="docutils literal notranslate"><span class="pre">val_best_dice_at_threshold</span></code>, which is what the callbacks below then monitor.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">SWEEP_CONFIG</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">monitor</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;val_best_dice_at_threshold&quot;</span><span class="w">   </span><span class="c1"># &lt;-- only place to set the metric</span>
+<span class="w">  </span><span class="nt">direction</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;maximize&quot;</span>
+<span class="w">  </span><span class="c1"># early_stopping_config, checkpoint_config, lr_scheduler_config: omit &#39;monitor&#39; — propagated automatically</span>
+</pre></div>
+</div>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--monitor</span></code> / <code class="docutils literal notranslate"><span class="pre">--direction</span></code> CLI flags are <strong>optional overrides</strong> — use them only for a one-off run
+without editing the YAML. When omitted, <code class="docutils literal notranslate"><span class="pre">optuna_sweep.py</span></code> reads directly from <code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG</span></code>.</p></li>
+<li><p>Similarly, the shell env vars <code class="docutils literal notranslate"><span class="pre">SWEEP_MONITOR</span></code> / <code class="docutils literal notranslate"><span class="pre">SWEEP_DIRECTION</span></code> in <code class="docutils literal notranslate"><span class="pre">on_start_gpu.sh</span></code> are optional
+overrides; leaving them unset means the YAML values are used.</p></li>
+<li><p>MLflow run naming:</p>
+<ul class="simple">
+<li><p>Parent: <code class="docutils literal notranslate"><span class="pre">optuna_study_{TRAIN_CONFIG.experiment_name}_{monitor}</span></code></p></li>
+<li><p>Child: <code class="docutils literal notranslate"><span class="pre">trial_{n}_lr{lr}_wd{weight_decay}_bs{batch_size}_nw{num_workers}_pf{prefetch_factor}_sched{scheduler_type}</span></code></p></li>
+</ul>
+</li>
+</ul>
+<p>Example — monitor and direction taken from <code class="docutils literal notranslate"><span class="pre">SWEEP_CONFIG</span></code> in the YAML (recommended):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>optuna_sweep.py<span class="w"> </span>--config<span class="w"> </span>main_config.yaml
+</pre></div>
+</div>
+<p>Example — one-off override without editing the YAML:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>optuna_sweep.py<span class="w"> </span>--config<span class="w"> </span>main_config.yaml<span class="w"> </span>--monitor<span class="w"> </span>val_best_dice_at_threshold<span class="w"> </span>--trials<span class="w"> </span><span class="m">10</span>
+</pre></div>
+</div>
+</section>
+<section id="regular-training">
+<h3>Regular training<a class="headerlink" href="#regular-training" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>main_run.py<span class="w"> </span>--config<span class="w"> </span>main_config.yaml
+</pre></div>
+</div>
+<p>MLflow run name: <code class="docutils literal notranslate"><span class="pre">{experiment_name}_seed{seed}_{timestamp}</span></code>.</p>
+</section>
+<section id="multi-seed-training">
+<h3>Multi-seed training<a class="headerlink" href="#multi-seed-training" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Launch a training experiment as specified in TRAIN_CONFIG, using multiple seeds. All seeds will run under one MLflow experiment</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>run_seeds.py<span class="w"> </span>--config<span class="w"> </span>main_config.yaml<span class="w"> </span>--seeds<span class="w"> </span><span class="m">42</span><span class="w"> </span><span class="m">200</span><span class="w"> </span><span class="m">300</span>
+</pre></div>
+</div>
+<p>Each seed produces an independent MLflow run.</p>
+</section>
+</section>
+<section id="launching-training-from-lightning-studio">
+<h2>Launching training from Lightning Studio<a class="headerlink" href="#launching-training-from-lightning-studio" title="Link to this heading">¶</a></h2>
+<p>The startup scripts (<code class="docutils literal notranslate"><span class="pre">on_start_gpu.sh</span></code>, <code class="docutils literal notranslate"><span class="pre">on_start_cpu.sh</span></code>) handle Docker bootstrap on Lightning Studio and dispatch to the commands above. See <a class="reference internal" href="development.html#lightning-studio"><span class="std std-ref">development.md</span></a> for the full reference: available <code class="docutils literal notranslate"><span class="pre">MODE</span></code> values, <code class="docutils literal notranslate"><span class="pre">DATASET</span></code>/<code class="docutils literal notranslate"><span class="pre">ENCODER_MODES</span></code>/<code class="docutils literal notranslate"><span class="pre">MERGE_MODES</span></code>/<code class="docutils literal notranslate"><span class="pre">RELEASE_GPU</span></code> env vars, dry-run, and example invocations.</p>
+</section>
+<section id="training-monitoring">
+<h2>Training monitoring<a class="headerlink" href="#training-monitoring" title="Link to this heading">¶</a></h2>
+<section id="mlflow">
+<h3>MLFlow<a class="headerlink" href="#mlflow" title="Link to this heading">¶</a></h3>
+<p><strong>When using <code class="docutils literal notranslate"><span class="pre">on_start_gpu.sh</span></code> / <code class="docutils literal notranslate"><span class="pre">on_start_cpu.sh</span></code>:</strong> MLflow is started automatically by the script — no manual step needed.</p>
+<p><strong>When running Python entry points directly inside the container:</strong> start the MLflow server first.</p>
+<p>Via the setup script (recommended):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>chmod<span class="w"> </span>+x<span class="w"> </span>start_mlflow.sh
+./start_mlflow.sh
+</pre></div>
+</div>
+<p>Or manually (SQLite backend + local artifact store):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mlflow<span class="w"> </span>server<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--backend-store-uri<span class="w"> </span>sqlite:////workplace/SkiNet/mlflow.db<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--default-artifact-root<span class="w"> </span>file:///workplace/SkiNet/mlruns<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--host<span class="w"> </span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--port<span class="w"> </span><span class="m">5000</span>
+</pre></div>
+</div>
+<p>Open the MLflow UI in a browser on port 5000. If using Lightning Studio, tunnel via SSH:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ssh<span class="w"> </span>-N<span class="w"> </span>-L<span class="w"> </span><span class="m">5000</span>:localhost:5000<span class="w"> </span>ssh_connection_string_from_your_studio@ssh.lightning.ai
+</pre></div>
+</div>
+</section>
+<section id="gpu-utilisation">
+<h3>GPU utilisation<a class="headerlink" href="#gpu-utilisation" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvidia-smi<span class="w"> </span>dmon<span class="w"> </span>-s<span class="w"> </span>u
+</pre></div>
+</div>
+</section>
+</section>
+<section id="reproducibility">
+<h2>Reproducibility<a class="headerlink" href="#reproducibility" title="Link to this heading">¶</a></h2>
+<section id="how-the-same-seed-value-is-guaranteed">
+<h3>How the same seed value is guaranteed<a class="headerlink" href="#how-the-same-seed-value-is-guaranteed" title="Link to this heading">¶</a></h3>
+<p>Three independent seed fields are read from the YAML and, in the shipped <code class="docutils literal notranslate"><span class="pre">main_config.yaml</span></code>, set to the
+same integer <code class="docutils literal notranslate"><span class="pre">100</span></code> (Pydantic schema defaults differ: <code class="docutils literal notranslate"><span class="pre">split_random_seed=42</span></code>, <code class="docutils literal notranslate"><span class="pre">seed_value=None</span></code>, <code class="docutils literal notranslate"><span class="pre">seed=42</span></code>):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">DATA_CONFIG</span><span class="o">.</span><span class="n">split_random_seed</span>   <span class="c1"># used once when datasets are split</span>
+<span class="n">TRANSFORM_CONFIG</span><span class="o">.</span><span class="n">seed_value</span>     <span class="c1"># passed into the augmentation pipeline constructor</span>
+<span class="n">TRAIN_CONFIG</span><span class="o">.</span><span class="n">seed</span>               <span class="c1"># applied globally</span>
+</pre></div>
+</div>
+<p>Then in <code class="docutils literal notranslate"><span class="pre">configure_reproducibility()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">L</span><span class="o">.</span><span class="n">seed_everything</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># seeds Python, NumPy, PyTorch, and DataLoader workers</span>
+<span class="c1"># fallback: if TRANSFORM_CONFIG.seed_value is None (and compose_kwargs has no &quot;seed&quot;), set it to train_cfg.seed</span>
+</pre></div>
+</div>
+<p>All three fields are set to a constant in the YAML — nothing overrides them at runtime.</p>
+<blockquote>
+<div><p><strong>Note:</strong> Toggling <code class="docutils literal notranslate"><span class="pre">train_and_evaluate(...,</span> <span class="pre">visualize=...)</span></code> (default <code class="docutils literal notranslate"><span class="pre">True</span></code>, which calls
+<code class="docutils literal notranslate"><span class="pre">visualize_augmented_data</span></code> on the train split) does <strong>not</strong> change model weight initialisation:
+<code class="docutils literal notranslate"><span class="pre">visualize_augmented_data</span></code> snapshots torch/NumPy/Python/CUDA RNG state and restores it in a
+<code class="docutils literal notranslate"><span class="pre">finally</span></code> block, so the RNG seen by downstream model init and training is identical with or without
+visualisation. No manual re-seeding is needed.</p>
+</div></blockquote>
+</section>
+<section id="platform-notes-deterministic-mode-apple-silicon-mps">
+<h3>Platform notes — Deterministic mode (Apple Silicon / MPS)<a class="headerlink" href="#platform-notes-deterministic-mode-apple-silicon-mps" title="Link to this heading">¶</a></h3>
+<p>Lightning raises <code class="docutils literal notranslate"><span class="pre">MisconfigurationException</span></code> if <code class="docutils literal notranslate"><span class="pre">deterministic:</span> <span class="pre">true</span></code> is used on Apple Silicon (MPS) because the MPS backend does not support deterministic mode. This is handled automatically:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># On MPS, fall back to &quot;warn&quot; so Lightning logs a warning but continues.</span>
+<span class="c1"># True determinism requires CUDA/cuDNN.</span>
+<span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">deterministic</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+    <span class="n">deterministic</span> <span class="o">=</span> <span class="s2">&quot;warn&quot;</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">deterministic</span> <span class="o">=</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">deterministic</span>
+
+<span class="k">if</span> <span class="n">deterministic</span> <span class="ow">is</span> <span class="kc">True</span> <span class="ow">and</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">():</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">deterministic</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">benchmark</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">trainconfig</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">deterministic</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</pre></div>
+</div>
+<p>On Ubuntu/CUDA (the primary SkiNet target) this fully enables cuDNN deterministic mode.</p>
+</section>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="export_onnx.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Exporting to ONNX</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="network_design.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Network Design</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024, Pavel Kliuiev
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Training</a><ul>
+<li><a class="reference internal" href="#set-up-training">Set up training</a><ul>
+<li><a class="reference internal" href="#key-trainconfig-fields">Key TrainConfig fields</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#lightning-model">Lightning model</a><ul>
+<li><a class="reference internal" href="#metrics">Metrics</a></li>
+<li><a class="reference internal" href="#optimizer-and-scheduler">Optimizer and scheduler</a></li>
+<li><a class="reference internal" href="#mixed-precision-and-gradient-scale-monitoring">Mixed precision and gradient scale monitoring</a></li>
+<li><a class="reference internal" href="#non-finite-detection">Non-finite detection</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#model-architecture">Model architecture</a><ul>
+<li><a class="reference internal" href="#key-unet2dmodelconfig-fields">Key UNet2DModelConfig fields</a></li>
+<li><a class="reference internal" href="#encoder-residual-modes">Encoder residual modes</a></li>
+<li><a class="reference internal" href="#merge-decoder-residual-modes">Merge (decoder) residual modes</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#best-threshold-selection">Best threshold selection</a></li>
+<li><a class="reference internal" href="#callbacks">Callbacks</a></li>
+<li><a class="reference internal" href="#ways-to-start-training-inside-a-configured-environment-docker-container">Ways to start training inside a configured environment (Docker container)</a><ul>
+<li><a class="reference internal" href="#optuna-hyperparameter-optimisation-hpo-sweep">Optuna hyperparameter optimisation (HPO) sweep</a></li>
+<li><a class="reference internal" href="#regular-training">Regular training</a></li>
+<li><a class="reference internal" href="#multi-seed-training">Multi-seed training</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#launching-training-from-lightning-studio">Launching training from Lightning Studio</a></li>
+<li><a class="reference internal" href="#training-monitoring">Training monitoring</a><ul>
+<li><a class="reference internal" href="#mlflow">MLFlow</a></li>
+<li><a class="reference internal" href="#gpu-utilisation">GPU utilisation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#reproducibility">Reproducibility</a><ul>
+<li><a class="reference internal" href="#how-the-same-seed-value-is-guaranteed">How the same seed value is guaranteed</a></li>
+<li><a class="reference internal" href="#platform-notes-deterministic-mode-apple-silicon-mps">Platform notes — Deterministic mode (Apple Silicon / MPS)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="_static/documentation_options.js?v=8d563738"></script>
+    <script src="_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js?v=4a39c7ea"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/collapse_nbinput.js"></script>
+    </body>
+</html>

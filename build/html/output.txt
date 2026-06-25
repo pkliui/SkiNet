@@ -1,0 +1,1 @@
+data.md:7: [redirected with Found] https://doi.org/10.48550/arXiv.1710.05006 to https://arxiv.org/abs/1710.05006

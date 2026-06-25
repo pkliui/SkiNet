@@ -1,0 +1,658 @@
+<!doctype html>
+<html class="no-js" lang="en" data-content_root="../">
+  <head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Logging and Callbacks" href="logging_callbacks.html"><link rel="prev" title="Data Configs" href="data_configs.html">
+
+    <!-- Generated with Sphinx 9.1.0 and Furo 2025.12.19 -->
+        <title>Datasets API Reference - SkiNet 1.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
+    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css?v=13237357" />
+    <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
+    <link rel="stylesheet" type="text/css" href="../_static/collapse_nbinput.css" />
+    
+    
+
+
+<style>
+  body {
+    --color-code-background: #f2f2f2;
+  --color-code-foreground: #1e1e1e;
+  
+  }
+  @media not print {
+    body[data-theme="dark"] {
+      --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+    }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
+  }
+</style></head>
+  <body>
+    
+    <script>
+      document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+    </script>
+    
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+  <symbol id="svg-toc" viewBox="0 0 24 24">
+    <title>Contents</title>
+    <svg stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 1024 1024">
+      <path d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM115.4 518.9L271.7 642c5.8 4.6 14.4.5 14.4-6.9V388.9c0-7.4-8.5-11.5-14.4-6.9L115.4 505.1a8.74 8.74 0 0 0 0 13.8z"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+    <title>Menu</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-menu">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+    <title>Expand</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather-chevron-right">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  </symbol>
+  <symbol id="svg-sun" viewBox="0 0 24 24">
+    <title>Light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather-sun">
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon" viewBox="0 0 24 24">
+    <title>Dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-moon">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />
+    </svg>
+  </symbol>
+  <symbol id="svg-sun-with-moon" viewBox="0 0 24 24">
+    <title>Auto light/dark, in light mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path style="opacity: 50%" d="M 5.411 14.504 C 5.471 14.504 5.532 14.504 5.591 14.504 C 3.639 16.319 4.383 19.569 6.931 20.352 C 7.693 20.586 8.512 20.551 9.25 20.252 C 8.023 23.207 4.056 23.725 2.11 21.184 C 0.166 18.642 1.702 14.949 4.874 14.536 C 5.051 14.512 5.231 14.5 5.411 14.5 L 5.411 14.504 Z"/>
+      <line x1="14.5" y1="3.25" x2="14.5" y2="1.25"/>
+      <line x1="14.5" y1="15.85" x2="14.5" y2="17.85"/>
+      <line x1="10.044" y1="5.094" x2="8.63" y2="3.68"/>
+      <line x1="19" y1="14.05" x2="20.414" y2="15.464"/>
+      <line x1="8.2" y1="9.55" x2="6.2" y2="9.55"/>
+      <line x1="20.8" y1="9.55" x2="22.8" y2="9.55"/>
+      <line x1="10.044" y1="14.006" x2="8.63" y2="15.42"/>
+      <line x1="19" y1="5.05" x2="20.414" y2="3.636"/>
+      <circle cx="14.5" cy="9.55" r="3.6"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-moon-with-sun" viewBox="0 0 24 24">
+    <title>Auto light/dark, in dark mode</title>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round"
+      class="icon-custom-derived-from-feather-sun-and-tabler-moon">
+      <path d="M 8.282 7.007 C 8.385 7.007 8.494 7.007 8.595 7.007 C 5.18 10.184 6.481 15.869 10.942 17.24 C 12.275 17.648 13.706 17.589 15 17.066 C 12.851 22.236 5.91 23.143 2.505 18.696 C -0.897 14.249 1.791 7.786 7.342 7.063 C 7.652 7.021 7.965 7 8.282 7 L 8.282 7.007 Z"/>
+      <line style="opacity: 50%" x1="18" y1="3.705" x2="18" y2="2.5"/>
+      <line style="opacity: 50%" x1="18" y1="11.295" x2="18" y2="12.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="4.816" x2="14.464" y2="3.964"/>
+      <line style="opacity: 50%" x1="20.711" y1="10.212" x2="21.563" y2="11.063"/>
+      <line style="opacity: 50%" x1="14.205" y1="7.5" x2="13.001" y2="7.5"/>
+      <line style="opacity: 50%" x1="21.795" y1="7.5" x2="23" y2="7.5"/>
+      <line style="opacity: 50%" x1="15.316" y1="10.184" x2="14.464" y2="11.036"/>
+      <line style="opacity: 50%" x1="20.711" y1="4.789" x2="21.563" y2="3.937"/>
+      <circle style="opacity: 50%" cx="18" cy="7.5" r="2.169"/>
+    </svg>
+  </symbol>
+  <symbol id="svg-pencil" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-pencil-code">
+      <path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" />
+      <path d="M13.5 6.5l4 4" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+  <symbol id="svg-eye" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="icon-tabler-eye-code">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" />
+      <path
+        d="M11.11 17.958c-3.209 -.307 -5.91 -2.293 -8.11 -5.958c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6c-.21 .352 -.427 .688 -.647 1.008" />
+      <path d="M20 21l2 -2l-2 -2" />
+      <path d="M17 17l-2 2l2 2" />
+    </svg>
+  </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation" aria-label="Toggle site navigation sidebar">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc" aria-label="Toggle table of contents sidebar">
+<label class="overlay sidebar-overlay" for="__navigation"></label>
+<label class="overlay toc-overlay" for="__toc"></label>
+
+<a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
+
+
+
+<div class="page">
+  <header class="mobile-header">
+    <div class="header-left">
+      <label class="nav-overlay-icon" for="__navigation">
+        <span class="icon"><svg><use href="#svg-menu"></use></svg></span>
+      </label>
+    </div>
+    <div class="header-center">
+      <a href="../index.html"><div class="brand">SkiNet 1.0.0 documentation</div></a>
+    </div>
+    <div class="header-right">
+      <div class="theme-toggle-container theme-toggle-header">
+        <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+          <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+          <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+          <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+          <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+        </button>
+      </div>
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
+        <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+      </label>
+    </div>
+  </header>
+  <aside class="sidebar-drawer">
+    <div class="sidebar-container">
+      
+      <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
+  
+  <span class="sidebar-brand-text">SkiNet 1.0.0 documentation</span>
+  
+</a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+  <input type="hidden" name="check_keywords" value="yes">
+  <input type="hidden" name="area" value="default">
+</form>
+<div id="searchbox"></div><div class="sidebar-scroll"><div class="sidebar-tree">
+  <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../development.html">Software development process</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../azure_setup.html">Azure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../config.html">Configuration guide</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Data</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../data.html">Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../datasets.html">Datasets and dataloaders</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../dataloaders.html">Note about modification to PyTorch’s default dataloader</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Model and training</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../network_design.html">Network Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../training.html">Training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../export_onnx.html">Exporting to ONNX</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Performance and debugging</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../debugging.html">Debugging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../plotting.html">Plotting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Contributing</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../documentation.html">Documentation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Experiments</span></p>
+<ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../experiments.html">Experiments</a><input aria-label="Toggle navigation of Experiments" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../E0-batch-size-sweep-analysis-unet2d-isic2017.html">E0 — Batch Size Sweep Analysis — UNet2D on ISIC 2017</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../E1-isic2017-unet2d-modelsw-summary-all-lr.html">E1 — ISIC 2017 UNet2D Architecture Sweep Summary (all Learning Rates)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../E2-isic2017-unet2d-model-tiebreak-10seed.html">E2 — ISIC 2017 UNet2D Architecture Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../E3-isic2017-unet2d-scheduler-tiebreak-10seed.html">E3 — ISIC 2017 UNet2D LR-Schedule Tie-Break (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../E4-isic2017-unet2d-threshold-selection.html">E4 — ISIC 2017 UNet2D Decision-Threshold Selection (10 seeds)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../EF_isic2017_unet2d_E4_production_model_selection.html">EF — ISIC 2017 UNet2D: held-out test score for the selected E4 checkpoint</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../api_config.html">API Reference</a><input aria-label="Toggle navigation of API Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="experiment_config.html">Experiment Config</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lightning_model.html">Lightning Model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="model_configs.html">Model Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="train_configs.html">Training Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="training_utils.html">Training Utilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="transform_configs.html">Transform Configs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="data_configs.html">Data Configs</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Datasets API Reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logging_callbacks.html">Logging and Callbacks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="experiment_keys.html">Experiment Keys</a></li>
+<li class="toctree-l2"><a class="reference internal" href="optuna_utils.html">Optuna Utilities</a></li>
+</ul>
+</li>
+</ul>
+
+</div>
+</div>
+
+      </div>
+      
+    </div>
+  </aside>
+  <div class="main">
+    <div class="content">
+      <div class="article-container">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="view-this-page">
+  <a class="muted-link" href="../_sources/api/api_datasets.rst.txt" title="View this page">
+    <svg><use href="#svg-eye"></use></svg>
+    <span class="visually-hidden">View this page</span>
+  </a>
+</div>
+<div class="theme-toggle-container theme-toggle-content">
+            <button class="theme-toggle" aria-label="Toggle Light / Dark / Auto color theme">
+              <svg class="theme-icon-when-auto-light"><use href="#svg-sun-with-moon"></use></svg>
+              <svg class="theme-icon-when-auto-dark"><use href="#svg-moon-with-sun"></use></svg>
+              <svg class="theme-icon-when-dark"><use href="#svg-moon"></use></svg>
+              <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
+            </button>
+          </div>
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
+            <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
+          </label>
+        </div>
+        <article role="main" id="furo-main-content">
+          <section id="datasets-api-reference">
+<h1>Datasets API Reference<a class="headerlink" href="#datasets-api-reference" title="Link to this heading">¶</a></h1>
+<section id="dataset-factories">
+<h2>Dataset Factories<a class="headerlink" href="#dataset-factories" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.dataset_factory.create_segmentation_datasets_from_config">
+<span class="sig-prename descclassname"><span class="pre">SkiNet.ML.datasets.dataset_factory.</span></span><span class="sig-name descname"><span class="pre">create_segmentation_datasets_from_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig" title="SkiNet.ML.configs.experiment_config.ExperimentConfig"><span class="pre">ExperimentConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DatasetSplit</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset" title="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset"><span class="pre">SegmentationDataset</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/dataset_factory.html#create_segmentation_datasets_from_config"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#SkiNet.ML.datasets.dataset_factory.create_segmentation_datasets_from_config" title="Link to this definition">¶</a></dt>
+<dd><p>Typed entry point for segmentation experiments.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dataset_splits</span> <span class="o">=</span> <span class="n">create_segmentation_datasets_from_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset_splits</span><span class="o">.</span><span class="n">train</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Experiment configuration for a segmentation experiment.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">DatasetSplit[SegmentationDataset]</span></code> with typed train/val/test splits.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">SkiNet.ML.datasets.dataset_factory.</span></span><span class="sig-name descname"><span class="pre">DatasetSplit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TDataset_co</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TDataset_co</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TDataset_co</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">splits</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">DataFrameSplits</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/dataset_factory.html#DatasetSplit"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">TDataset_co</span></code>]</p>
+<p>Group of train/validation/test datasets created from one split operation.</p>
+<p>The container is generic so orchestration code can use the common shape while
+experiment-specific code can preserve concrete dataset types</p>
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">train</span></span></dt>
+<dd><p>Dataset for model training.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SkiNet.ML.utils.typing_utils.TDataset_co</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">val</span></span></dt>
+<dd><p>Dataset for validation and early stopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SkiNet.ML.utils.typing_utils.TDataset_co</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">test</span></span></dt>
+<dd><p>Dataset for final held-out evaluation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SkiNet.ML.utils.typing_utils.TDataset_co</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">splits</span></span></dt>
+<dd><p>Raw dataframe splits used to construct the train, val, test datasets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>SkiNet.Utils.data.split_data.DataFrameSplits</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">splits</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">DataFrameSplits</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">test</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">TDataset_co</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">TDataset_co</span></span></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">val</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">TDataset_co</span></span></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.dataset_factory.DatasetFactory">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">SkiNet.ML.datasets.dataset_factory.</span></span><span class="sig-name descname"><span class="pre">DatasetFactory</span></span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/dataset_factory.html#DatasetFactory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#SkiNet.ML.datasets.dataset_factory.DatasetFactory" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Generic" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Generic</span></code></a>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">TDataset_co</span></code>]</p>
+<p>Base class for experiment-specific dataset factories.</p>
+<p>A concrete factory is responsible for deriving the split dataframes,
+selecting the transforms for each workflow stage, and returning a typed
+<code class="docutils literal notranslate"><span class="pre">DatasetSplit</span></code> for the requested experiment type.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.dataset_factory.DatasetFactory.create_datasets">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">create_datasets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig" title="SkiNet.ML.configs.experiment_config.ExperimentConfig"><span class="pre">ExperimentConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DatasetSplit</span><span class="p"><span class="pre">[</span></span><span class="pre">TDataset_co</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/dataset_factory.html#DatasetFactory.create_datasets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#SkiNet.ML.datasets.dataset_factory.DatasetFactory.create_datasets" title="Link to this definition">¶</a></dt>
+<dd><p>Build the full train/val/test dataset container for <code class="docutils literal notranslate"><span class="pre">config</span></code>.</p>
+<p>Implementations are responsible for:
+- splitting the source metadata into train/val/test dataframes
+- resolving the appropriate transforms per split
+- constructing and returning a typed <code class="docutils literal notranslate"><span class="pre">DatasetSplit</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Fully resolved experiment configuration.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">DatasetSplit</span></code> typed to this factory’s dataset type.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">SkiNet.ML.datasets.dataset_factory.</span></span><span class="sig-name descname"><span class="pre">SegmentationDatasetFactory</span></span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/dataset_factory.html#SegmentationDatasetFactory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#SkiNet.ML.datasets.dataset_factory.DatasetFactory" title="SkiNet.ML.datasets.dataset_factory.DatasetFactory"><code class="xref py py-class docutils literal notranslate"><span class="pre">DatasetFactory</span></code></a>[<a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset" title="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SegmentationDataset</span></code></a>]</p>
+<p>Factory that creates <code class="docutils literal notranslate"><span class="pre">SegmentationDataset</span></code> objects for each workflow split.
+Use <code class="docutils literal notranslate"><span class="pre">create_segmentation_datasets_from_config</span></code> for the typed public entry point.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory.create_datasets">
+<span class="sig-name descname"><span class="pre">create_datasets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="experiment_config.html#SkiNet.ML.configs.experiment_config.ExperimentConfig" title="SkiNet.ML.configs.experiment_config.ExperimentConfig"><span class="pre">ExperimentConfig</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DatasetSplit</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset" title="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset"><span class="pre">SegmentationDataset</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/dataset_factory.html#SegmentationDatasetFactory.create_datasets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory.create_datasets" title="Link to this definition">¶</a></dt>
+<dd><p>Create the segmentation train/validation/test datasets for <code class="docutils literal notranslate"><span class="pre">config</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Experiment configuration containing segmentation metadata,
+split configuration, transform configuration, and data root.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A <code class="docutils literal notranslate"><span class="pre">DatasetSplit[SegmentationDataset]</span></code> containing typed train, val,
+and test splits alongside the raw <code class="docutils literal notranslate"><span class="pre">DataFrameSplits</span></code> used to construct them.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="datasets">
+<h2>Datasets<a class="headerlink" href="#datasets" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.segmentation_dataset.BaseDataset">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">SkiNet.ML.datasets.segmentation_dataset.</span></span><span class="sig-name descname"><span class="pre">BaseDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/segmentation_dataset.html#BaseDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#SkiNet.ML.datasets.segmentation_dataset.BaseDataset" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch v2.12)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.14)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">SkiNet.ML.datasets.segmentation_dataset.</span></span><span class="sig-name descname"><span class="pre">SegmentationDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/segmentation_dataset.html#SegmentationDataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset" title="Link to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.BaseDataset" title="SkiNet.ML.datasets.segmentation_dataset.BaseDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseDataset</span></code></a></p>
+<p>Dataset for semantic segmentation tasks.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.data_root">
+<span class="sig-name descname"><span class="pre">data_root</span></span><a class="headerlink" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.data_root" title="Link to this definition">¶</a></dt>
+<dd><p>Data root path where images and masks are stored, derived from the experiment configuration.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.dataframe">
+<span class="sig-name descname"><span class="pre">dataframe</span></span><a class="headerlink" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.dataframe" title="Link to this definition">¶</a></dt>
+<dd><p>A pandas DataFrame containing metadata for the dataset. It should be provided directly
+for train, val and test modes of operation after deriving it as a respective subset of the full dataframe.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.get_raw_sample">
+<span class="sig-name descname"><span class="pre">get_raw_sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sample</span></span></span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/segmentation_dataset.html#SegmentationDataset.get_raw_sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.get_raw_sample" title="Link to this definition">¶</a></dt>
+<dd><p>Load a raw sample from disk without applying any transforms.
+Useful for visualization and debugging without mutating dataset.transform.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.get_sample_item">
+<span class="sig-name descname"><span class="pre">get_sample_item</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><span class="pre">dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.14)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/SkiNet/ML/datasets/segmentation_dataset.html#SegmentationDataset.get_sample_item"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.get_sample_item" title="Link to this definition">¶</a></dt>
+<dd><p>Get a single sample item by index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing the image tensor, mask tensor, and sample specifications for the specified index.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.sample_ids">
+<span class="sig-name descname"><span class="pre">sample_ids</span></span><a class="headerlink" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.sample_ids" title="Link to this definition">¶</a></dt>
+<dd><p>A list of sample IDs corresponding to the valid samples in the dataset, derived from the sample specifications.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.sample_specs">
+<span class="sig-name descname"><span class="pre">sample_specs</span></span><a class="headerlink" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.sample_specs" title="Link to this definition">¶</a></dt>
+<dd><p>A dictionary containing the valid sample specifications, derived from the DataFrame, such as image and mask paths and metadata.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<hr class="docutils" />
+<section id="supported-experiment-types">
+<h2>Supported Experiment Types<a class="headerlink" href="#supported-experiment-types" title="Link to this heading">¶</a></h2>
+<div class="table-wrapper docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p><code class="docutils literal notranslate"><span class="pre">ExperimentType</span></code></p></th>
+<th class="head"><p>Factory</p></th>
+<th class="head"><p>Dataset class</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">SEGMENTATION</span></code></p></td>
+<td><p><a class="reference internal" href="#SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory" title="SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory"><code class="xref py py-class docutils literal notranslate"><span class="pre">SegmentationDatasetFactory</span></code></a></p></td>
+<td><p><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset" title="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SegmentationDataset</span></code></a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<hr class="docutils" />
+<section id="extending">
+<h2>Extending<a class="headerlink" href="#extending" title="Link to this heading">¶</a></h2>
+<p>To support a new experiment type, subclass
+<a class="reference internal" href="#SkiNet.ML.datasets.dataset_factory.DatasetFactory" title="SkiNet.ML.datasets.dataset_factory.DatasetFactory"><code class="xref py py-class docutils literal notranslate"><span class="pre">DatasetFactory</span></code></a> and register it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">ClassificationDatasetFactory</span><span class="p">(</span><span class="n">DatasetFactory</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_datasets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">ExperimentConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DatasetSplit</span><span class="p">:</span>
+        <span class="o">...</span>
+
+<span class="n">dataset_factories</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">ExperimentType</span><span class="o">.</span><span class="n">SEGMENTATION</span><span class="p">:</span>   <span class="n">SegmentationDatasetFactory</span><span class="p">(),</span>
+    <span class="n">ExperimentType</span><span class="o">.</span><span class="n">CLASSIFICATION</span><span class="p">:</span> <span class="n">ClassificationDatasetFactory</span><span class="p">(),</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="internals">
+<h2>Internals<a class="headerlink" href="#internals" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="#SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory.create_datasets" title="SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory.create_datasets"><code class="xref py py-meth docutils literal notranslate"><span class="pre">create_datasets()</span></code></a>
+runs three steps in order:</p>
+<ol class="arabic simple">
+<li><p><strong>Split</strong> — <code class="xref py py-func docutils literal notranslate"><span class="pre">split_segmentation_metadata()</span></code>
+partitions the metadata DataFrame into train/val/test subsets.</p></li>
+<li><p><strong>Transform</strong> — <code class="xref py py-func docutils literal notranslate"><span class="pre">get_transform_from_config()</span></code>
+builds mode-specific augmentation pipelines.</p></li>
+<li><p><strong>Construct</strong> — one <a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset" title="SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">SegmentationDataset</span></code></a>
+is instantiated per split, each receiving its corresponding dataframe,
+transform branch, and <code class="xref py py-class docutils literal notranslate"><span class="pre">MLWorkflowState</span></code> mode.</p></li>
+</ol>
+</section>
+</section>
+
+        </article>
+      </div>
+      <footer>
+        
+        <div class="related-pages">
+          <a class="next-page" href="logging_callbacks.html">
+              <div class="page-info">
+                <div class="context">
+                  <span>Next</span>
+                </div>
+                <div class="title">Logging and Callbacks</div>
+              </div>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+            </a>
+          <a class="prev-page" href="data_configs.html">
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
+              <div class="page-info">
+                <div class="context">
+                  <span>Previous</span>
+                </div>
+                
+                <div class="title">Data Configs</div>
+                
+              </div>
+            </a>
+        </div>
+        <div class="bottom-of-page">
+          <div class="left-details">
+            <div class="copyright">
+                Copyright &#169; 2024, Pavel Kliuiev
+            </div>
+            Made with <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a class="muted-link" href="https://pradyunsg.me">@pradyunsg</a>'s
+            
+            <a href="https://github.com/pradyunsg/furo">Furo</a>
+            
+          </div>
+          <div class="right-details">
+            
+          </div>
+        </div>
+        
+      </footer>
+    </div>
+    <aside class="toc-drawer">
+      
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Datasets API Reference</a><ul>
+<li><a class="reference internal" href="#dataset-factories">Dataset Factories</a><ul>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.dataset_factory.create_segmentation_datasets_from_config"><code class="docutils literal notranslate"><span class="pre">create_segmentation_datasets_from_config()</span></code></a></li>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.dataset_factory.DatasetFactory"><code class="docutils literal notranslate"><span class="pre">DatasetFactory</span></code></a><ul>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.dataset_factory.DatasetFactory.create_datasets"><code class="docutils literal notranslate"><span class="pre">DatasetFactory.create_datasets()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory"><code class="docutils literal notranslate"><span class="pre">SegmentationDatasetFactory</span></code></a><ul>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.dataset_factory.SegmentationDatasetFactory.create_datasets"><code class="docutils literal notranslate"><span class="pre">SegmentationDatasetFactory.create_datasets()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#datasets">Datasets</a><ul>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.BaseDataset"><code class="docutils literal notranslate"><span class="pre">BaseDataset</span></code></a></li>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset"><code class="docutils literal notranslate"><span class="pre">SegmentationDataset</span></code></a><ul>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.data_root"><code class="docutils literal notranslate"><span class="pre">SegmentationDataset.data_root</span></code></a></li>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.dataframe"><code class="docutils literal notranslate"><span class="pre">SegmentationDataset.dataframe</span></code></a></li>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.get_raw_sample"><code class="docutils literal notranslate"><span class="pre">SegmentationDataset.get_raw_sample()</span></code></a></li>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.get_sample_item"><code class="docutils literal notranslate"><span class="pre">SegmentationDataset.get_sample_item()</span></code></a></li>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.sample_ids"><code class="docutils literal notranslate"><span class="pre">SegmentationDataset.sample_ids</span></code></a></li>
+<li><a class="reference internal" href="#SkiNet.ML.datasets.segmentation_dataset.SegmentationDataset.sample_specs"><code class="docutils literal notranslate"><span class="pre">SegmentationDataset.sample_specs</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#supported-experiment-types">Supported Experiment Types</a></li>
+<li><a class="reference internal" href="#extending">Extending</a></li>
+<li><a class="reference internal" href="#internals">Internals</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
+      
+      
+    </aside>
+  </div>
+</div><script src="../_static/documentation_options.js?v=8d563738"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="../_static/togglebutton.js?v=4a39c7ea"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/collapse_nbinput.js"></script>
+    </body>
+</html>

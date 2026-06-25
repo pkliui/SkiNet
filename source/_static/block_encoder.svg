@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 80" aria-label="Classical encoder block data-flow diagram">
+  <text x="5" y="45" font-size="13" font-family="system-ui,sans-serif" fill="#444" font-style="italic">x</text>
+  <line x1="19" y1="42" x2="29" y2="42" stroke="#666" stroke-width="1.5"/>
+  <polygon points="29,38 37,42 29,46" fill="#666"/>
+
+  <rect x="37" y="22" width="90" height="40" rx="4" fill="#dce8f8" stroke="#4a7cc7" stroke-width="1.3"/>
+  <text x="82" y="37" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a3a6b" font-weight="600">Conv 3×3</text>
+  <text x="82" y="52" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#4a7cc7">stride 2</text>
+  <line x1="127" y1="42" x2="137" y2="42" stroke="#666" stroke-width="1.5"/>
+  <polygon points="137,38 145,42 137,46" fill="#666"/>
+
+  <rect x="145" y="22" width="38" height="40" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
+  <text x="164" y="47" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">BN</text>
+  <line x1="183" y1="42" x2="193" y2="42" stroke="#666" stroke-width="1.5"/>
+  <polygon points="193,38 201,42 193,46" fill="#666"/>
+
+  <rect x="201" y="22" width="50" height="40" rx="4" fill="#fde8cc" stroke="#cc7a00" stroke-width="1.3"/>
+  <text x="226" y="47" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#7a3a00" font-weight="600">ReLU</text>
+  <line x1="251" y1="42" x2="263" y2="42" stroke="#666" stroke-width="1.5"/>
+  <polygon points="263,38 271,42 263,46" fill="#666"/>
+
+  <rect x="271" y="22" width="90" height="40" rx="4" fill="#dce8f8" stroke="#4a7cc7" stroke-width="1.3"/>
+  <text x="316" y="37" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#1a3a6b" font-weight="600">Conv 3×3</text>
+  <text x="316" y="52" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#4a7cc7">stride 1</text>
+  <line x1="361" y1="42" x2="371" y2="42" stroke="#666" stroke-width="1.5"/>
+  <polygon points="371,38 379,42 371,46" fill="#666"/>
+
+  <rect x="379" y="22" width="38" height="40" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
+  <text x="398" y="47" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">BN</text>
+  <line x1="417" y1="42" x2="427" y2="42" stroke="#666" stroke-width="1.5"/>
+  <polygon points="427,38 435,42 427,46" fill="#666"/>
+
+  <rect x="435" y="22" width="50" height="40" rx="4" fill="#fde8cc" stroke="#cc7a00" stroke-width="1.3"/>
+  <text x="460" y="47" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#7a3a00" font-weight="600">ReLU</text>
+  <line x1="485" y1="42" x2="497" y2="42" stroke="#666" stroke-width="1.5"/>
+  <polygon points="497,38 505,42 497,46" fill="#666"/>
+
+  <text x="508" y="47" font-size="13" font-family="system-ui,sans-serif" fill="#444">out</text>
+</svg>

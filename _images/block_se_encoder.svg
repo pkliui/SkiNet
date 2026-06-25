@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 150" aria-label="Squeeze-and-Excitation pre-activation residual encoder block data-flow diagram">
+  <!-- input x with shortcut tap -->
+  <text x="6" y="62" font-size="13" font-family="system-ui,sans-serif" fill="#444" font-style="italic">x</text>
+  <line x1="16" y1="58" x2="30" y2="58" stroke="#666" stroke-width="1.5"/>
+  <polygon points="30,54 38,58 30,62" fill="#666"/>
+  <circle cx="24" cy="58" r="2.5" fill="#666"/>
+
+  <!-- BN -->
+  <rect x="38" y="40" width="36" height="36" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
+  <text x="56" y="63" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">BN</text>
+  <line x1="74" y1="58" x2="84" y2="58" stroke="#666" stroke-width="1.5"/>
+  <polygon points="84,54 92,58 84,62" fill="#666"/>
+
+  <!-- ReLU -->
+  <rect x="92" y="40" width="48" height="36" rx="4" fill="#fde8cc" stroke="#cc7a00" stroke-width="1.3"/>
+  <text x="116" y="63" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#7a3a00" font-weight="600">ReLU</text>
+  <line x1="140" y1="58" x2="150" y2="58" stroke="#666" stroke-width="1.5"/>
+  <polygon points="150,54 158,58 150,62" fill="#666"/>
+
+  <!-- Conv downsample (stride 2) -->
+  <rect x="158" y="40" width="72" height="36" rx="4" fill="#dce8f8" stroke="#4a7cc7" stroke-width="1.3"/>
+  <text x="194" y="55" text-anchor="middle" font-size="10" font-family="system-ui,sans-serif" fill="#1a3a6b" font-weight="600">Conv 3×3</text>
+  <text x="194" y="68" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#4a7cc7">stride 2 ↓</text>
+  <line x1="230" y1="58" x2="240" y2="58" stroke="#666" stroke-width="1.5"/>
+  <polygon points="240,54 248,58 240,62" fill="#666"/>
+
+  <!-- BN -->
+  <rect x="248" y="40" width="36" height="36" rx="4" fill="#d8edd8" stroke="#3a7a3a" stroke-width="1.3"/>
+  <text x="266" y="63" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#1a4a1a" font-weight="600">BN</text>
+  <line x1="284" y1="58" x2="294" y2="58" stroke="#666" stroke-width="1.5"/>
+  <polygon points="294,54 302,58 294,62" fill="#666"/>
+
+  <!-- ReLU -->
+  <rect x="302" y="40" width="48" height="36" rx="4" fill="#fde8cc" stroke="#cc7a00" stroke-width="1.3"/>
+  <text x="326" y="63" text-anchor="middle" font-size="12" font-family="system-ui,sans-serif" fill="#7a3a00" font-weight="600">ReLU</text>
+  <line x1="350" y1="58" x2="360" y2="58" stroke="#666" stroke-width="1.5"/>
+  <polygon points="360,54 368,58 360,62" fill="#666"/>
+
+  <!-- Conv refine (stride 1) -->
+  <rect x="368" y="40" width="72" height="36" rx="4" fill="#dce8f8" stroke="#4a7cc7" stroke-width="1.3"/>
+  <text x="404" y="55" text-anchor="middle" font-size="10" font-family="system-ui,sans-serif" fill="#1a3a6b" font-weight="600">Conv 3×3</text>
+  <text x="404" y="68" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#4a7cc7">stride 1</text>
+  <line x1="440" y1="58" x2="451" y2="58" stroke="#666" stroke-width="1.5"/>
+  <polygon points="451,54 459,58 451,62" fill="#666"/>
+
+  <!-- SE channel attention -->
+  <rect x="459" y="40" width="74" height="36" rx="4" fill="#f8e0ee" stroke="#b0408a" stroke-width="1.3"/>
+  <text x="496" y="55" text-anchor="middle" font-size="11" font-family="system-ui,sans-serif" fill="#7a1a5a" font-weight="600">SE</text>
+  <text x="496" y="68" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#b0408a">channel attn</text>
+  <line x1="533" y1="58" x2="544" y2="58" stroke="#666" stroke-width="1.5"/>
+  <polygon points="544,54 552,58 544,62" fill="#666"/>
+
+  <!-- ⊕ -->
+  <circle cx="565" cy="58" r="13" fill="#fffacc" stroke="#aa8800" stroke-width="1.5"/>
+  <text x="565" y="63" text-anchor="middle" font-size="15" font-family="system-ui,sans-serif" fill="#5a4000">⊕</text>
+  <line x1="578" y1="58" x2="590" y2="58" stroke="#666" stroke-width="1.5"/>
+  <polygon points="590,54 598,58 590,62" fill="#666"/>
+  <text x="601" y="62" font-size="13" font-family="system-ui,sans-serif" fill="#444">y</text>
+
+  <!-- projection shortcut P -->
+  <line x1="24" y1="58" x2="24" y2="120" stroke="#999" stroke-width="1.3"/>
+  <line x1="24" y1="120" x2="150" y2="120" stroke="#999" stroke-width="1.3"/>
+  <rect x="150" y="102" width="92" height="36" rx="4" fill="#e8e0f8" stroke="#6655bb" stroke-width="1.3"/>
+  <text x="196" y="117" text-anchor="middle" font-size="10" font-family="system-ui,sans-serif" fill="#2a2070" font-weight="600">Conv 1×1</text>
+  <text x="196" y="129" text-anchor="middle" font-size="9"  font-family="system-ui,sans-serif" fill="#6655bb">stride 2 (proj P)</text>
+  <line x1="242" y1="120" x2="565" y2="120" stroke="#999" stroke-width="1.3"/>
+  <line x1="565" y1="120" x2="565" y2="79" stroke="#999" stroke-width="1.3"/>
+  <polygon points="561,79 569,79 565,71" fill="#999"/>
+</svg>

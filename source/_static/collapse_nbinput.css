@@ -1,0 +1,37 @@
+/* Collapsible notebook code-input cells (paired with collapse_nbinput.js).
+   nbsphinx renders each input cell as a `.nbinput` container; the JS wraps the
+   code in `.nb-collapse-body` and adds a `.nb-collapse-toggle` button. */
+
+.nb-collapse-toggle {
+    display: inline-block;
+    margin: 0.2em 0 0.4em 0;
+    padding: 0.15em 0.7em;
+    font-size: 0.85em;
+    font-family: var(--font-stack--monospace, monospace);
+    cursor: pointer;
+    border: 1px solid var(--color-background-border, #ccc);
+    border-radius: 0.3em;
+    background: var(--color-code-background, #f5f5f5);
+    color: var(--color-foreground-muted, #555);
+}
+
+.nb-collapse-toggle:hover {
+    border-color: var(--color-foreground-muted, #888);
+}
+
+.nb-collapse-toggle::before {
+    content: "▸ ";
+}
+
+.nb-collapse-toggle[aria-expanded="true"]::before {
+    content: "▾ ";
+}
+
+/* Collapsed by default: hide the code body until expanded. */
+.nb-collapse-body {
+    display: none;
+}
+
+.nb-collapse-body.nb-expanded {
+    display: block;
+}
